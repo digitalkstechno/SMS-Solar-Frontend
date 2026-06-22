@@ -8,6 +8,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import smsLogo from '../../public/logo/solar (2).png';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -71,20 +72,15 @@ export default function LoginPage() {
           <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full border border-white/10 -translate-y-1/2 translate-x-1/4"></div>
 
           <div className="relative z-10 flex flex-col h-full">
-            {/* Logo area */}
-            <div className="mb-10 flex flex-col items-start">
-              <div className="flex items-center gap-1 font-bold text-2xl tracking-wider">
-                <span className="text-white">ELink</span>
-                <span className="text-xs align-top super text-white/80">&reg;</span>
+            {/* Logo & Title area */}
+            <div className="mb-12 flex items-center gap-6">
+              <div className="shrink-0 bg-white px-5 py-3 rounded-2xl shadow-2xl border border-white/20">
+                <img src={smsLogo.src} alt="ELink Logo" className="h-12 w-auto object-contain mix-blend-darken" />
               </div>
-              <div className="text-white/80 font-bold tracking-widest text-sm pl-16 -mt-1">
-                SOLAR
-              </div>
+              <h1 className="text-[2.5rem] leading-tight font-extrabold text-white">
+                Welcome to ELink Solar
+              </h1>
             </div>
-
-            <h1 className="text-[2.5rem] leading-tight font-extrabold text-white mb-4">
-              ELink Solar
-            </h1>
             <p className="text-gray-300 text-sm mb-12 max-w-sm leading-relaxed">
               Complete Solar Business Management Platform for the Modern Era
             </p>
@@ -169,11 +165,10 @@ export default function LoginPage() {
                     value={formik.values.email}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    className={`w-full rounded-xl border py-3.5 pl-11 pr-4 text-sm text-white placeholder-gray-500 outline-none transition bg-[#251f32] ${
-                      formik.touched.email && formik.errors.email
+                    className={`w-full rounded-xl border py-3.5 pl-11 pr-4 text-sm text-white placeholder-gray-500 outline-none transition bg-[#251f32] ${formik.touched.email && formik.errors.email
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                         : 'border-white/5 focus:border-primary-500 focus:ring-primary-500/20'
-                    } focus:ring-2`}
+                      } focus:ring-2`}
                     placeholder="Enter your email address"
                   />
                 </div>
@@ -199,11 +194,10 @@ export default function LoginPage() {
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     placeholder="Enter your password"
-                    className={`w-full rounded-xl border py-3.5 pl-11 pr-12 text-sm text-white placeholder-gray-500 outline-none transition bg-[#251f32] ${
-                      formik.touched.password && formik.errors.password
+                    className={`w-full rounded-xl border py-3.5 pl-11 pr-12 text-sm text-white placeholder-gray-500 outline-none transition bg-[#251f32] ${formik.touched.password && formik.errors.password
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                         : 'border-white/5 focus:border-primary-500 focus:ring-primary-500/20'
-                    } focus:ring-2`}
+                      } focus:ring-2`}
                   />
                   <button
                     type="button"
@@ -239,8 +233,7 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-10 flex items-center justify-center gap-2 text-[11px] text-gray-500">
-              <Sun className="w-3.5 h-3.5 text-primary-400" />
-              <span>Powered by Solar CRM — Clean Energy, Smart Business</span>
+              <span>Powered by EMS — Complete Business Management</span>
             </div>
           </div>
         </div>
