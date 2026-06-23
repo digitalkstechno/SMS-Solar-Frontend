@@ -19,6 +19,7 @@ interface SalesExecutive {
   password: string;
   teams?: string[];
   id?: string;
+  city?: string;
 }
 
 interface SalesExecutiveFormProps {
@@ -86,6 +87,7 @@ export default function SalesExecutiveForm({
       email: '',
       password: '',
       department: '' as string,
+      city: '' as string,
       id: undefined as string | number | undefined,
       image: undefined as string | undefined,
     },
@@ -118,6 +120,7 @@ export default function SalesExecutiveForm({
         email: initialData.email || '',
         password: '',
         department: initialData.department || [],
+        city: (initialData as any).city || '',
       });
 
       if (initialData.image) {
@@ -182,6 +185,7 @@ export default function SalesExecutiveForm({
       payload.append('email', values.email);
 
       payload.append('department', values.department || '');
+      payload.append('city', values.city || '');
 
       // Only send password when creating or when it's changed (not empty)
       if (values.password.trim()) {
@@ -347,7 +351,7 @@ export default function SalesExecutiveForm({
           />
         </div>
 
-        {/* Department */}
+        {/* Department and City */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormSelect
             label="Department"
@@ -358,6 +362,22 @@ export default function SalesExecutiveForm({
             options={department?.map((d: any) => ({ value: d._id, label: d.roleName || d.name })) || []}
             placeholder="— Select Department —"
             error={formik.touched.department && formik.errors.department ? formik.errors.department : undefined}
+          />
+          <FormSelect
+            label="City"
+            name="city"
+            value={formik.values.city}
+            onChange={(e) => { formik.setFieldValue('city', e); formik.setFieldTouched('city', true, false); }}
+            onBlur={formik.handleBlur}
+            options={[
+              { value: 'surat', label: 'Surat' },
+              { value: 'vapi', label: 'Vapi' },
+              { value: 'navsari', label: 'Navsari' },
+              { value: 'vadodra', label: 'Vadodara' },
+              { value: 'bharuch', label: 'Bharuch' },
+            ]}
+            placeholder="— Select City —"
+            error={formik.touched.city && formik.errors.city ? formik.errors.city : undefined}
           />
         </div>
       </form>

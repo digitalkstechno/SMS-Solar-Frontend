@@ -242,23 +242,46 @@ export function useLeadsData(
       console.error('fetchCounts error:', e);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const fetchMeta = useCallback(async () => {
     try {
-      const [stRes, staffRes, meRes] = await Promise.all([
+      const [stRes, meRes] = await Promise.all([
         axios.get(baseUrl.leadStatuses, { headers: getHeaders() }),
-        axios.get(baseUrl.getAllUsers, { headers: getHeaders() }),
-        axios.get(baseUrl.me, { headers: getHeaders() })
+        axios.get(baseUrl.currentStaff || baseUrl.me, { headers: getHeaders() })
       ]);
       setStatuses(stRes.data?.data ?? []);
-      setStaffMembers(staffRes.data?.data ?? []);
       const role = meRes.data?.data?.role || {};
       const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
       const lp = rawPerms.lead || {};
+      const sp = rawPerms.setup || {};
       setPermissions({
         create: !!lp.create, update: !!lp.update, delete: !!lp.delete,
         readAll: !!lp.readAll, readOwn: !!lp.readOwn,
       });
+
+      if (sp.readAll) {
+        try {
+          const staffRes = await axios.get(baseUrl.getAllUsers, { headers: getHeaders() });
+          setStaffMembers(staffRes.data?.data ?? []);
+        } catch (err) {
+          console.error('Failed to fetch staff members:', err);
+          setStaffMembers([]);
+        }
+      } else {
+        const currentUser = meRes.data?.data;
+        if (currentUser) {
+          setStaffMembers([
+            {
+              _id: currentUser._id,
+              fullName: currentUser.fullName,
+              email: currentUser.email,
+              phone: currentUser.phone,
+              status: currentUser.status,
+            } as any
+          ]);
+        } else {
+          setStaffMembers([]);
+        }
+      }
     } catch (e) {
       console.error('fetchMeta error:', e);
     }

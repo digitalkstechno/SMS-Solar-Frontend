@@ -104,7 +104,7 @@
     const [isUpdateLeadDialogOpen, setIsUpdateLeadDialogOpen] = useState(false);
     const [selectedLeadForUpdate, setSelectedLeadForUpdate] = useState<any>(null);
 
-    const [permissions, setPermissions] = useState<{ readAll: boolean; readOwn: boolean }>({ readAll: false, readOwn: false });
+    const [permissions, setPermissions] = useState<{ readAll: boolean; readOwn: boolean; viewStaff: boolean }>({ readAll: false, readOwn: false, viewStaff: false });
     const [user, setUser] = useState<any>(null);
     const [greeting, setGreeting] = useState("");
     const [fromDate, setFromDate] = useState("");
@@ -123,9 +123,11 @@
           const role = staff.role || {};
           const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
           const lp = rawPerms.lead || {};
+          const sp = rawPerms.setup || {};
           setPermissions({
             readAll: !!lp.readAll,
             readOwn: !!lp.readOwn,
+            viewStaff: !!sp.readAll,
           });
 
           // Set greeting based on time
@@ -311,6 +313,8 @@
         // Only fetch staff stats if they have readAll
         if (permissions.readAll) {
           fetchLeadsBySource();
+        }
+        if (permissions.viewStaff) {
           fetchStaffPerformance();
         }
       }

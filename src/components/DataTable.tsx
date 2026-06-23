@@ -55,7 +55,8 @@ interface DataTableProps<T> {
     label: string;
     onClick: (row: T) => void;
     icon?: React.ReactNode;
-    color?: 'blue' | 'green' | 'red' | 'orange' | 'purple';
+    color?: 'blue' | 'green' | 'red' | 'orange' | 'purple' | 'emerald';
+    show?: (row: T) => boolean;
   }[];
 }
 
@@ -334,7 +335,7 @@ export default function DataTable<T extends Record<string, any>>({
                         )}
 
                         {/* EXTRA ACTIONS */}
-                        {extraActions?.map((act, idx) => {
+                        {extraActions?.filter(act => !act.show || act.show(row)).map((act, idx) => {
                           const colors: Record<string, { base: string; hover: string; ring: string }> = {
                             blue:    { base: 'text-blue-600',   hover: 'hover:bg-blue-600',   ring: 'focus:ring-blue-500' },
                             green:   { base: 'text-green-600',  hover: 'hover:bg-green-600',  ring: 'focus:ring-green-500' },

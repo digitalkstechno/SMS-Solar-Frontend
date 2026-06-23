@@ -18,6 +18,7 @@ interface StaffManagement {
   password: string;
   status: string;
   department: string;
+  city?: string;
 }
 
 // ──────────────────────────────────────────────── Debounce hook
@@ -126,6 +127,7 @@ export function UserContent() {
           password: item.password ? '******' : '',
           status: item.status || 'Active',
           department: deptName || '-',
+          city: item.city || '-',
         };
       });
 
@@ -220,6 +222,11 @@ export function UserContent() {
       key: 'department',
       label: 'DEPARTMENT',
     },
+    {
+      key: 'city',
+      label: 'CITY',
+      render: (value) => <span className="capitalize">{value}</span>,
+    },
   ];
 
   const handleAdd = () => {
@@ -245,6 +252,7 @@ export function UserContent() {
         password: '',
         status: item.status || 'Active',
         department: item.department || '',
+        city: item.city || '',
       };
 
       setEditingExecutive(formatted);
