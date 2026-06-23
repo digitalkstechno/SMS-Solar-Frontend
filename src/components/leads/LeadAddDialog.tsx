@@ -82,6 +82,7 @@ export default function LeadAddDialog({
       projecttype: Yup.string(),
       address: Yup.string().max(500, 'Address must not exceed 500 characters'),
       locationLink: Yup.string(),
+      city: Yup.string(),
       leadStatus: Yup.string(),
       assignedTo: Yup.string(),
       isActive: Yup.boolean(),
@@ -108,6 +109,7 @@ export default function LeadAddDialog({
       projecttype: '',
       address: '',
       locationLink: '',
+      city: '',
       leadStatus: '',
       assignedTo: '',
       isActive: true,
@@ -128,6 +130,7 @@ export default function LeadAddDialog({
           projecttype: values.projecttype,
           address: values.address.trim(),
           locationLink: values.locationLink.trim(),
+          city: values.city,
           leadStatus: values.leadStatus,
           assignedTo: values.assignedTo,
           isActive: values.isActive,
@@ -220,6 +223,7 @@ export default function LeadAddDialog({
               projecttype: dataToUse.projecttype || '',
               address: dataToUse.address || '',
               locationLink: dataToUse.locationLink || '',
+              city: dataToUse.city || '',
               leadStatus: typeof dataToUse.leadStatus === 'string' ? dataToUse.leadStatus : (dataToUse.leadStatus?._id || ''),
               assignedTo: typeof dataToUse.assignedTo === 'string' ? dataToUse.assignedTo : (dataToUse.assignedTo?._id || ''),
               isActive: dataToUse.isActive ?? true,
@@ -238,6 +242,11 @@ export default function LeadAddDialog({
     formik.setStatus(null);
   }, [isOpen, mode, initialData]);
 
+
+  const filteredStaff = useMemo(() => {
+    if (!formik.values.city) return staff;
+    return staff.filter((u: any) => u.city?.toLowerCase() === formik.values.city.toLowerCase());
+  }, [staff, formik.values.city]);
 
   const getFieldError = (fieldName: string) => {
     const isTouched = formik.touched[fieldName as keyof typeof formik.touched];
@@ -395,6 +404,33 @@ export default function LeadAddDialog({
               />
             </div>
 
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FormSelect
+                label="City"
+                name="city"
+                value={formik.values.city || ''}
+                onChange={(val) => {
+                  formik.setFieldValue('city', val);
+                  if (val) {
+                    const selectedUser = staff.find((u: any) => u._id === formik.values.assignedTo);
+                    if (selectedUser && selectedUser.city?.toLowerCase() !== val.toLowerCase()) {
+                      formik.setFieldValue('assignedTo', '');
+                    }
+                  }
+                }}
+                onBlur={() => formik.setFieldTouched('city')}
+                options={[
+                  { value: 'surat', label: 'Surat' },
+                  { value: 'vapi', label: 'Vapi' },
+                  { value: 'navsari', label: 'Navsari' },
+                  { value: 'vadodra', label: 'Vadodara' },
+                  { value: 'bharuch', label: 'Bharuch' },
+                ]}
+                error={getFieldError('city')}
+                placeholder="Select City"
+              />
+            </div>
+
             <FormInput
               label="Address"
               name="address"
@@ -433,7 +469,7 @@ export default function LeadAddDialog({
                 value={formik.values.assignedTo}
                 onChange={(val) => { formik.setFieldValue('assignedTo', val); }}
                 onBlur={() => formik.setFieldTouched('assignedTo')}
-                options={staff.map((s) => ({ value: s._id, label: `${s.fullName || s.name!}${s.departmentName ? ` (${s.departmentName})` : ''}` }))}
+                options={filteredStaff.map((s) => ({ value: s._id, label: `${s.fullName || s.name!}${s.departmentName ? ` (${s.departmentName})` : ''}` }))}
                 error={getFieldError('assignedTo')}
                 placeholder="Select User"
                 required={requiredFields.includes('assignedTo')}
@@ -452,7 +488,7 @@ export default function LeadAddDialog({
                   { value: 'commercial', label: 'Commercial' },
                 ]}
                 error={getFieldError('projecttype')}
-                placeholder="Select Lead Refrance"
+                placeholder="Select Project Type"
               />
             </div>
 

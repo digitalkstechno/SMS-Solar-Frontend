@@ -479,6 +479,7 @@ import { Eye, Download, FileText, Image, File, FileSpreadsheet, Search, Trash2 }
 import { getFileIcon } from '@/utills/utill';
 import LeadQuotationDialog from './LeadQuotationDialog';
 import { FormSelect } from '../ui/FormSelect';
+import { generateQuotationPDF } from '@/utills/quotationPdfGenerator';
 
 interface Props {
   lead: ApiLead | null;
@@ -511,9 +512,11 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh }: P
   const [localFollowUps, setLocalFollowUps] = useState<FollowUp[]>([]);
   const [localAttachments, setLocalAttachments] = useState<any[]>([]);
   const [localActivities, setLocalActivities] = useState<any[]>([]);
+  const [localQuotations, setLocalQuotations] = useState<any[]>([]);
   const [staffInfo, setStaffInfo] = useState<any>(null);
   const [followUpSearch, setFollowUpSearch] = useState('');
   const [quotationOpen, setQuotationOpen] = useState(false);
+  const [editQuotationIndex, setEditQuotationIndex] = useState<number | null>(null);
   const [reassignOpen, setReassignOpen] = useState(false);
   const [reassignUsers, setReassignUsers] = useState<any[]>([]);
   const [selectedReassignUser, setSelectedReassignUser] = useState('');
@@ -530,6 +533,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh }: P
       setLocalAttachments(lead.attachments || []);
       setLocalActivities(lead.activities || []);
       setLocalAssignedTo(lead.assignedTo || null);
+      setLocalQuotations(lead.quotations || []);
     }
   }, [lead]);
 
@@ -720,6 +724,23 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh }: P
       onRefresh();
     } catch (e: any) {
       toast.error(e?.response?.data?.message || 'Failed to delete attachment');
+    }
+  };
+
+  const handleDeleteQuotation = async (indexToDelete: number) => {
+    if (!lead || !window.confirm('Are you sure you want to delete this quotation?')) return;
+    try {
+      const updatedQuotations = (localQuotations || []).filter((_, i) => i !== indexToDelete);
+      await axios.put(
+        `${baseUrl.updateLead}/${lead._id}`,
+        { quotations: updatedQuotations },
+        { headers: { Authorization: `Bearer ${getAuthToken()}` } }
+      );
+      setLocalQuotations(updatedQuotations);
+      toast.success('Quotation deleted successfully');
+      onRefresh();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Failed to delete quotation');
     }
   };
 
@@ -1188,33 +1209,87 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh }: P
             )}
 
             {/* Quotation */}
-            <div className="rounded-lg bg-gray-50 p-4">
-              <div className="mb-3 text-sm font-bold text-gray-800">Quotation</div>
-              <div className="flex gap-4">
-                {lead.quotation && (lead.quotation.solarModule || lead.quotation.inverter || (lead.quotation.options && lead.quotation.options.length > 0) || (lead.quotation.rows && lead.quotation.rows.length > 0)) ? (
-                  <>
-                    <button
-                      onClick={() => setQuotationOpen(true)}
-                      className="flex-1 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-primary flex items-center justify-center gap-2"
-                    >
-                      <FileText className="h-4 w-4" /> Edit Quotation
-                    </button>
-                    {/* <button
-                      onClick={() => { toast.info('Download PDF feature coming soon'); }}
-                      className="flex-1 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-primary flex items-center justify-center gap-2"
-                    >
-                      <Download className="h-4 w-4" /> Download Quotation
-                    </button> */}
-                  </>
-                ) : (
-                  <button
-                    onClick={() => setQuotationOpen(true)}
-                    className="w-full rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-primary flex items-center justify-center gap-2"
-                  >
-                    <FileText className="h-4 w-4" /> Add Quotation
-                  </button>
-                )}
+            <div className="rounded-lg bg-gray-50 p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-bold text-gray-800">Quotations</div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditQuotationIndex(null);
+                    setQuotationOpen(true);
+                  }}
+                  className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-primary flex items-center justify-center gap-2 transition-colors"
+                >
+                  <FileText className="h-4 w-4" /> Add Quotation
+                </button>
               </div>
+
+              {localQuotations && localQuotations.length > 0 ? (
+                <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="bg-gray-100 border-b border-gray-200">
+                        <th className="px-4 py-2.5 font-semibold text-gray-600 text-center w-12">#</th>
+                        <th className="px-4 py-2.5 font-semibold text-gray-600">Date</th>
+                        <th className="px-4 py-2.5 font-semibold text-gray-600">Solar Module</th>
+                        <th className="px-4 py-2.5 font-semibold text-gray-600">Inverter</th>
+                        <th className="px-4 py-2.5 font-semibold text-gray-600 text-right pr-6">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {localQuotations.map((q, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-4 py-3 text-center text-gray-500 font-medium">{idx + 1}</td>
+                          <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                            {q.createdAt
+                              ? new Date(q.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).replace(',', '').toUpperCase()
+                              : (q.date
+                                ? new Date(q.date).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).replace(',', '').toUpperCase()
+                                : 'N/A')}
+                          </td>
+                          <td className="px-4 py-3 text-gray-700 truncate max-w-[150px]" title={q.solarModule}>{q.solarModule || '-'}</td>
+                          <td className="px-4 py-3 text-gray-700 truncate max-w-[150px]" title={q.inverter}>{q.inverter || '-'}</td>
+                          <td className="px-4 py-3 text-right pr-6 whitespace-nowrap">
+                            <div className="inline-flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => generateQuotationPDF({ ...lead, quotation: q })}
+                                className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                title="Download PDF"
+                              >
+                                <Download className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditQuotationIndex(idx);
+                                  setQuotationOpen(true);
+                                }}
+                                className="p-1 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                                title="Edit Quotation"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteQuotation(idx)}
+                                className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                title="Delete Quotation"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-6 text-center bg-white rounded-xl border border-gray-100 border-dashed">
+                  <p className="text-gray-400 text-sm">No quotations added yet.</p>
+                </div>
+              )}
             </div>
 
             {/* Activity Log */}
@@ -1258,9 +1333,27 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh }: P
       {lead && (
         <LeadQuotationDialog
           isOpen={quotationOpen}
-          onClose={() => setQuotationOpen(false)}
-          lead={lead}
-          onRefresh={onRefresh}
+          onClose={() => {
+            setQuotationOpen(false);
+            setEditQuotationIndex(null);
+          }}
+          lead={{ ...lead, quotations: localQuotations }}
+          onRefresh={async () => {
+            try {
+              const res = await axios.get(`${baseUrl.findLeadById}/${lead._id}`, {
+                headers: { Authorization: `Bearer ${getAuthToken()}` }
+              });
+              const updatedLead = res.data.data;
+              if (updatedLead) {
+                setLocalQuotations(updatedLead.quotations || []);
+                setLocalActivities(updatedLead.activities || []);
+              }
+            } catch (err) {
+              console.error("Failed to refetch lead details", err);
+            }
+            onRefresh();
+          }}
+          editIndex={editQuotationIndex}
         />
       )}
 

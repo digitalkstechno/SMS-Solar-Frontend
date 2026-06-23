@@ -5,17 +5,29 @@ import { baseUrl, getAuthToken } from '@/config';
 import { toast } from 'react-toastify';
 import { ApiLead } from './types';
 import FormInput from '../ui/Input';
-import { Trash2, X } from 'lucide-react';
+import { Trash2, X, Download } from 'lucide-react';
+import { generateQuotationPDF } from '@/utills/quotationPdfGenerator';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   lead: ApiLead;
   onRefresh: () => void;
+  editIndex?: number | null;
 }
 
-export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh }: Props) {
-  const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
+export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, editIndex }: Props) {
+  const getLocalDatetimeString = (dateObj: Date = new Date()) => {
+    const pad = (num: number) => String(num).padStart(2, '0');
+    const year = dateObj.getFullYear();
+    const month = pad(dateObj.getMonth() + 1);
+    const day = pad(dateObj.getDate());
+    const hours = pad(dateObj.getHours());
+    const minutes = pad(dateObj.getMinutes());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  const [date, setDate] = useState(getLocalDatetimeString());
   const [solarModule, setSolarModule] = useState('');
   const [inverter, setInverter] = useState('');
   const [options, setOptions] = useState<string[]>(['OPTION 1']);
@@ -31,54 +43,49 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh }
 
   useEffect(() => {
     if (isOpen && lead?._id) {
-      // First populate with whatever we have in the prop
-      if (lead.quotation) {
-        setDate(lead.quotation.date ? new Date(lead.quotation.date).toISOString().substring(0, 10) : new Date().toISOString().substring(0, 10));
-        setSolarModule(lead.quotation.solarModule || '');
-        setInverter(lead.quotation.inverter || '');
-        if (lead.quotation.options && lead.quotation.options.length > 0) {
-          setOptions(lead.quotation.options);
-        }
-        if (lead.quotation.rows && lead.quotation.rows.length > 0) {
-          setRows(lead.quotation.rows);
-        }
+      let qData = null;
+      if (editIndex !== null && editIndex !== undefined && lead.quotations && lead.quotations[editIndex]) {
+        qData = lead.quotations[editIndex];
       }
 
-      // Then fetch the latest from server in case the prop is stale
-      axios.get(`${baseUrl.findLeadById}/${lead._id}`, {
-        headers: { Authorization: `Bearer ${getAuthToken()}` }
-      }).then(res => {
-        const latestLead = res.data.data;
-        if (latestLead?.quotation && (latestLead.quotation.solarModule || latestLead.quotation.inverter || (latestLead.quotation.options && latestLead.quotation.options.length > 0) || (latestLead.quotation.rows && latestLead.quotation.rows.length > 0))) {
-          setDate(latestLead.quotation.date ? new Date(latestLead.quotation.date).toISOString().substring(0, 10) : new Date().toISOString().substring(0, 10));
-          setSolarModule(latestLead.quotation.solarModule || '');
-          setInverter(latestLead.quotation.inverter || '');
-          if (latestLead.quotation.options && latestLead.quotation.options.length > 0) {
-            setOptions(latestLead.quotation.options);
-          }
-          if (latestLead.quotation.rows && latestLead.quotation.rows.length > 0) {
-            setRows(latestLead.quotation.rows);
-          }
+      if (qData) {
+        setDate(qData.date ? getLocalDatetimeString(new Date(qData.date)) : getLocalDatetimeString());
+        setSolarModule(qData.solarModule || '');
+        setInverter(qData.inverter || '');
+        if (qData.options && qData.options.length > 0) {
+          setOptions(qData.options);
+        } else {
+          setOptions(['OPTION 1']);
         }
-      }).catch(err => {
-        console.error("Failed to fetch latest quotation data", err);
-      });
-    } else if (isOpen) {
-      // Reset
-      setDate(new Date().toISOString().substring(0, 10));
-      setSolarModule('');
-      setInverter('');
-      setOptions(['OPTION 1']);
-      setRows([
-        { title: 'SOLAR MODULE MAKE', values: [''] },
-        { title: 'SYSTEM CAPACITY', values: [''] },
-        { title: 'METER CHARGES REGISTRATION', values: [''] },
-        { title: 'CUSTOMER PAYABLE AMOUNT', values: [''] },
-        { title: 'SUBSIDY', values: [''] },
-        { title: 'EFFECTIVE PRICE', values: [''] },
-      ]);
+        if (qData.rows && qData.rows.length > 0) {
+          setRows(qData.rows);
+        } else {
+          setRows([
+            { title: 'SOLAR MODULE MAKE', values: [''] },
+            { title: 'SYSTEM CAPACITY', values: [''] },
+            { title: 'METER CHARGES REGISTRATION', values: [''] },
+            { title: 'CUSTOMER PAYABLE AMOUNT', values: [''] },
+            { title: 'SUBSIDY', values: [''] },
+            { title: 'EFFECTIVE PRICE', values: [''] },
+          ]);
+        }
+      } else {
+        // Reset for new quotation
+        setDate(getLocalDatetimeString());
+        setSolarModule('');
+        setInverter('');
+        setOptions(['OPTION 1']);
+        setRows([
+          { title: 'SOLAR MODULE MAKE', values: [''] },
+          { title: 'SYSTEM CAPACITY', values: [''] },
+          { title: 'METER CHARGES REGISTRATION', values: [''] },
+          { title: 'CUSTOMER PAYABLE AMOUNT', values: [''] },
+          { title: 'SUBSIDY', values: [''] },
+          { title: 'EFFECTIVE PRICE', values: [''] },
+        ]);
+      }
     }
-  }, [isOpen, lead]);
+  }, [isOpen, lead, editIndex]);
 
   const handleAddOption = () => {
     if (options.length >= 5) {
@@ -97,14 +104,25 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh }
   const handleSave = async () => {
     setSaving(true);
     try {
+      const oldQuotation = editIndex !== null && editIndex !== undefined && lead.quotations ? lead.quotations[editIndex] : null;
+      const newQuotation = {
+        date,
+        solarModule,
+        inverter,
+        options,
+        rows,
+        createdAt: oldQuotation?.createdAt || new Date().toISOString()
+      };
+
+      const currentQuotations = Array.isArray(lead.quotations) ? [...lead.quotations] : [];
+      if (editIndex !== null && editIndex !== undefined) {
+        currentQuotations[editIndex] = newQuotation;
+      } else {
+        currentQuotations.push(newQuotation);
+      }
+
       const payload = {
-        quotation: {
-          date,
-          solarModule,
-          inverter,
-          options,
-          rows
-        }
+        quotations: currentQuotations
       };
 
       await axios.put(
@@ -113,7 +131,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh }
         { headers: { Authorization: `Bearer ${getAuthToken()}` } }
       );
       
-      toast.success('Quotation saved successfully');
+      toast.success(editIndex !== null && editIndex !== undefined ? 'Quotation updated successfully' : 'Quotation saved successfully');
       onRefresh();
       onClose();
     } catch (e: any) {
@@ -132,6 +150,18 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh }
   const handleRowValueChange = (rowIndex: number, colIndex: number, val: string) => {
     const newRows = [...rows];
     newRows[rowIndex].values[colIndex] = val;
+
+    // Automatically calculate EFFECTIVE PRICE = CUSTOMER PAYABLE AMOUNT - SUBSIDY
+    const customerPayableIdx = newRows.findIndex(r => r.title.trim().toUpperCase() === 'CUSTOMER PAYABLE AMOUNT');
+    const subsidyIdx = newRows.findIndex(r => r.title.trim().toUpperCase() === 'SUBSIDY');
+    const effectivePriceIdx = newRows.findIndex(r => r.title.trim().toUpperCase() === 'EFFECTIVE PRICE');
+
+    if (effectivePriceIdx !== -1 && customerPayableIdx !== -1 && subsidyIdx !== -1) {
+      const payableVal = parseFloat(newRows[customerPayableIdx].values[colIndex]) || 0;
+      const subsidyVal = parseFloat(newRows[subsidyIdx].values[colIndex]) || 0;
+      newRows[effectivePriceIdx].values[colIndex] = (payableVal - subsidyVal).toString();
+    }
+
     setRows(newRows);
   };
 
@@ -168,7 +198,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh }
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      title={lead?.quotation && (lead.quotation.solarModule || lead.quotation.inverter || (lead.quotation.options && lead.quotation.options.length > 0) || (lead.quotation.rows && lead.quotation.rows.length > 0)) ? 'Edit Quotation' : 'Add Quotation'}
+      title={editIndex !== null && editIndex !== undefined ? 'Edit Quotation' : 'Add Quotation'}
       footer={
         <>
           <button
@@ -176,6 +206,21 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh }
             className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             Cancel
+          </button>
+          <button
+            onClick={() => generateQuotationPDF({
+              ...lead,
+              quotation: {
+                date,
+                solarModule,
+                inverter,
+                options,
+                rows
+              }
+            })}
+            className="rounded-lg border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-100 flex items-center gap-1.5"
+          >
+            <Download className="h-4 w-4" /> Download PDF
           </button>
           <button
             onClick={handleSave}
@@ -192,7 +237,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh }
           <FormInput
             label="Date *"
             name="date"
-            type="date"
+            type="datetime-local"
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
@@ -295,9 +340,9 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh }
             <div className="p-2 bg-gray-50">
               <button
                 onClick={handleAddRow}
-                className="text-xs font-medium text-fuchsia-600 hover:text-fuchsia-800 flex items-center gap-1"
+                className="text-xs font-semibold text-fuchsia-600 hover:text-fuchsia-800 flex items-center gap-1 border border-fuchsia-200 rounded px-2.5 py-1 bg-fuchsia-50 hover:bg-fuchsia-100 transition-colors"
               >
-                + Add Row
+                + Add More
               </button>
             </div>
           </div>

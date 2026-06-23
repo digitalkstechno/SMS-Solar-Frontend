@@ -81,6 +81,16 @@ export type ApiLead = {
       values: string[];
     }[];
   };
+  quotations?: {
+    date: string;
+    solarModule: string;
+    inverter: string;
+    options: string[];
+    rows: {
+      title: string;
+      values: string[];
+    }[];
+  }[];
 };
 
 export type AddLeadForm = {

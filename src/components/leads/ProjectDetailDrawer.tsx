@@ -122,15 +122,15 @@ const FileInput = ({ fieldKey, label, accept = '*', isPdf = false, existingFiles
       <label className="block text-xs font-bold text-gray-700 mb-1.5">
         {label} <span className="text-red-700">*</span>
       </label>
-      <label className={`group flex items-center gap-3 cursor-pointer rounded-xl border-2 border-dashed bg-gray-50 px-4 py-3 hover:border-orange-300 hover:bg-orange-50/30 transition ${hasError ? 'border-red-700 ring-2 ring-red-300' : 'border-gray-200'}`}>
-        <div className="flex-shrink-0 rounded-lg bg-gray-100 p-2 group-hover:bg-orange-100 transition">
+      <label className={`group flex items-center gap-3 cursor-pointer rounded-xl border-2 border-dashed bg-gray-50 px-4 py-3 hover:border-fuchsia-300 hover:bg-fuchsia-50/30 transition ${hasError ? 'border-red-700 ring-2 ring-red-300' : 'border-gray-200'}`}>
+        <div className="flex-shrink-0 rounded-lg bg-gray-100 p-2 group-hover:bg-fuchsia-100 transition">
           {isPdf
-            ? <FileText className="h-4 w-4 text-gray-500 group-hover:text-orange-500" />
-            : <Image className="h-4 w-4 text-gray-500 group-hover:text-orange-500" />}
+            ? <FileText className="h-4 w-4 text-gray-500 group-hover:text-secondary" />
+            : <Image className="h-4 w-4 text-gray-500 group-hover:text-secondary" />}
         </div>
         <div className="flex-1 min-w-0">
           {selected ? (
-            <p className="text-xs font-medium text-orange-600 truncate">{selected.name}</p>
+            <p className="text-xs font-medium text-secondary truncate">{selected.name}</p>
           ) : existing ? (
             <p className="text-xs text-green-600 flex items-center gap-1">
               <CheckCircle className="h-3 w-3" /> {existing.originalName || 'File uploaded'}
@@ -160,7 +160,7 @@ const FileInput = ({ fieldKey, label, accept = '*', isPdf = false, existingFiles
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 mb-4">
-      <div className="h-1 w-6 rounded-full bg-orange-500" />
+      <div className="h-1 w-6 rounded-full bg-secondary" />
       <h3 className="text-sm font-bold text-gray-800">{children}</h3>
     </div>
   );
@@ -367,7 +367,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
         className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-4xl flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {/* Header */}
-        <div className="flex items-center gap-4 border-b border-gray-100 bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-5">
+        <div className="flex items-center gap-4 border-b border-gray-100 bg-secondary px-6 py-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
             <Zap className="h-5 w-5 text-white" />
           </div>
@@ -380,7 +380,6 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
           </button>
         </div>
 
-        {/* Section Tabs */}
         <div className="flex border-b border-gray-100 bg-gray-50 overflow-x-auto">
           {sections.map((s) => (
             <button
@@ -388,7 +387,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
               onClick={() => setActiveSection(s.key)}
               className={`flex flex-1 min-w-[80px] flex-col items-center gap-1 px-3 py-3 text-xs font-medium transition whitespace-nowrap ${
                 activeSection === s.key
-                  ? 'border-b-2 border-orange-500 text-orange-600 bg-white'
+                  ? 'border-b-2 border-secondary text-secondary bg-white'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
               }`}
             >
@@ -402,7 +401,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {loading ? (
             <div className="flex h-40 items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-200 border-t-orange-500" />
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-fuchsia-200 border-t-secondary" />
             </div>
           ) : (
             <>
@@ -410,6 +409,68 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
               {activeSection === 'project' && (
                 <div>
                   <SectionTitle>Add Details After Project Done</SectionTitle>
+
+                  {lead?.quotations && lead.quotations.length > 0 && (
+                    <div className="mb-6 max-w-md">
+                      <FormSelect
+                        label="Select Quotation (Auto-fill)"
+                        name="selectQuotation"
+                        options={lead.quotations.map((q, idx) => ({
+                          value: idx.toString(),
+                          label: `Quotation #${idx + 1} - ${q.solarModule || 'Module'} / ${q.inverter || 'Inverter'} (${q.date ? new Date(q.date).toLocaleDateString('en-GB') : 'N/A'})`
+                        }))}
+                        value=""
+                        onChange={(val) => {
+                          const idx = parseInt(val);
+                          const selectedQ = lead.quotations?.[idx];
+                          if (selectedQ) {
+                            const getValByKeywords = (keywords: string[]) => {
+                              const row = selectedQ.rows?.find((r: any) => {
+                                const title = (r.title || '').toUpperCase();
+                                return keywords.some(kw => title.includes(kw));
+                              });
+                              return row?.values?.[0] || '';
+                            };
+
+                            const panelMake = getValByKeywords(['SOLAR MODULE MAKE', 'PANEL MAKE', 'MODULE MAKE', 'PANEL BRAND', 'MODULE BRAND', 'MODULE COMPANY']);
+                            const panelWp = getValByKeywords(['SYSTEM CAPACITY', 'PANEL WP', 'WATTAGE', 'PANEL CAPACITY']);
+                            const noOfPanel = getValByKeywords(['NO OF PANEL', 'NO. OF PANELS', 'PANEL COUNT', 'PANEL QTY', 'PANEL QUANTITY']);
+                            const inverterMake = getValByKeywords(['INVERTER MAKE', 'INVERTER BRAND', 'INVERTER COMPANY', 'INVERTER']);
+                            const inverterKw = getValByKeywords(['INVERTER KW', 'INVERTER CAPACITY', 'INVERTER SIZE', 'KW']);
+                            const discom = getValByKeywords(['DISCOM', 'DISCOM NAME']);
+                            const roof = getValByKeywords(['ROOF', 'ROOF TYPE', 'INSTALLATION ROOF']);
+                            const connType = getValByKeywords(['CONNECTION', 'CONNECTION TYPE']);
+                            const wiringType = getValByKeywords(['WIRING', 'WIRING TYPE']);
+                            const homeFloor = getValByKeywords(['FLOOR', 'HOME FLOOR']);
+                            const hdgiPipeMake = getValByKeywords(['PIPE MAKE', 'PIPE BRAND', 'HDGI PIPE', 'HDGI']);
+                            const projectAmount = getValByKeywords(['CUSTOMER PAYABLE AMOUNT', 'PROJECT AMOUNT', 'TOTAL PRICE', 'PAYABLE AMOUNT', 'AMOUNT']);
+
+                            const finalPanelMake = panelMake || selectedQ.solarModule || '';
+                            const finalInverterMake = inverterMake || selectedQ.inverter || '';
+
+                            setForm(prev => ({
+                              ...prev,
+                              panelMake: finalPanelMake,
+                              panelWp: panelWp || prev.panelWp,
+                              noOfPanel: noOfPanel || prev.noOfPanel,
+                              inverterMake: finalInverterMake,
+                              inverterKw: inverterKw || prev.inverterKw,
+                              discom: discom ? discom.toLowerCase() : prev.discom,
+                              installationRoof: roof ? roof.toLowerCase() : prev.installationRoof,
+                              consumerConnectionType: connType ? connType.toLowerCase() : prev.consumerConnectionType,
+                              wiringType: wiringType ? wiringType.toLowerCase() : prev.wiringType,
+                              homeFloor: homeFloor || prev.homeFloor,
+                              hdgiPipeMake: hdgiPipeMake || prev.hdgiPipeMake,
+                              projectAmount: projectAmount || prev.projectAmount,
+                            }));
+                            toast.success('Project details populated from quotation!');
+                          }
+                        }}
+                        placeholder="Choose a quotation to auto-fill..."
+                      />
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <FormInput
                       label="Lead Reference"
@@ -771,7 +832,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
               <button
                 key={s.key}
                 onClick={() => setActiveSection(s.key)}
-                className={`h-2 rounded-full transition-all ${activeSection === s.key ? 'bg-orange-500 w-5' : 'w-2 bg-gray-300 hover:bg-gray-400'}`}
+                className={`h-2 rounded-full transition-all ${activeSection === s.key ? 'bg-secondary w-5' : 'w-2 bg-gray-300 hover:bg-gray-400'}`}
               />
             ))}
           </div>
@@ -783,10 +844,10 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
             >
               Cancel
             </button>
-            <button
+             <button
               onClick={handleSubmit}
               disabled={saving}
-              className="flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-orange-600 active:scale-95 transition disabled:opacity-60"
+              className="flex items-center gap-2 rounded-lg bg-secondary px-5 py-2 text-sm font-semibold text-white shadow hover:bg-primary active:scale-95 transition disabled:opacity-60"
             >
               {saving ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" />
