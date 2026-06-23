@@ -210,6 +210,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
     }
   };
 
+  
   return (
     <>
       {/* Overlay for mobile when sidebar is open */}
