@@ -6,6 +6,7 @@ export const baseUrl = {
   userAdd: `${API}users/add-user`,
   userUpdate: `${API}users`,
   getAllUsers: `${API}users`,
+  getSalesExecutives: `${API}users/sales-executives`,
   findUserById: `${API}users`,
   deleteUser: `${API}users`,
   currentStaff: `${API}staff/me`,
