@@ -80,6 +80,7 @@ textarea {
   background-color: #ffffff;
   outline: none;
   transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  accent-color: var(--primary) !important;
 }
 
 input::placeholder,
@@ -256,4 +257,67 @@ button {
   animation: shimmer 2s infinite linear;
   background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
   background-size: 200% 100%;
+}
+
+/* Custom Date input layout to hide webkit calendar indicators and make whole input field clickable */
+.custom-date-input {
+  position: relative;
+}
+
+.custom-date-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  color: transparent;
+  background: transparent;
+  cursor: pointer;
+  z-index: 10;
+}
+
+/* Styling overrides for react-datepicker to match theme color */
+.react-datepicker__day--selected,
+.react-datepicker__day--range-start,
+.react-datepicker__day--range-end,
+.react-datepicker__day--keyboard-selected {
+  background-color: var(--secondary) !important;
+  color: #ffffff !important;
+  border-radius: 0.375rem !important;
+}
+
+/* Subtle background for dates in-between the selected range */
+.react-datepicker__day--in-range:not(.react-datepicker__day--range-start):not(.react-datepicker__day--range-end),
+.react-datepicker__day--in-selecting-range:not(.react-datepicker__day--selecting-range-start):not(.react-datepicker__day--selecting-range-end) {
+  background-color: rgba(166, 60, 113, 0.15) !important;
+  color: var(--secondary) !important;
+  border-radius: 0 !important;
+}
+
+/* Hover styles for dates */
+.react-datepicker__day:hover,
+.react-datepicker__day--selecting-range-start:hover,
+.react-datepicker__day--selecting-range-end:hover {
+  background-color: var(--secondary) !important;
+  color: #ffffff !important;
+  border-radius: 0.375rem !important;
+}
+
+/* Styling for keyboard navigation focus */
+.react-datepicker__day--keyboard-selected:hover {
+  background-color: var(--secondary) !important;
+  color: #ffffff !important;
+}
+
+/* Ensure the calendar popup is shown on top of the table and other elements */
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}
+
+/* Date picker input field focus style: normal black border instead of the theme purple/pink border */
+.react-datepicker-wrapper input:focus {
+  border-color: #000000 !important;
+  box-shadow: 0 0 0 1px #000000 !important;
 }

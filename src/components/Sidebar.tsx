@@ -26,7 +26,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { baseUrl, clearAuthToken, getAuthToken } from "@/config";
 import Swal from 'sweetalert2';
-
+import smsLogo from '../../public/logo/solar (2).png';
 interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
@@ -232,17 +232,19 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
         <div className="flex h-full flex-col">
           {/* Header with Logo */}
           <div className={`flex items-center h-20 px-4 border-b border-white/10 ${isOpen ? 'justify-between' : 'justify-center'}`}>
-            <div className={`flex items-center gap-3 ${!isOpen && 'hidden md:flex'}`}>
-              {/* <img src="/logo/greeneable-logo.png" alt="Greeneable Logo" className={`object-contain ${isOpen ? 'h-12' : 'h-10 w-10'}`} /> */}
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#30cdb2] to-[#23abed] flex items-center justify-center font-bold text-white shadow-lg">
-                LF
-              </div>
-              {isOpen && <span className="text-lg font-semibold text-white tracking-wide">LeadFlow</span>}
-            </div>
+            {isOpen && (
+             <div className="shrink-0 bg-white px-4 py-2 rounded-xl shadow-lg border border-white/20">
+  <img
+    src={smsLogo.src}
+    alt="SMS Logo"
+    className="h-8  w-40 object-contain mix-blend-darken"
+  />
+</div>
+            )}
             
             <button
               onClick={toggleSidebar}
-              className={`p-2 rounded-lg hover:bg-white/10 transition-all duration-200 group ${!isOpen && 'md:block'}`}
+              className="p-2 rounded-lg hover:bg-white/10 transition-all duration-200 group"
               aria-label="Toggle sidebar"
             >
               {isOpen ? (

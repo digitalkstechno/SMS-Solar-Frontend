@@ -176,7 +176,7 @@ export default function DataTable<T extends Record<string, any>>({
             {onRefresh && (
               <button
                 onClick={onRefresh}
-                className="group relative inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="group relative inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 h-10 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
                 <FiRefreshCw className="h-4 w-4 transition-transform group-hover:rotate-180 duration-500" />
                 <span className="hidden sm:inline">Refresh</span>
@@ -186,7 +186,7 @@ export default function DataTable<T extends Record<string, any>>({
             {onExport && (
               <button
                 onClick={onExport}
-                className="group relative inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="group relative inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 h-10 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
                 <FiDownload className="h-4 w-4" />
                 <span className="hidden sm:inline">Export</span>
@@ -201,14 +201,14 @@ export default function DataTable<T extends Record<string, any>>({
                   placeholder="Search anything..."
                   value={searchValue}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full sm:w-80 rounded-md border border-gray-200 bg-white pl-10 pr-4 py-2.5 text-sm text-gray-700 placeholder:text-gray-400 transition-all duration-200 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 hover:border-gray-300"
+                  className="w-full sm:w-80 rounded-md border border-gray-200 bg-white pl-10 pr-4 h-10 text-sm text-gray-700 placeholder:text-gray-400 transition-all duration-200 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 hover:border-gray-300"
                 />
               </div>
             )}
 
             {/* <button
               onClick={() => setShowFilters(!showFilters)}
-              className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 h-10 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               <FiFilter className="h-4 w-4" />
               <span className="hidden sm:inline">Filters</span>
@@ -217,7 +217,7 @@ export default function DataTable<T extends Record<string, any>>({
             {addButton && (
               <button
                 onClick={addButton.onClick}
-                className="inline-flex items-center gap-2 rounded-md bg-secondary px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:scale-95"
+                className="inline-flex items-center gap-2 rounded-md bg-secondary px-5 h-10 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:scale-95"
               >
                 {addButton.icon || <span className="text-lg">+</span>}
                 {addButton.label}
