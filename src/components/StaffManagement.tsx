@@ -52,6 +52,8 @@ const validationSchema = Yup.object({
       then: (schema) => schema.required('Password is required').min(6, 'Password must be at least 6 characters'),
       otherwise: (schema) => schema.notRequired(),
     }),
+  city: Yup.string()
+    .required('City is required'),
 });
 
 export default function SalesExecutiveForm({
@@ -385,6 +387,7 @@ export default function SalesExecutiveForm({
             ]}
             placeholder="— Select City —"
             error={formik.touched.city && formik.errors.city ? formik.errors.city : undefined}
+            required
           />
           <FormSelect
             label="Status"

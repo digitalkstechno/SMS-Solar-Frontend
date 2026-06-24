@@ -88,7 +88,7 @@ export default function LeadAddDialog({
       projecttype: Yup.string(),
       address: Yup.string().max(500, 'Address must not exceed 500 characters'),
       locationLink: Yup.string(),
-      city: Yup.string(),
+      city: isSalesExecutive ? Yup.string() : Yup.string().required('City is required'),
       leadStatus: Yup.string(),
       assignedTo: Yup.string(),
       isActive: Yup.boolean(),
@@ -447,6 +447,7 @@ export default function LeadAddDialog({
                   ]}
                   error={getFieldError('city')}
                   placeholder="Select City"
+                  required
                 />
               </div>
             )}
