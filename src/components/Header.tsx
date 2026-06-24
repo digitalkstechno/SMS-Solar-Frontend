@@ -31,6 +31,12 @@ export default function Header({ toggleSidebar }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [markingAllRead, setMarkingAllRead] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{
+    fullName: string;
+    profileImage?: string;
+    email?: string;
+    role?: { roleName: string };
+  } | null>(null);
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -142,7 +148,9 @@ export default function Header({ toggleSidebar }: HeaderProps) {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        const currentUserId = res.data?.data?._id;
+        const user = res.data?.data;
+        setCurrentUser(user);
+        const currentUserId = user?._id;
         if (!currentUserId) return;
 
         // ✅ Correct socket URL (NO /api/v1/api)
@@ -533,6 +541,39 @@ export default function Header({ toggleSidebar }: HeaderProps) {
             </div>
           )}
         </div>
+        {/* User Profile Info */}
+        {currentUser && (
+          <div className="flex items-center gap-3 border-l border-gray-200 pl-4 mr-2">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-sky-900 bg-gray-50 shadow-inner">
+              {currentUser.profileImage ? (
+                <img
+                  src={currentUser.profileImage.startsWith('http') ? currentUser.profileImage : `${process.env.NEXT_PUBLIC_IMAGE_URL}/images/StaffProfileImages/${currentUser.profileImage}`}
+                  alt={currentUser.fullName}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (!target.src.includes('UserProfileImages')) {
+                      target.src = `${process.env.NEXT_PUBLIC_IMAGE_URL}/images/UserProfileImages/${currentUser.profileImage}`;
+                    }
+                  }}
+                />
+              ) : (
+                <span className="text-sm font-bold text-sky-900 uppercase">
+                  {currentUser.fullName?.charAt(0) || '?'}
+                </span>
+              )}
+            </div>
+            <div className="hidden flex-col md:flex">
+              <span className="text-sm font-semibold text-gray-900 leading-tight">
+                {currentUser.fullName}
+              </span>
+              <span className="text-[10px] font-medium text-blue-800 bg-blue-50 px-1.5 py-0.5 rounded-md mt-0.5 w-fit uppercase tracking-wider">
+                {currentUser.role?.roleName || 'Staff'}
+              </span>
+            </div>
+          </div>
+        )}
+
         <button
           onClick={handleLogout}
           className="flex items-center justify-center h-10 w-10 rounded-full hover:bg-red-50 transition-all duration-200 text-gray-600 hover:text-red-600 focus:ring-red-500 focus:ring-offset-2"

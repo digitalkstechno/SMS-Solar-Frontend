@@ -208,15 +208,33 @@ export function UserContent() {
     {
       key: 'status',
       label: 'STATUS',
-      render: (value) => (
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            value === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-          }`}
-        >
-          {value}
-        </span>
-      ),
+      render: (value, row) => {
+        const isActive = value?.toLowerCase() === 'active';
+        return (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleToggleStatus(row)}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                isActive ? 'bg-green-500' : 'bg-gray-300'
+              }`}
+              title={`Click to make ${isActive ? 'Inactive' : 'Active'}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  isActive ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
+            </button>
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}
+            >
+              {isActive ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: 'department',
@@ -228,6 +246,22 @@ export function UserContent() {
       render: (value) => <span className="capitalize">{value}</span>,
     },
   ];
+
+  const handleToggleStatus = async (row: StaffManagement) => {
+    const newStatus = row.status.toLowerCase() === 'active' ? 'inactive' : 'active';
+    try {
+      await axios.put(`${baseUrl.userUpdate}/${row.id}`, {
+        status: newStatus,
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      toast.success(`User status updated to ${newStatus}`);
+      fetchStaff();
+    } catch (err: any) {
+      console.error('Failed to toggle status:', err);
+      toast.error(err?.response?.data?.message || 'Failed to update status');
+    }
+  };
 
   const handleAdd = () => {
     setEditingExecutive(null);

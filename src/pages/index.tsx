@@ -42,6 +42,7 @@
   import moment from "moment";
   import Link from 'next/link';
   import DashboardLeadUpdateDialog from "@/components/leads/DashboardLeadUpdateDialog";
+  import DateRangePicker from "@/components/ui/DateRangePicker";
 
   interface StatusCount {
     statusId: string;
@@ -724,35 +725,14 @@
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 bg-gray-50/50 p-2 rounded-2xl border border-gray-100">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <label className="absolute -top-2 left-3 px-1 bg-white text-[9px] font-bold text-blue-500 uppercase tracking-widest">From</label>
-                    <input 
-                      type="date" 
-                      value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
-                      className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 outline-none focus:border-blue-500 transition-all cursor-pointer"
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="absolute -top-2 left-3 px-1 bg-white text-[9px] font-bold text-blue-500 uppercase tracking-widest">To</label>
-                    <input 
-                      type="date" 
-                      value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
-                      className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 outline-none focus:border-blue-500 transition-all cursor-pointer"
-                    />
-                  </div>
-                </div>
-                <button 
-                  onClick={() => handleQuickFilter('reset')}
-                  className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all rounded-xl"
-                  title="Reset Filter"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </button>
-              </div>
+              <DateRangePicker
+                fromDate={fromDate}
+                toDate={toDate}
+                onFromDateChange={setFromDate}
+                onToDateChange={setToDate}
+                onReset={() => handleQuickFilter('reset')}
+                labelType="floating"
+              />
             </div>
           </div>
 

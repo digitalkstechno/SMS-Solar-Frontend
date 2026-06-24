@@ -25,6 +25,7 @@ import {
 import { useLeadsData } from '@/components/leads/useLeadsData';
 import FormInput from '@/components/ui/Input';
 import { FormMultiSelect } from '@/components/ui/FormSelect';
+import DateRangePicker from '@/components/ui/DateRangePicker';
 
 export type ViewMode = 'list' | 'kanban';
 export type KanbanSubView = 'board' | 'lost' | 'won';
@@ -80,6 +81,7 @@ export default function LeadsPage() {
     transfer?: boolean;
     convert?: boolean;
   } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
 
@@ -101,6 +103,8 @@ export default function LeadsPage() {
         const lp = rawPerms.lead || {};
         setLeadPermissions(lp);
         if (!lp.readAll && lp.readOwn) setActiveTab('my');
+        const roleName = (role.roleName || '').toLowerCase();
+        setIsAdmin(roleName === 'admin');
       } catch (error) {
         console.error('Failed to fetch permissions:', error);
         setLeadPermissions(null);
@@ -368,19 +372,21 @@ export default function LeadsPage() {
               )}
             </button>
 
-            {/* Excel Export Button */}
-            <button
-              onClick={handleExport}
-              disabled={exporting}
-              title="Export to Excel"
-              className="flex items-center gap-2 px-3 py-2 rounded-md text-xs md:text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-all cursor-pointer disabled:opacity-60"
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">{exporting ? '...' : 'Export'}</span>
-            </button>
+            {/* Excel Export Button - Admin only */}
+            {isAdmin && (
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                title="Export to Excel"
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-xs md:text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-all cursor-pointer disabled:opacity-60"
+              >
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">{exporting ? '...' : 'Export'}</span>
+              </button>
+            )}
 
-            {/* Bulk Import Button */}
-            {canCreate && (
+            {/* Bulk Import Button - Admin only */}
+            {isAdmin && canCreate && (
               <button
                 onClick={() => setShowBulkImport(true)}
                 title="Bulk Import Leads"
@@ -431,7 +437,7 @@ export default function LeadsPage() {
           }`}
         >
           <div className="overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
               <div className="space-y-2">
                 <FormMultiSelect
                   label="Lead Status"
@@ -459,26 +465,14 @@ export default function LeadsPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <FormInput
-                  label="From Date"
-                  name="fromDate"
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="bg-white"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <FormInput
-                  label="To Date"
-                  name="toDate"
-                  type="date"
-                  value={toDate}
-                  min={fromDate || undefined}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="bg-white"
+              <div className="lg:col-span-2 w-full">
+                <DateRangePicker
+                  fromDate={fromDate}
+                  toDate={toDate}
+                  onFromDateChange={setFromDate}
+                  onToDateChange={setToDate}
+                  onReset={() => { setFromDate(''); setToDate(''); }}
+                  labelType="top"
                 />
               </div>
             </div>

@@ -20,6 +20,7 @@ interface SalesExecutive {
   teams?: string[];
   id?: string;
   city?: string;
+  status?: string;
 }
 
 interface SalesExecutiveFormProps {
@@ -88,6 +89,7 @@ export default function SalesExecutiveForm({
       password: '',
       department: '' as string,
       city: '' as string,
+      status: 'active' as string,
       id: undefined as string | number | undefined,
       image: undefined as string | undefined,
     },
@@ -121,6 +123,7 @@ export default function SalesExecutiveForm({
         password: '',
         department: initialData.department || [],
         city: (initialData as any).city || '',
+        status: (initialData as any).status?.toLowerCase() || 'active',
       });
 
       if (initialData.image) {
@@ -186,6 +189,7 @@ export default function SalesExecutiveForm({
 
       payload.append('department', values.department || '');
       payload.append('city', values.city || '');
+      payload.append('status', values.status || 'active');
 
       // Only send password when creating or when it's changed (not empty)
       if (values.password.trim()) {
@@ -351,8 +355,8 @@ export default function SalesExecutiveForm({
           />
         </div>
 
-        {/* Department and City */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {/* Department, City and Status */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <FormSelect
             label="Department"
             name="department"
@@ -378,6 +382,19 @@ export default function SalesExecutiveForm({
             ]}
             placeholder="— Select City —"
             error={formik.touched.city && formik.errors.city ? formik.errors.city : undefined}
+          />
+          <FormSelect
+            label="Status"
+            name="status"
+            value={formik.values.status}
+            onChange={(e) => { formik.setFieldValue('status', e); formik.setFieldTouched('status', true, false); }}
+            onBlur={formik.handleBlur}
+            options={[
+              { value: 'active', label: 'Active' },
+              { value: 'inactive', label: 'Inactive' },
+            ]}
+            placeholder="— Select Status —"
+            error={formik.touched.status && formik.errors.status ? formik.errors.status : undefined}
           />
         </div>
       </form>
