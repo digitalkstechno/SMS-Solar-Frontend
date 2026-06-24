@@ -266,7 +266,6 @@ export default function LeadsKanbanView({
             isLoading: columnLoading[s._id]
         }))
         .filter((group) => {
-            if (group.title.match(/^lost$/i) || group.title.match(/^won$/i)) return false;
             if (kanbanVisibleStatusNames.length === 0) return true;
             return kanbanVisibleStatusNames.includes(group.title);
         });
