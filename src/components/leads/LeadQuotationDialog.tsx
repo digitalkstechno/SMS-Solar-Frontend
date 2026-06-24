@@ -250,14 +250,16 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <FormInput
-            label="Date *"
+            label="Date"
+            required={true}
             name="date"
             type="datetime-local"
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
           <FormInput
-            label="Solar Module *"
+            label="Solar Module"
+            required={true}
             name="solarModule"
             type="text"
             value={solarModule}
@@ -270,7 +272,8 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
             error={errors.solarModule}
           />
           <FormInput
-            label="Inverter *"
+            label="Inverter"
+            required={true}
             name="inverter"
             type="text"
             value={inverter}

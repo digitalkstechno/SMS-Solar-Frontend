@@ -74,17 +74,22 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
         const leadSourcePerms = rawPerms.leadSource || {};
         const leadLabelPerms = rawPerms.leadLabel || {};
         const setupPerms = rawPerms.setup || {};
+        const categoryPerms = rawPerms.category || {};
+        const productPerms = rawPerms.product || {};
+        const stockPerms = rawPerms.stock || {};
 
-        setCanViewLead(!!(leadPerms.readOwn || leadPerms.readAll));
-        setCanViewTask(!!(taskPerms.readOwn || taskPerms.readAll));
-        setCanViewStaff(!!(staffPerms.readAll || setupPerms.readAll));
-        setCanViewRole(!!(rolePerms.readAll || setupPerms.readAll));
-        setCanViewLeadStatus(!!(leadStatusPerms.readAll || setupPerms.readAll));
-        setCanViewLeadSource(!!(leadSourcePerms.readAll || setupPerms.readAll));
-        setCanViewLeadLabel(!!(leadLabelPerms.readAll || setupPerms.readAll));
-        setCanViewCategory(!!setupPerms.readAll);
-        setCanViewProduct(!!setupPerms.readAll);
-        setCanViewStock(!!setupPerms.readAll);
+        const isAdmin = role.roleName?.toLowerCase() === "admin";
+
+        setCanViewLead(isAdmin || !!(leadPerms.readOwn || leadPerms.readAll));
+        setCanViewTask(isAdmin || !!(taskPerms.readOwn || taskPerms.readAll));
+        setCanViewStaff(isAdmin || !!(staffPerms.readAll || setupPerms.readAll));
+        setCanViewRole(isAdmin || !!(rolePerms.readAll || setupPerms.readAll));
+        setCanViewLeadStatus(isAdmin || !!(leadStatusPerms.readAll || setupPerms.readAll));
+        setCanViewLeadSource(isAdmin || !!(leadSourcePerms.readAll || setupPerms.readAll));
+        setCanViewLeadLabel(isAdmin || !!(leadLabelPerms.readAll || setupPerms.readAll));
+        setCanViewCategory(isAdmin || !!(categoryPerms.readAll || categoryPerms.readOwn || setupPerms.readAll));
+        setCanViewProduct(isAdmin || !!(productPerms.readAll || productPerms.readOwn || setupPerms.readAll));
+        setCanViewStock(isAdmin || !!(stockPerms.readAll || stockPerms.readOwn || setupPerms.readAll));
       })
       .catch(() => {
         setCanViewLead(false);
