@@ -97,7 +97,7 @@ const ROOF_OPTS = [
 const DISCOM_OPTS = [{ value: 'dgvcl', label: 'DGVCL' }, { value: 'torrent', label: 'Torrent' }];
 const CONN_TYPE_OPTS = [{ value: 'single', label: 'Single' }, { value: 'three', label: 'Three' }];
 const YES_NO_OPTS = [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }];
-const ELCB_BY_OPTS = [{ value: 'greeneable', label: 'Greeneable' }, { value: 'customer', label: 'Customer' }];
+const ELCB_BY_OPTS = [{ value: 'sms', label: 'SMS' }, { value: 'customer', label: 'Customer' }];
 const WIRING_OPTS = [{ value: 'open', label: 'Open' }, { value: 'consild', label: 'Consild' }];
 const PAYMENT_OPTS = [{ value: 'cash', label: 'Cash' }, { value: 'cheque', label: 'Cheque' }];
 
@@ -211,7 +211,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
             discom: d.discom || '',
             consumerConnectionType: d.consumerConnectionType || '',
             elcbInstalled: d.elcbInstalled || '',
-            elcbProvideBy: d.elcbProvideBy || '',
+            elcbProvideBy: d.elcbProvideBy === 'greeneable' ? 'sms' : (d.elcbProvideBy || ''),
             wiringType: d.wiringType || '',
             homeFloor: d.homeFloor || '',
             walkway: d.walkway || '',
@@ -272,62 +272,139 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
     }
   };
 
-  const validateForm = () => {
+  const validateStep = (step: SectionKey): boolean => {
     const newErrors: Record<string, string> = {};
-    const requiredFields: (keyof FormState)[] = [
-      'leadRefrance', 'panelMake', 'panelWp', 'noOfPanel',
-      'inverterMake', 'inverterKw', 'inverterPhase', 'installationRoof',
-      'discom', 'consumerConnectionType', 'elcbInstalled', 'elcbProvideBy',
-      'wiringType', 'homeFloor', 'walkway', 'ladder', 'hdgiPipeMake',
-      'paymentMode', 'projectAmount', 'subsidyLessProject'
-    ];
 
-    requiredFields.forEach(field => {
-      if (!form[field]) {
-        const fieldNames: Record<string, string> = {
-          leadRefrance: 'Lead Reference',
-          panelMake: 'Panel Make',
-          panelWp: 'Panel WP',
-          noOfPanel: 'No. of Panels',
-          inverterMake: 'Inverter Make',
-          inverterKw: 'Inverter KW',
-          inverterPhase: 'Inverter Phase',
-          installationRoof: 'Installation Roof',
-          discom: 'DISCOM',
-          consumerConnectionType: 'Consumer Connection Type',
-          elcbInstalled: 'ELCB / RCCB Installed',
-          elcbProvideBy: 'ELCB / RCCB Provide By',
-          wiringType: 'Wiring Type',
-          homeFloor: 'Home Floor',
-          walkway: 'Walkway',
-          ladder: 'Ladder',
-          hdgiPipeMake: 'HDGI Pipe Make',
-          paymentMode: 'Payment Mode',
-          projectAmount: 'Project Amount',
-          subsidyLessProject: 'Subsidy Less Project'
-        };
-        newErrors[field] = `${fieldNames[field] || field} is required`;
+    if (step === 'project') {
+      const projectFields: (keyof FormState)[] = [
+        'leadRefrance', 'panelMake', 'panelWp', 'noOfPanel',
+        'inverterMake', 'inverterKw', 'inverterPhase', 'installationRoof',
+        'discom', 'consumerConnectionType', 'elcbInstalled', 'elcbProvideBy',
+        'wiringType', 'homeFloor', 'walkway', 'ladder', 'hdgiPipeMake'
+      ];
+
+      projectFields.forEach(field => {
+        if (!form[field]) {
+          const fieldNames: Record<string, string> = {
+            leadRefrance: 'Lead Reference',
+            panelMake: 'Panel Make',
+            panelWp: 'Panel WP',
+            noOfPanel: 'No. of Panels',
+            inverterMake: 'Inverter Make',
+            inverterKw: 'Inverter KW',
+            inverterPhase: 'Inverter Phase',
+            installationRoof: 'Installation Roof',
+            discom: 'DISCOM',
+            consumerConnectionType: 'Consumer Connection Type',
+            elcbInstalled: 'ELCB / RCCB Installed',
+            elcbProvideBy: 'ELCB / RCCB Provide By',
+            wiringType: 'Wiring Type',
+            homeFloor: 'Home Floor',
+            walkway: 'Walkway',
+            ladder: 'Ladder',
+            hdgiPipeMake: 'HDGI Pipe Make'
+          };
+          newErrors[field] = `${fieldNames[field] || field} is required`;
+        }
+      });
+
+      if (form.walkway === 'yes' && !form.walkwayLengthFeet) {
+        newErrors.walkwayLengthFeet = 'Walkway Length is required';
       }
+      if (form.ladder === 'yes' && !form.ladderLengthFeet) {
+        newErrors.ladderLengthFeet = 'Ladder Length is required';
+      }
+    }
+
+    if (step === 'payment') {
+      const paymentFields: (keyof FormState)[] = ['paymentMode', 'projectAmount', 'subsidyLessProject'];
+      paymentFields.forEach(field => {
+        if (!form[field]) {
+          const fieldNames: Record<string, string> = {
+            paymentMode: 'Payment Mode',
+            projectAmount: 'Project Amount',
+            subsidyLessProject: 'Subsidy Less Project'
+          };
+          newErrors[field] = `${fieldNames[field] || field} is required`;
+        }
+      });
+    }
+
+    setErrors(prev => {
+      const updated = { ...prev };
+      // Clear errors for current step fields first
+      if (step === 'project') {
+        const projectFields = [
+          'leadRefrance', 'panelMake', 'panelWp', 'noOfPanel',
+          'inverterMake', 'inverterKw', 'inverterPhase', 'installationRoof',
+          'discom', 'consumerConnectionType', 'elcbInstalled', 'elcbProvideBy',
+          'wiringType', 'homeFloor', 'walkway', 'walkwayLengthFeet', 'ladder',
+          'ladderLengthFeet', 'hdgiPipeMake'
+        ];
+        projectFields.forEach(f => delete updated[f]);
+      } else if (step === 'payment') {
+        const paymentFields = ['paymentMode', 'projectAmount', 'subsidyLessProject'];
+        paymentFields.forEach(f => delete updated[f]);
+      }
+      return { ...updated, ...newErrors };
     });
 
-    if (form.walkway === 'yes' && !form.walkwayLengthFeet) {
-      newErrors.walkwayLengthFeet = 'Walkway Length is required';
-    }
-    if (form.ladder === 'yes' && !form.ladderLengthFeet) {
-      newErrors.ladderLengthFeet = 'Ladder Length is required';
-    }
-
-    setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    const sectionOrder: SectionKey[] = ['project', 'photos', 'regDocs', 'payment', 'loanDocs'];
+    const currentIdx = sectionOrder.indexOf(activeSection);
+    if (validateStep(activeSection)) {
+      if (currentIdx < sectionOrder.length - 1) {
+        setActiveSection(sectionOrder[currentIdx + 1]);
+      }
+    } else {
+      toast.error('Please fill all required fields in this section');
+    }
+  };
+
+  const handleBack = () => {
+    const sectionOrder: SectionKey[] = ['project', 'photos', 'regDocs', 'payment', 'loanDocs'];
+    const currentIdx = sectionOrder.indexOf(activeSection);
+    if (currentIdx > 0) {
+      setActiveSection(sectionOrder[currentIdx - 1]);
+    }
+  };
+
+  const handleTabClick = (targetSection: SectionKey) => {
+    const sectionOrder: SectionKey[] = ['project', 'photos', 'regDocs', 'payment', 'loanDocs'];
+    const currentIdx = sectionOrder.indexOf(activeSection);
+    const targetIdx = sectionOrder.indexOf(targetSection);
+
+    if (targetIdx <= currentIdx) {
+      // Going backward is always allowed
+      setActiveSection(targetSection);
+    } else {
+      // Going forward: validate each step in between
+      for (let i = currentIdx; i < targetIdx; i++) {
+        const stepToValidate = sectionOrder[i];
+        if (!validateStep(stepToValidate)) {
+          toast.error(`Please complete the required fields in ${sections.find(s => s.key === stepToValidate)?.label || stepToValidate}`);
+          setActiveSection(stepToValidate);
+          return;
+        }
+      }
+      setActiveSection(targetSection);
+    }
   };
 
   const handleSubmit = async () => {
     if (!lead) return;
-    
-    if (!validateForm()) {
-      toast.error('Please fill all required fields');
-      setActiveSection('project');
-      return;
+
+    // Validate all steps before submitting
+    const sectionOrder: SectionKey[] = ['project', 'photos', 'regDocs', 'payment', 'loanDocs'];
+    for (const step of sectionOrder) {
+      if (!validateStep(step)) {
+        toast.error(`Please complete the required fields in ${sections.find(s => s.key === step)?.label || step}`);
+        setActiveSection(step);
+        return;
+      }
     }
 
     setSaving(true);
@@ -389,7 +466,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
           {sections.map((s) => (
             <button
               key={s.key}
-              onClick={() => setActiveSection(s.key)}
+              onClick={() => handleTabClick(s.key)}
               className={`flex flex-1 min-w-[80px] flex-col items-center gap-1 px-3 py-3 text-xs font-medium transition whitespace-nowrap ${
                 activeSection === s.key
                   ? 'border-b-2 border-secondary text-secondary bg-white'
@@ -901,31 +978,50 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
             {sections.map((s) => (
               <button
                 key={s.key}
-                onClick={() => setActiveSection(s.key)}
+                onClick={() => handleTabClick(s.key)}
                 className={`h-2 rounded-full transition-all ${activeSection === s.key ? 'bg-secondary w-5' : 'w-2 bg-gray-300 hover:bg-gray-400'}`}
               />
             ))}
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={onClose}
-              className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-            >
-              Cancel
-            </button>
-             <button
-              onClick={handleSubmit}
-              disabled={saving}
-              className="flex items-center gap-2 rounded-lg bg-secondary px-5 py-2 text-sm font-semibold text-white shadow hover:bg-primary active:scale-95 transition disabled:opacity-60"
-            >
-              {saving ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-              {saving ? 'Saving...' : 'Save Details'}
-            </button>
+            {activeSection === 'project' ? (
+              <button
+                onClick={onClose}
+                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+            ) : (
+              <button
+                onClick={handleBack}
+                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Back
+              </button>
+            )}
+
+            {activeSection === 'loanDocs' ? (
+              <button
+                onClick={handleSubmit}
+                disabled={saving}
+                className="flex items-center gap-2 rounded-lg bg-secondary px-5 py-2 text-sm font-semibold text-white shadow hover:bg-primary active:scale-95 transition disabled:opacity-60"
+              >
+                {saving ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+                {saving ? 'Saving...' : 'Save Details'}
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                className="flex items-center gap-2 rounded-lg bg-secondary px-5 py-2 text-sm font-semibold text-white shadow hover:bg-primary active:scale-95 transition"
+              >
+                Next <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>
