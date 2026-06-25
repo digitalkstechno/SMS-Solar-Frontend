@@ -4,6 +4,8 @@ import Dialog from '@/components/Dialog';
 import { baseUrl, getAuthToken } from '@/config';
 import { toast } from 'react-toastify';
 import { FormSelect } from '../ui/FormSelect';
+import FormInput from '../ui/Input';
+import DatePicker from 'react-datepicker';
 
 interface ApiLead {
   _id: string;
@@ -215,33 +217,33 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-gray-700">Next Followup Date <span className="text-red-500">*</span></label>
-                  <input
-                    type="date"
-                    value={nextDate}
-                    onChange={(e) => setNextDate(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                  <DatePicker
+                    selected={nextDate ? new Date(nextDate) : null}
+                    onChange={(date) => setNextDate(date ? date.toISOString().split('T')[0] : '')}
+                    placeholderText="mm/dd/yyyy"
+                    dateFormat="MM/dd/yyyy"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:ring-1 focus:ring-blue-500 transition-all outline-none cursor-pointer"
+                    wrapperClassName="w-full"
+                    popperProps={{ strategy: 'fixed' }}
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-700">Next Followup Time</label>
-                  <input
-                    type="time"
-                    value={nextTime}
-                    onChange={(e) => setNextTime(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700">Note <span className="text-red-500">*</span></label>
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Enter note..."
-                  rows={3}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all resize-none"
+                <FormInput
+                  label="Next Followup Time"
+                  name="nextTime"
+                  type="time"
+                  value={nextTime}
+                  onChange={(e) => setNextTime(e.target.value)}
                 />
               </div>
+              <FormInput
+                label="Note"
+                name="note"
+                as="textarea"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Enter note..."
+                required
+              />
             </div>
           )}
         </div>
