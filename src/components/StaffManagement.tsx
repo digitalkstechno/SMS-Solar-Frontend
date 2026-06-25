@@ -30,32 +30,6 @@ interface SalesExecutiveFormProps {
   initialData?: SalesExecutive | null;
 }
 
-// Validation schema
-const validationSchema = Yup.object({
-  fullName: Yup.string()
-    .required('Full name is required')
-    .min(2, 'Full name must be at least 2 characters')
-    .max(100, 'Full name must be at most 100 characters')
-    .matches(/^[a-zA-Z\s]+$/, 'Full name can only contain letters and spaces'),
-
-  number: Yup.string()
-    .required('Mobile number is required')
-    .matches(/^[0-9]{10}$/, 'Mobile number must be exactly 10 digits'),
-
-  email: Yup.string()
-    .required('Email is required')
-    .matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Invalid email format'),
-
-  password: Yup.string()
-    .when('$isUpdate', {
-      is: false,
-      then: (schema) => schema.required('Password is required').min(6, 'Password must be at least 6 characters'),
-      otherwise: (schema) => schema.notRequired(),
-    }),
-  city: Yup.string()
-    .required('City is required'),
-});
-
 export default function SalesExecutiveForm({
   isOpen,
   onClose,
@@ -95,10 +69,26 @@ export default function SalesExecutiveForm({
       id: undefined as string | number | undefined,
       image: undefined as string | undefined,
     },
-    validationSchema,
+    validationSchema: Yup.object({
+      fullName: Yup.string()
+        .required('Full name is required')
+        .min(2, 'Full name must be at least 2 characters')
+        .max(100, 'Full name must be at most 100 characters')
+        .matches(/^[a-zA-Z\s]+$/, 'Full name can only contain letters and spaces'),
+      number: Yup.string()
+        .required('Mobile number is required')
+        .matches(/^[0-9]{10}$/, 'Mobile number must be exactly 10 digits'),
+      email: Yup.string()
+        .required('Email is required')
+        .matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Invalid email format'),
+      password: isUpdate 
+        ? Yup.string().notRequired()
+        : Yup.string().required('Password is required').min(6, 'Password must be at least 6 characters'),
+      city: Yup.string()
+        .required('City is required'),
+    }),
     validateOnChange: true,
     validateOnBlur: true,
-    context: { isUpdate },
     onSubmit: async (values) => {
       await handleSubmit(values);
     },
@@ -226,7 +216,16 @@ export default function SalesExecutiveForm({
       onClose();
 
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Something went wrong';
+      let message = err.response?.data?.message || 'Something went wrong';
+      if (message.includes('E11000') || message.includes('duplicate key')) {
+        if (message.includes('phone')) {
+          message = 'This mobile number is already registered.';
+        } else if (message.includes('email')) {
+          message = 'This email is already registered.';
+        } else {
+          message = 'Duplicate entry found.';
+        }
+      }
       setError(message);
       toast.error(message);
     } finally {
@@ -262,12 +261,6 @@ export default function SalesExecutiveForm({
       }
     >
       <form id="sales-executive-form" onSubmit={formik.handleSubmit} className="space-y-6">
-        {error && (
-          <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
         {/* Image Upload with Round Preview */}
         <div className="flex justify-center">
           <div className="relative">

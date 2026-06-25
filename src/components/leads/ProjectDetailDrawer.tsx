@@ -107,12 +107,13 @@ interface FileInputProps {
   label: string;
   accept?: string;
   isPdf?: boolean;
+  required?: boolean;
   existingFiles: Record<string, any>;
   files: Record<string, FileOrNull>;
   onFileChange: (key: string, file: File | null) => void;
   error?: string;
 }
-const FileInput = ({ fieldKey, label, accept = '*', isPdf = false, existingFiles, files, onFileChange, error }: FileInputProps) => {
+const FileInput = ({ fieldKey, label, accept = '*', isPdf = false, required = false, existingFiles, files, onFileChange, error }: FileInputProps) => {
   const existing = existingFiles[fieldKey];
   const selected = files[fieldKey];
   const hasError = !!error;
@@ -120,7 +121,7 @@ const FileInput = ({ fieldKey, label, accept = '*', isPdf = false, existingFiles
   return (
     <div className="space-y-1 mb-4">
       <label className="block text-xs font-bold text-gray-700 mb-1.5">
-        {label} <span className="text-red-700">*</span>
+        {label} {required && <span className="text-red-700">*</span>}
       </label>
       <label className={`group flex items-center gap-3 cursor-pointer rounded-xl border-2 border-dashed bg-gray-50 px-4 py-3 hover:border-fuchsia-300 hover:bg-fuchsia-50/30 transition ${hasError ? 'border-red-700 ring-2 ring-red-300' : 'border-gray-200'}`}>
         <div className="flex-shrink-0 rounded-lg bg-gray-100 p-2 group-hover:bg-fuchsia-100 transition">
@@ -316,6 +317,22 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
       }
     }
 
+    if (step === 'photos') {
+      PHOTO_FIELDS.forEach(({ key, label }) => {
+        if (!files[key] && !existingFiles[key]) {
+          newErrors[key] = `${label} is required`;
+        }
+      });
+    }
+
+    if (step === 'regDocs') {
+      REG_DOC_FIELDS.forEach(({ key, label }) => {
+        if (!files[key] && !existingFiles[key]) {
+          newErrors[key] = `${label} is required`;
+        }
+      });
+    }
+
     if (step === 'payment') {
       const paymentFields: (keyof FormState)[] = ['paymentMode', 'projectAmount', 'subsidyLessProject'];
       paymentFields.forEach(field => {
@@ -342,6 +359,10 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
           'ladderLengthFeet', 'hdgiPipeMake'
         ];
         projectFields.forEach(f => delete updated[f]);
+      } else if (step === 'photos') {
+        PHOTO_FIELDS.forEach(f => delete updated[f.key]);
+      } else if (step === 'regDocs') {
+        REG_DOC_FIELDS.forEach(f => delete updated[f.key]);
       } else if (step === 'payment') {
         const paymentFields = ['paymentMode', 'projectAmount', 'subsidyLessProject'];
         paymentFields.forEach(f => delete updated[f]);
@@ -876,6 +897,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
                       fieldKey={f.key}
                       label={f.label}
                       accept="image/*,application/pdf"
+                      required
                       existingFiles={existingFiles}
                       files={files}
                       onFileChange={handleFileChange}
@@ -896,6 +918,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
                       label={f.label}
                       accept="image/*,application/pdf"
                       isPdf
+                      required
                       existingFiles={existingFiles}
                       files={files}
                       onFileChange={handleFileChange}
