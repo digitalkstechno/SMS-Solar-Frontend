@@ -239,27 +239,35 @@ export default function RoleForm({
                     <div className="col-span-5 text-gray-800 font-medium">{featureLabels[feature]}</div>
                     <div className="col-span-7">
                       <div className="flex flex-wrap gap-4">
-                        {(['readAll', 'readOwn', 'create', 'update', 'delete'] as CapabilityKey[]).map((cap) => (
-                          <label key={cap} className="inline-flex cursor-pointer items-center gap-2 text-sm text-gray-700">
-                            <input
-                              type="checkbox"
-                              checked={caps[cap]}
-                              onChange={() => toggleCapability(feature, cap)}
-                              className="h-4 w-4 rounded cursor-pointer border-gray-300 text-sky-950 focus:ring-sky-200"
-                            />
-                            <span>
-                              {cap === 'readAll'
-                                ? 'View (Global)'
-                                : cap === 'readOwn'
-                                  ? 'View (Own)'
-                                  : cap === 'create'
-                                    ? 'Create'
-                                    : cap === 'update'
-                                      ? 'Update'
-                                      : 'Delete'}
-                            </span>
-                          </label>
-                        ))}
+                        {(['readAll', 'readOwn', 'create', 'update', 'delete'] as CapabilityKey[]).map((cap) => {
+                          const isCapDisabled = cap === 'readOwn' 
+                            && formik.values.roleName.toLowerCase() !== 'admin' 
+                            && feature !== 'lead' 
+                            && feature !== 'leadStatus';
+
+                          return (
+                            <label key={cap} className={`inline-flex items-center gap-2 text-sm text-gray-700 ${isCapDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                              <input
+                                type="checkbox"
+                                checked={caps[cap] && !isCapDisabled}
+                                disabled={isCapDisabled}
+                                onChange={() => toggleCapability(feature, cap)}
+                                className="h-4 w-4 rounded border-gray-300 text-sky-950 focus:ring-sky-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                              />
+                              <span>
+                                {cap === 'readAll'
+                                  ? 'View (Global)'
+                                  : cap === 'readOwn'
+                                    ? 'View (Own)'
+                                    : cap === 'create'
+                                      ? 'Create'
+                                      : cap === 'update'
+                                        ? 'Update'
+                                        : 'Delete'}
+                              </span>
+                            </label>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
