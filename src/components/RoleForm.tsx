@@ -140,12 +140,38 @@ export default function RoleForm({
     const nextValue = !current[capability];
     let nextCaps: CapabilitySet = { ...current, [capability]: nextValue };
 
-    // Handle mutual exclusivity for readAll and readOwn
-    if (capability === 'readAll' && nextValue) {
-      nextCaps = { ...nextCaps, readOwn: false };
+    // Check if any of create, update, or delete will be active
+    const isWriteActive = nextCaps.create || nextCaps.update || nextCaps.delete;
+
+    if (isWriteActive) {
+      // If we are toggling readOwn to false:
+      if (capability === 'readOwn' && !nextValue) {
+        // Only allow unselecting readOwn if readAll is selected
+        if (!nextCaps.readAll) {
+          // Prevent unselecting: force readOwn to remain true
+          nextCaps.readOwn = true;
+        }
+      }
+      // If we are toggling readAll to false:
+      else if (capability === 'readAll' && !nextValue) {
+        // If readAll is deselected, we must default back to readOwn
+        nextCaps.readOwn = true;
+      }
+      // If we are toggling create/update/delete to true:
+      else if ((capability === 'create' || capability === 'update' || capability === 'delete') && nextValue) {
+        // Ensure at least one view capability is selected, default to readOwn
+        if (!nextCaps.readOwn && !nextCaps.readAll) {
+          nextCaps.readOwn = true;
+        }
+      }
     }
-    if (capability === 'readOwn' && nextValue) {
-      nextCaps = { ...nextCaps, readAll: false };
+
+    // Handle mutual exclusivity for readAll and readOwn
+    if (capability === 'readAll' && nextCaps.readAll) {
+      nextCaps.readOwn = false;
+    }
+    if (capability === 'readOwn' && nextCaps.readOwn) {
+      nextCaps.readAll = false;
     }
 
     const newPermissions = {
