@@ -54,7 +54,6 @@ export default function LeadsPage() {
   // ── Search & Filters ─────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [sourceFilter, setSourceFilter] = useState<string[]>([]);
   const [staffFilter, setStaffFilter] = useState<string[]>([]);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -121,12 +120,11 @@ export default function LeadsPage() {
     () => ({
       search: debouncedSearch,
       status: statusFilter.length > 0 ? statusFilter.join(',') : '',
-      source: sourceFilter.length > 0 ? sourceFilter.join(',') : '',
       staff: staffFilter.length > 0 ? staffFilter.join(',') : '',
       from: fromDate,
       to: toDate,
     }),
-    [debouncedSearch, statusFilter, sourceFilter, staffFilter, fromDate, toDate]
+    [debouncedSearch, statusFilter, staffFilter, fromDate, toDate]
   );
 
   // ── Data — pass kanbanSubView so hook fetches only what's needed ──────────
@@ -237,7 +235,6 @@ export default function LeadsPage() {
 
   const clearFilters = () => {
     setStatusFilter([]);
-    setSourceFilter([]);
     setStaffFilter([]);
     setFromDate('');
     setToDate('');
@@ -246,7 +243,6 @@ export default function LeadsPage() {
 
   const hasActiveFilters = !!(
     statusFilter.length > 0 ||
-    sourceFilter.length > 0 ||
     staffFilter.length > 0 ||
     fromDate ||
     toDate ||
@@ -327,18 +323,20 @@ export default function LeadsPage() {
           </div>
 
           {/* Search Bar */}
-          <div className="w-full md:flex-1 md:max-w-md">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search leads..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
+          {viewMode !== 'list' && (
+            <div className="w-full md:flex-1 md:max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search leads..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-2 md:gap-3 md:ml-auto">
             {/* Tab Toggle (All/My) */}
@@ -450,14 +448,7 @@ export default function LeadsPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <FormMultiSelect
-                  label="Lead Source"
-                  value={sourceFilter}
-                  onChange={(e) => setSourceFilter(e)}
-                  options={sources.map((s) => ({ value: s._id, label: s.name }))}
-                />
-              </div>
+
 
               <div className="space-y-2">
                 <FormMultiSelect
@@ -505,25 +496,16 @@ export default function LeadsPage() {
             statuses={statuses}
             sources={sources}
             staffMembers={staffMembers}
-            onEdit={canUpdate ? handleEdit : undefined}
+            onEdit={handleEdit}
             onView={handleView}
             onRefresh={refetchAll}
+            permissions={leadPermissions || {}}
             scope={activeTab}
             filters={filters}
             externalLeads={leadsList}
-            fetchLeadsList={fetchLeadsList}
             loading={loading}
-            permissions={{
-              create: canCreate,
-              readAll: canReadAll,
-              readOwn: canReadOwn,
-              update: canUpdate,
-              delete: canDelete,
-              assign: canAssign,
-              transfer: canTransfer,
-              convert: canConvert,
-            }}
             pagination={listPagination}
+            onSearch={(val) => setSearch(val)}
           />
         ) : (
           <LeadsKanbanView
@@ -545,6 +527,7 @@ export default function LeadsPage() {
             refreshKey={boardRefreshKey}
             currentUser={currentUser}
             isAdmin={isAdmin}
+            onSearch={(val) => setSearch(val)}
             permissions={{
               create: canCreate,
               readAll: canReadAll,

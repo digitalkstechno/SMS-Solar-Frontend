@@ -258,15 +258,11 @@ export function useLeadsData(
         readAll: !!lp.readAll, readOwn: !!lp.readOwn,
       });
 
-      if (sp.readAll) {
-        try {
-          const staffRes = await axios.get(baseUrl.getAllUsers, { headers: getHeaders() });
-          setStaffMembers(staffRes.data?.data ?? []);
-        } catch (err) {
-          console.error('Failed to fetch staff members:', err);
-          setStaffMembers([]);
-        }
-      } else {
+      try {
+        const staffRes = await axios.get(baseUrl.getSalesExecutives || baseUrl.getAllStaff || baseUrl.getAllUsers, { headers: getHeaders() });
+        setStaffMembers(staffRes.data?.data ?? []);
+      } catch (err) {
+        console.error('Failed to fetch staff members, falling back to current user:', err);
         const currentUser = meRes.data?.data;
         if (currentUser) {
           setStaffMembers([

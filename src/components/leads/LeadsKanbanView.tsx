@@ -48,7 +48,8 @@ interface Props {
         status?: string;
         source?: string;
         staff?: string;
-        date?: string;
+        from?: string;
+        to?: string;
     };
     lostPagination?: PaginationShape;
     wonPagination?: PaginationShape;
@@ -56,6 +57,7 @@ interface Props {
     refreshKey?: number;
     currentUser?: any;
     isAdmin?: boolean;
+    onSearch?: (value: string) => void;
 }
 
 type SubView = 'board' | 'lost' | 'won';
@@ -71,6 +73,7 @@ export default function LeadsKanbanView({
     refreshKey = 0,
     currentUser,
     isAdmin,
+    onSearch,
 }: Props) {
     const [subView, setSubView] = useState<SubView>('board');
     const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -143,6 +146,8 @@ export default function LeadsKanbanView({
                         source: filters.source || undefined,
                         staff: filters.staff || undefined,
                         date: filters.date || undefined,
+                        from: filters.from || undefined,
+                        to: filters.to || undefined,
                     },
                 });
 
@@ -177,7 +182,8 @@ export default function LeadsKanbanView({
         if (subView !== 'board') return;
         statuses.forEach((s) => {
             const isVisible = kanbanVisibleStatusNames.length === 0 || kanbanVisibleStatusNames.includes(s.name);
-            if (isVisible) {
+            const isFiltered = filters.status ? filters.status.split(',').includes(s._id) : true;
+            if (isVisible && isFiltered) {
                 fetchStatusLeads(s._id, 1);
             }
         });
@@ -266,8 +272,9 @@ export default function LeadsKanbanView({
             isLoading: columnLoading[s._id]
         }))
         .filter((group) => {
-            if (kanbanVisibleStatusNames.length === 0) return true;
-            return kanbanVisibleStatusNames.includes(group.title);
+            if (kanbanVisibleStatusNames.length > 0 && !kanbanVisibleStatusNames.includes(group.title)) return false;
+            if (filters.status && !filters.status.split(',').includes(group.id)) return false;
+            return true;
         });
 
     const removeLeadFromBoard = (id: string) => {
@@ -496,6 +503,8 @@ export default function LeadsKanbanView({
                         columns={lostLeadsColumns}
                         loading={false}
                         pagination
+                        searchValue={filters.search}
+                        onSearch={onSearch}
                         currentPage={lostPagination?.currentPage ?? 1}
                         totalPages={lostPagination?.totalPages ?? 1}
                         totalRecords={lostPagination?.totalItems ?? lostLeads.length}
@@ -530,6 +539,8 @@ export default function LeadsKanbanView({
                         columns={wonLeadsColumns}
                         loading={false}
                         pagination
+                        searchValue={filters.search}
+                        onSearch={onSearch}
                         currentPage={wonPagination?.currentPage ?? 1}
                         totalPages={wonPagination?.totalPages ?? 1}
                         totalRecords={wonPagination?.totalItems ?? wonLeads.length}

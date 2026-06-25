@@ -26,6 +26,7 @@ interface DataTableProps<T> {
   data: T[];
   columns: Column<T>[];
   searchable?: boolean;
+  searchValue?: string;
   pagination?: boolean;
   currentPage?: number;
   totalPages?: number;
@@ -64,6 +65,7 @@ export default function DataTable<T extends Record<string, any>>({
   data,
   columns,
   searchable = true,
+  searchValue: externalSearchValue = '',
   pagination = true,
   currentPage = 1,
   totalPages = 1,
@@ -87,7 +89,12 @@ export default function DataTable<T extends Record<string, any>>({
   onExport,
   extraActions,
 }: DataTableProps<T>) {
-  const [searchValue, setSearchValue] = useState('');
+  const [searchValue, setSearchValue] = useState(externalSearchValue);
+
+  useEffect(() => {
+    setSearchValue(externalSearchValue);
+  }, [externalSearchValue]);
+
   const [showFilters, setShowFilters] = useState(false);
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
 
