@@ -40,18 +40,30 @@ export default function Header({ toggleSidebar }: HeaderProps) {
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const pathName = usePathname()
-  const isLoginPage = pathName === "/login";
+  const isLoginPage = router?.pathname === "/login";
 
   const getLabel = () => {
-    if (pathName === "/") return "Dashboard"
-    if (pathName === "/leads") return "Leads"
-    if (pathName === "/leads/list") return "Leads List"
-    if (pathName === "/leads/kanban") return "Leads Kanban"
-    if (pathName === "/setup") return "Setup"
-    if (pathName === "/tasks") return "Tasks"
-    return ""
-  }
+    const path = router?.asPath ? router.asPath.split('?')[0] : '';
+    if (!path || path === "/") return "Dashboard";
+    if (path === "/leads") return "Leads";
+    if (path === "/leads/list") return "Leads List";
+    if (path === "/leads/kanban") return "Leads Kanban";
+    if (path === "/setup") return "Setup";
+    if (path === "/tasks") return "Tasks";
+    
+    const segments = path.split('/').filter(Boolean);
+    if (segments.length > 0) {
+      return segments
+        .map((seg) => 
+          seg
+            .split('-')
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ')
+        )
+        .join(' - ');
+    }
+    return "";
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -431,7 +443,7 @@ export default function Header({ toggleSidebar }: HeaderProps) {
           <Menu className="h-6 w-6 text-gray-600" />
         </button>
         <h1 className="text-xl md:text-3xl font-bold text-gray-900 truncate">
-          {getLabel() || "Default Title"}
+          {getLabel() || ""}
         </h1>
       </div>
       <div className="flex items-center gap-1 md:gap-3">
