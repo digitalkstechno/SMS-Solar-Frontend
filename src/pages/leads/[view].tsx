@@ -253,14 +253,7 @@ export default function LeadsPage() {
   }
 
   // ── Loading skeleton ──────────────────────────────────────────────────────
-  const [initialRender, setInitialRender] = useState(true);
-  useEffect(() => {
-    if (!loading) {
-      setInitialRender(false);
-    }
-  }, [loading]);
-
-  if (loading && initialRender) {
+  if (loading){
     return (
       <div className="flex h-full flex-col gap-4 relative overflow-hidden">
         <div className="rounded-md border border-gray-200 bg-white px-6 py-4 transition-all duration-300">

@@ -379,12 +379,6 @@ export default function SalesExecutiveForm({
               { value: 'navsari', label: 'Navsari' },
               { value: 'vadodra', label: 'Vadodara' },
               { value: 'bharuch', label: 'Bharuch' },
-              { value: 'ankleshwar', label: 'Ankleshwar' },
-              { value: 'bardoli', label: 'Bardoli' },
-              { value: 'vyara', label: 'Vyara' },
-              { value: 'mandvi', label: 'Mandvi' },
-              { value: 'songadh', label: 'Songadh' },
-              { value: 'valsad', label: 'Valsad' },
             ]}
             placeholder="— Select City —"
             error={formik.touched.city && formik.errors.city ? formik.errors.city : undefined}
