@@ -351,10 +351,10 @@ export default function LeadAddDialog({
                     onBlur={formik.handleBlur}
                     placeholder="Enter 10-digit number"
                     className={`w-full px-3 py-2.5 pr-52 rounded-xl bg-white/90 text-gray-800 text-sm outline-none transition-all duration-200 border-2 ${formik.touched.contact && formik.errors.contact
-                        ? 'border-red-500 ring-2 ring-red-200'
-                        : formik.values.contact.length === 10
-                          ? 'border-green-500 ring-2 ring-green-200'
-                          : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+                      ? 'border-red-500 ring-2 ring-red-200'
+                      : formik.values.contact.length === 10
+                        ? 'border-green-500 ring-2 ring-green-200'
+                        : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
                       }`}
                   />
 
@@ -444,6 +444,12 @@ export default function LeadAddDialog({
                     { value: 'navsari', label: 'Navsari' },
                     { value: 'vadodra', label: 'Vadodara' },
                     { value: 'bharuch', label: 'Bharuch' },
+                    { value: 'ankleshwar', label: 'Ankleshwar' },
+                    { value: 'bardoli', label: 'Bardoli' },
+                    { value: 'vyara', label: 'Vyara' },
+                    { value: 'mandvi', label: 'Mandvi' },
+                    { value: 'songadh', label: 'Songadh' },
+                    { value: 'valsad', label: 'Valsad' },
                   ]}
                   error={getFieldError('city')}
                   placeholder="Select City"
