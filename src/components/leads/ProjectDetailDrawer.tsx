@@ -280,8 +280,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
       const projectFields: (keyof FormState)[] = [
         'leadRefrance', 'panelMake', 'panelWp', 'noOfPanel',
         'inverterMake', 'inverterKw', 'inverterPhase', 'installationRoof',
-        'discom', 'consumerConnectionType', 'elcbInstalled', 'elcbProvideBy',
-        'wiringType', 'homeFloor', 'walkway', 'ladder', 'hdgiPipeMake'
+        'discom', 'consumerConnectionType', 'homeFloor', 'walkway', 'ladder', 'hdgiPipeMake'
       ];
 
       projectFields.forEach(field => {
@@ -297,9 +296,6 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
             installationRoof: 'Installation Roof',
             discom: 'DISCOM',
             consumerConnectionType: 'Consumer Connection Type',
-            elcbInstalled: 'ELCB / RCCB Installed',
-            elcbProvideBy: 'ELCB / RCCB Provide By',
-            wiringType: 'Wiring Type',
             homeFloor: 'Home Floor',
             walkway: 'Walkway',
             ladder: 'Ladder',
@@ -354,8 +350,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
         const projectFields = [
           'leadRefrance', 'panelMake', 'panelWp', 'noOfPanel',
           'inverterMake', 'inverterKw', 'inverterPhase', 'installationRoof',
-          'discom', 'consumerConnectionType', 'elcbInstalled', 'elcbProvideBy',
-          'wiringType', 'homeFloor', 'walkway', 'walkwayLengthFeet', 'ladder',
+          'discom', 'consumerConnectionType', 'homeFloor', 'walkway', 'walkwayLengthFeet', 'ladder',
           'ladderLengthFeet', 'hdgiPipeMake'
         ];
         projectFields.forEach(f => delete updated[f]);
@@ -745,42 +740,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
                         required
                       />
                     </div>
-                    <div>
-                      <FormSelect
-                        label="ELCB / RCCB Installed"
-                        name="elcbInstalled"
-                        value={form.elcbInstalled}
-                        onChange={(val) => handleFormChange('elcbInstalled', val)}
-                        options={YES_NO_OPTS}
-                        placeholder="Select..."
-                        error={errors.elcbInstalled}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <FormSelect
-                        label="ELCB / RCCB Provide By"
-                        name="elcbProvideBy"
-                        value={form.elcbProvideBy}
-                        onChange={(val) => handleFormChange('elcbProvideBy', val)}
-                        options={ELCB_BY_OPTS}
-                        placeholder="Select..."
-                        error={errors.elcbProvideBy}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <FormSelect
-                        label="Wiring Type"
-                        name="wiringType"
-                        value={form.wiringType}
-                        onChange={(val) => handleFormChange('wiringType', val)}
-                        options={WIRING_OPTS}
-                        placeholder="Select..."
-                        error={errors.wiringType}
-                        required
-                      />
-                    </div>
+
                     <FormInput
                       label="Home Floor"
                       name="homeFloor"

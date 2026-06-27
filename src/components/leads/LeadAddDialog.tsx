@@ -405,7 +405,7 @@ export default function LeadAddDialog({
                 placeholder="Select Discom Name"
               />
               <FormSelect
-                label="Lead Reference"
+                label="Source"
                 name="leadrefrance"
                 value={formik.values.leadrefrance || ''}
                 onChange={(val) => { formik.setFieldValue('leadrefrance', val); }}
@@ -418,7 +418,7 @@ export default function LeadAddDialog({
                   { value: 'Client Reference Through', label: 'Client Reference Through' }
                 ]}
                 error={getFieldError('leadrefrance')}
-                placeholder="Select Lead Reference"
+                placeholder="Select Source"
               />
             </div>
 

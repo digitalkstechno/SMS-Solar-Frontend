@@ -32,7 +32,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
   const [inverter, setInverter] = useState('');
   const [options, setOptions] = useState<string[]>(['OPTION 1']);
   const [rows, setRows] = useState([
-    { title: 'SOLAR MODULE MAKE', values: [''] },
+    { title: 'No. of Panel', values: [''] },
     { title: 'SYSTEM CAPACITY', values: [''] },
     { title: 'METER CHARGES REGISTRATION', values: [''] },
     { title: 'CUSTOMER PAYABLE AMOUNT', values: [''] },
@@ -63,7 +63,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
           setRows(qData.rows);
         } else {
           setRows([
-            { title: 'SOLAR MODULE MAKE', values: [''] },
+            { title: 'No. of Panel', values: [''] },
             { title: 'SYSTEM CAPACITY', values: [''] },
             { title: 'METER CHARGES REGISTRATION', values: [''] },
             { title: 'CUSTOMER PAYABLE AMOUNT', values: [''] },
@@ -78,7 +78,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
         setInverter('');
         setOptions(['OPTION 1']);
         setRows([
-          { title: 'SOLAR MODULE MAKE', values: [''] },
+          { title: 'No. of Panel', values: [''] },
           { title: 'SYSTEM CAPACITY', values: [''] },
           { title: 'METER CHARGES REGISTRATION', values: [''] },
           { title: 'CUSTOMER PAYABLE AMOUNT', values: [''] },
