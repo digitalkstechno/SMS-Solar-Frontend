@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { FormSelect } from '../ui/FormSelect';
 import FormInput from '../ui/Input';
 import DatePicker from 'react-datepicker';
+import { useAppSelector } from '@/redux/hooks';
 
 interface ApiLead {
   _id: string;
@@ -38,6 +39,21 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
   const [loading, setLoading] = useState(false);
   const [staffId, setStaffId] = useState<string>('');
 
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const leadStatusesData = useAppSelector((state) => state.leadStatus.data);
+
+  useEffect(() => {
+    if (leadStatusesData) {
+      setStatuses(leadStatusesData as any[]);
+    }
+  }, [leadStatusesData]);
+
+  useEffect(() => {
+    if (currentStaff) {
+      setStaffId(currentStaff._id);
+    }
+  }, [currentStaff]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -46,23 +62,6 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
     setNextDate('');
     setNextTime('');
     setNote('');
-
-    const fetchMeta = async () => {
-      try {
-        const headers = { Authorization: `Bearer ${getAuthToken()}` };
-        const [statusRes, staffRes] = await Promise.all([
-          axios.get(baseUrl.leadStatuses, { headers }),
-          axios.get(baseUrl.currentStaff, { headers }).catch(() => null),
-        ]);
-        setStatuses(statusRes.data?.data || []);
-        if (staffRes?.data?.data?._id) {
-          setStaffId(staffRes.data.data._id);
-        }
-      } catch (error) {
-        console.error('Failed to fetch statuses or staff', error);
-      }
-    };
-    fetchMeta();
   }, [isOpen, lead]);
 
   const handleSubmit = async () => {

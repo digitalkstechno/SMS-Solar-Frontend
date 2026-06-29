@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Dialog from '@/components/Dialog';
+import { useAppSelector } from '@/redux/hooks';
 import DataTable, { Column } from '@/components/DataTable';
 import DeleteDialog from '@/components/DeleteDialog';
 import axios from 'axios';
@@ -69,23 +70,19 @@ export function OrganizationsContent() {
     enableReinitialize: true,
   });
 
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+
   useEffect(() => {
-    if (!token) return;
-    axios
-      .get(baseUrl.currentStaff, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        const role = res.data?.data?.role || {};
-        const rawPerms = Array.isArray(role.organizations)
-          ? role.organizations[0]
-          : role.organizations || {};
-        setSetupPermissions(rawPerms.organizations || null);
-      })
-      .catch(() => {
-        setSetupPermissions(null);
-      });
-  }, [token]);
+    if (currentStaff) {
+      const role = currentStaff?.role || {};
+      const rawPerms = Array.isArray(role.organizations)
+        ? role.organizations[0]
+        : role.organizations || {};
+      setSetupPermissions(rawPerms.organizations || null);
+    } else {
+      setSetupPermissions(null);
+    }
+  }, [currentStaff]);
 
   const fetchData = async () => {
     try {

@@ -8,6 +8,7 @@ import axios from 'axios';
 import { baseUrl, getAuthToken } from '@/config';
 import { toast } from 'react-toastify';
 import DeleteDialog from '@/components/DeleteDialog';
+import { useAppSelector } from '@/redux/hooks';
 
 interface StaffManagement {
   id: string;
@@ -61,46 +62,42 @@ export function UserContent() {
 
   const [departments, setDepartments] = useState<{ _id: string; roleName: string; name?: string }[]>([]);
 
-  useEffect(() => {
-    if (!token) return;
-    
-    // Fetch permissions
-    axios
-      .get(baseUrl.currentStaff, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        const role = res.data?.data?.role || {};
-        const rawPerms = Array.isArray(role.permissions)
-          ? role.permissions[0]
-          : role.permissions || {};
-        setSetupPermissions(rawPerms.staff || null);
-      })
-      .catch(() => {
-        setSetupPermissions(null);
-      });
-    // Fetch departments to map IDs to names
-    axios
-      .get(baseUrl.department, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        setDepartments(res.data?.data ?? []);
-      })
-      .catch(() => setDepartments([]));
-  }, [token]);
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
 
-  const fetchStaff = useCallback(async () => {
+  useEffect(() => {
+    if (currentStaff) {
+      const role: any = currentStaff.role || {};
+      const rawPerms = Array.isArray(role.permissions)
+        ? role.permissions[0]
+        : role.permissions || {};
+      setSetupPermissions(rawPerms.staff || null);
+    } else {
+      setSetupPermissions(null);
+    }
+  }, [currentStaff]);
+
+
+  const fetchStaff = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
     try {
-      const res = await axios.get(baseUrl.getAllUsers, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        params: {
-          page,
-          limit,
-          search: debouncedSearch.trim(),
-        },
-      });
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+      const [res, deptRes] = await Promise.all([
+        axios.get(baseUrl.getAllUsers, {
+          headers,
+          signal,
+          params: {
+            page,
+            limit,
+            search: debouncedSearch.trim(),
+          },
+        }),
+        departments.length === 0
+          ? axios.get(baseUrl.department, { headers, signal })
+          : Promise.resolve({ data: { data: departments } })
+      ]);
+
+      const fetchedDepts = deptRes.data?.data ?? [];
+      if (departments.length === 0) setDepartments(fetchedDepts);
 
       const payload = (res.data?.data as {
         _id: string;
@@ -115,7 +112,7 @@ export function UserContent() {
       const pagination = res.data?.pagination || {};
 
       const formatted: StaffManagement[] = payload.map((item: any) => {
-        const dept = departments.find(d => d._id === item.department);
+        const dept = fetchedDepts.find((d: any) => d._id === item.department);
         const deptName = dept ? (dept.roleName || dept.name) : (typeof item.department === 'string' ? item.department : '-');
 
         return {
@@ -140,6 +137,7 @@ export function UserContent() {
         setPage(pagination.totalPages || 1);
       }
     } catch (error) {
+      if (axios.isCancel(error)) return;
       console.error('Failed to fetch staff:', error);
       setStaffManagementData([]);
       setTotalPages(1);
@@ -147,10 +145,13 @@ export function UserContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, limit, debouncedSearch, token, departments]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit, debouncedSearch, token]);
 
   useEffect(() => {
-    fetchStaff();
+    const controller = new AbortController();
+    fetchStaff(controller.signal);
+    return () => controller.abort();
   }, [fetchStaff]);
 
   const togglePasswordVisibility = (id: string) => {

@@ -20,7 +20,8 @@ import { CategoryContent } from './category';
 import { ProductContent } from './product';
 import { StockInContent } from './stock-in';
 import { StockOutContent } from './stock-out';
-
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { fetchCurrentStaff } from '@/redux/slices/authSlice';
 export default function Setup() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<
@@ -50,43 +51,23 @@ export default function Setup() {
     }, undefined, { shallow: true });
   };
 
-  // Fetch permissions - FIXED: Always call useEffect, but check token inside
+  const { currentStaff, status: authStatus } = useAppSelector((state) => state.auth);
+
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchPermissions = async () => {
-      if (!token) {
-        if (isMounted) setLoadingPermissions(false);
-        return;
-      }
-
-      try {
-        const res = await axios.get(baseUrl.currentStaff, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!isMounted) return;
-        const role = res.data?.data?.role || {};
-        const rawPerms = Array.isArray(role.permissions)
-          ? role.permissions[0]
-          : role.permissions || {};
-        setPermissions(rawPerms);
-      } catch {
-        if (!isMounted) return;
-        setPermissions(null);
-      } finally {
-        if (isMounted) {
-          setLoadingPermissions(false);
-        }
-      }
-    };
-
-    fetchPermissions();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [token]);
+    if (authStatus === 'loading' || authStatus === 'idle') {
+      setLoadingPermissions(true);
+    } else if (authStatus === 'succeeded' && currentStaff) {
+      const role: any = currentStaff.role || {};
+      const rawPerms = Array.isArray(role.permissions)
+        ? role.permissions[0]
+        : role.permissions || {};
+      setPermissions(rawPerms);
+      setLoadingPermissions(false);
+    } else if (authStatus === 'failed') {
+      setPermissions(null);
+      setLoadingPermissions(false);
+    }
+  }, [currentStaff, authStatus]);
 
   type Item = { name: string; order: number };
   type BackendItem = { name?: string; order?: number | string };
@@ -104,30 +85,11 @@ export default function Setup() {
   const [leadStatuses, setLeadStatuses] = useState<Item[]>([]);
   const [kanbanStatusNames, setKanbanStatusNames] = useState<string[]>([]);
 
-  // Fetch lead statuses - FIXED: Always call useEffect
+  const leadStatusesData = useAppSelector((state) => state.leadStatus.data);
+
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchLeadStatuses = async () => {
-
-      try {
-        const res = await axios.get(baseUrl.leadStatuses, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
-        if (isMounted) {
-          setLeadStatuses(parseList(res.data?.data ?? res.data).sort((a, b) => a.order - b.order));
-        }
-      } catch {
-        if (isMounted) setLeadStatuses([]);
-      }
-    };
-
-    fetchLeadStatuses();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [token]);
+    setLeadStatuses(parseList(leadStatusesData).sort((a, b) => a.order - b.order));
+  }, [leadStatusesData]);
 
   // Load saved kanban statuses from localStorage - FIXED: Always call useEffect
   useEffect(() => {

@@ -41,6 +41,7 @@
   import { baseUrl, getAuthToken } from "@/config";
   import moment from "moment";
   import Link from 'next/link';
+  import { useAppSelector } from '@/redux/hooks';
   import DashboardLeadUpdateDialog from "@/components/leads/DashboardLeadUpdateDialog";
   import DateRangePicker from "@/components/ui/DateRangePicker";
 
@@ -111,34 +112,30 @@
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
 
-    const token =
-      typeof window !== "undefined" ? getAuthToken() : null;
+    const token = typeof window !== "undefined" ? getAuthToken() : null;
+    const currentStaff = useAppSelector((state) => state.auth.currentStaff);
 
     // Fetch user info and permissions
     useEffect(() => {
-      if (!token) return;
-      axios.get(baseUrl.currentStaff, { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => {
-          const staff = res.data?.data || {};
-          setUser(staff);
-          const role = staff.role || {};
-          const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
-          const lp = rawPerms.lead || {};
-          const sp = rawPerms.setup || {};
-          setPermissions({
-            readAll: !!lp.readAll,
-            readOwn: !!lp.readOwn,
-            viewStaff: !!sp.readAll,
-          });
+      if (!currentStaff) return;
+      const staff = currentStaff;
+      setUser(staff);
+      const role = staff.role || {};
+      const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+      const lp = rawPerms.lead || {};
+      const sp = rawPerms.setup || {};
+      setPermissions({
+        readAll: !!lp.readAll,
+        readOwn: !!lp.readOwn,
+        viewStaff: !!sp.readAll,
+      });
 
-          // Set greeting based on time
-          const hour = new Date().getHours();
-          if (hour < 12) setGreeting("Good Morning");
-          else if (hour < 17) setGreeting("Good Afternoon");
-          else setGreeting("Good Evening");
-        })
-        .catch(console.error);
-    }, [token]);
+      // Set greeting based on time
+      const hour = new Date().getHours();
+      if (hour < 12) setGreeting("Good Morning");
+      else if (hour < 17) setGreeting("Good Afternoon");
+      else setGreeting("Good Evening");
+    }, [currentStaff]);
 
     // Redirect if no token
     useEffect(() => {

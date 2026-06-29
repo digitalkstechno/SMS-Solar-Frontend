@@ -10,6 +10,7 @@ import FormInput from '../ui/Input';
 import { FormSelect } from '../ui/FormSelect';
 import { FileText, Download, AlertCircle } from 'lucide-react';
 import LeadQuotationDialog from './LeadQuotationDialog';
+import { useAppSelector } from '@/redux/hooks';
 
 interface DropdownItem { _id: string; name?: string; fullName?: string; departmentName?: string; }
 
@@ -46,6 +47,16 @@ export default function LeadAddDialog({
 
   const [requiredFields, setRequiredFields] = useState<string[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const leadStatusesData = useAppSelector((state) => state.leadStatus.data);
+
+  useEffect(() => {
+    setCurrentUser(currentStaff);
+  }, [currentStaff]);
+
+  useEffect(() => {
+    setStatuses(leadStatusesData as any[]);
+  }, [leadStatusesData]);
 
   const isSalesExecutive = useMemo(() => {
     const roleName = (currentUser?.role?.roleName || '').toLowerCase();
@@ -182,26 +193,13 @@ export default function LeadAddDialog({
       try {
         const headers = { Authorization: `Bearer ${token()}` };
 
-        let currentUserData = currentUser;
-        if (!currentUserData) {
-          try {
-            const userRes = await axios.get(baseUrl.currentStaff, { headers });
-            currentUserData = userRes.data?.data;
-            setCurrentUser(currentUserData);
-          } catch (e) {
-            console.error('Failed to fetch current user:', e);
-          }
-        }
-
         let leadData = null;
         if (mode === 'edit' && initialData?._id) {
-          const [stRes, staffRes, deptRes, leadRes] = await Promise.all([
-            axios.get(baseUrl.leadStatuses, { headers }),
+          const [staffRes, deptRes, leadRes] = await Promise.all([
             axios.get(baseUrl.getSalesExecutives, { headers }),
             axios.get(baseUrl.department, { headers }),
             axios.get(`${baseUrl.findLeadById}/${initialData._id}`, { headers })
           ]);
-          setStatuses(stRes.data?.data || []);
           const depts = deptRes.data?.data || [];
           const users = staffRes.data?.data || [];
           const usersWithDepts = users.map((u: any) => {
@@ -211,12 +209,10 @@ export default function LeadAddDialog({
           setStaff(usersWithDepts);
           leadData = leadRes.data?.data;
         } else {
-          const [stRes, staffRes, deptRes] = await Promise.all([
-            axios.get(baseUrl.leadStatuses, { headers }),
+          const [staffRes, deptRes] = await Promise.all([
             axios.get(baseUrl.getSalesExecutives, { headers }),
             axios.get(baseUrl.department, { headers })
           ]);
-          setStatuses(stRes.data?.data || []);
           const depts = deptRes.data?.data || [];
           const users = staffRes.data?.data || [];
           const usersWithDepts = users.map((u: any) => {

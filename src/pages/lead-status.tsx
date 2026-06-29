@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import { useAppDispatch } from '@/redux/hooks';
+import { fetchLeadStatuses } from '@/redux/slices/leadStatusSlice';
 import Dialog from '@/components/Dialog';
 import DataTable, { Column } from '@/components/DataTable';
 import axios from 'axios';
@@ -59,6 +61,7 @@ export function LeadStatusContent() {
   const [allData, setAllData] = useState<LeadItem[]>([]);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 600);
+  const dispatch = useAppDispatch();
 
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -97,11 +100,12 @@ export function LeadStatusContent() {
 
   /* ================= LOAD DATA (search + pagination) ================= */
 
-  const fetchData = async () => {
+  const fetchData = async (signal?: AbortSignal) => {
     setIsLoading(true);
     try {
       const res = await axios.get(baseUrl.leadStatuses, {
         headers,
+        signal,
         params: {
           search: debouncedSearch || undefined,
           page: currentPage,
@@ -118,18 +122,21 @@ export function LeadStatusContent() {
 
       setAllData(items);
       setTotalRecords(res.data.pagination?.totalRecords || items.length);
-    } catch (err: any) {
-      console.error('Failed to load lead statuses', err);
+    } catch (error) {
+      if (axios.isCancel(error)) return;
+      console.error('Failed to fetch lead status:', error);
       setAllData([]);
       setTotalRecords(0);
-      toast.error(err?.response?.data?.message || 'Failed to load lead statuses');
+      toast.error('Failed to load lead statuses');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
   }, [debouncedSearch, currentPage, pageSize]);
 
   /* ================= SAVE (add or edit) ================= */
@@ -154,6 +161,7 @@ export function LeadStatusContent() {
       }
 
       await fetchData();
+      dispatch(fetchLeadStatuses());
       setIsDialogOpen(false);
       formik.resetForm();
     } catch (err: any) {
@@ -181,6 +189,7 @@ export function LeadStatusContent() {
     try {
       await axios.delete(`${baseUrl.leadStatuses}/${statusToDelete._id}`, { headers });
       await fetchData();
+      dispatch(fetchLeadStatuses());
       toast.success(`Lead status "${statusToDelete.name}" deleted successfully`);
       setShowDeleteDialog(false);
       setStatusToDelete(null);

@@ -9,6 +9,7 @@
 // import { ApiLead, ApiStatus } from './types';
 // import { Eye, Download, FileText, Image, File, FileSpreadsheet } from 'lucide-react';
 // import { getFileIcon } from '@/utills/utill';
+import { useAppSelector } from '@/redux/hooks';
 
 // interface Props {
 //   lead: ApiLead | null;
@@ -577,22 +578,26 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
   }, [localFollowUps, followUpSearch]);
 
   // Get current staff info and departments
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
   useEffect(() => {
-    const fetchMeta = async () => {
+    if (currentStaff) {
+      setStaffInfo(currentStaff);
+    }
+  }, [currentStaff]);
+
+  useEffect(() => {
+    if (!lead) return;
+    const fetchDepartments = async () => {
       try {
         const headers = { Authorization: `Bearer ${getAuthToken()}` };
-        const [staffRes, deptRes] = await Promise.all([
-          axios.get(baseUrl.currentStaff, { headers }),
-          axios.get(baseUrl.department, { headers }).catch(() => ({ data: { data: [] } }))
-        ]);
-        setStaffInfo(staffRes.data?.data);
+        const deptRes = await axios.get(baseUrl.department, { headers }).catch(() => ({ data: { data: [] } }));
         setDepartments(deptRes.data?.data || []);
       } catch (error) {
-        console.error('Failed to fetch meta info', error);
+        console.error('Failed to fetch departments', error);
       }
     };
-    fetchMeta();
-  }, []);
+    fetchDepartments();
+  }, [lead]);
 
   const assignedToDeptName = useMemo(() => {
     if (!localAssignedTo?.department) return '';

@@ -11,7 +11,10 @@ import DeleteDialog from '@/components/DeleteDialog';
 import FormInput from '@/components/ui/Input';
 import FormSelect from '@/components/ui/FormSelect';
 import { PackageOpen } from 'lucide-react';
-
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { fetchCategories } from '@/redux/slices/categorySlice';
+import { fetchProducts } from '@/redux/slices/productSlice';
+import { useRef } from 'react';
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
@@ -48,8 +51,10 @@ const validationSchema = Yup.object({
 
 export function StockInContent() {
   const [allData, setAllData] = useState<TransactionType[]>([]);
-  const [categories, setCategories] = useState<CategoryType[]>([]);
-  const [products, setProducts] = useState<ProductType[]>([]);
+  const dispatch = useAppDispatch();
+  const { data: categories, status: catStatus } = useAppSelector((state) => state.category);
+  const { data: products, status: prodStatus } = useAppSelector((state) => state.product);
+
   const [totalRecords, setTotalRecords] = useState(0);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 600);
@@ -72,22 +77,19 @@ export function StockInContent() {
     enableReinitialize: true,
   });
 
-  const fetchCategoriesAndProducts = async () => {
-    try {
-      const [catRes, prodRes] = await Promise.all([
-        axios.get(baseUrl.category, { headers }),
-        axios.get(baseUrl.product, { headers })
-      ]);
-      setCategories(catRes.data?.data || []);
-      setProducts(prodRes.data?.data || []);
-    } catch (err) {
-      console.error('Failed to load filters', err);
-    }
-  };
+  const hasDispatchedRef = useRef(false);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (!hasDispatchedRef.current) {
+      hasDispatchedRef.current = true;
+      if (catStatus === 'idle') dispatch(fetchCategories());
+      if (prodStatus === 'idle') dispatch(fetchProducts());
+    }
+  }, [catStatus, prodStatus, dispatch]);
+
+  const fetchData = async (signal?: AbortSignal) => {
     try {
-      const res = await axios.get(`${baseUrl.stock}?type=IN`, { headers });
+      const res = await axios.get(`${baseUrl.stock}?type=IN`, { headers, signal });
       const data = (res.data?.data as any[]) ?? [];
       const items: TransactionType[] = data.map((i) => ({
         _id: i._id,
@@ -109,15 +111,20 @@ export function StockInContent() {
         );
       }
       setAllData(filteredItems);
-      setTotalRecords(filteredItems.length); 
+      setTotalRecords(filteredItems.length);
     } catch (err) {
-      console.error('Failed to load transactions', err);
+      if (axios.isCancel(err)) return;
+      console.error('Failed to load stock-in records', err);
       setAllData([]);
     }
   };
 
-  useEffect(() => { fetchCategoriesAndProducts(); }, []);
-  useEffect(() => { fetchData(); }, [debouncedSearch, currentPage, pageSize]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [debouncedSearch, currentPage, pageSize]);
 
   const saveTransaction = async (values: any) => {
     setIsSubmitting(true);
@@ -136,7 +143,7 @@ export function StockInContent() {
         await axios.post(baseUrl.stock, payload, { headers });
       }
       await fetchData();
-      await fetchCategoriesAndProducts(); // refresh product currentStock
+      await dispatch(fetchProducts()); // refresh product currentStock
       setIsDialogOpen(false);
       formik.resetForm();
     } catch (err: any) {
@@ -156,7 +163,7 @@ export function StockInContent() {
     try {
       await axios.delete(`${baseUrl.stock}/${transactionToDelete._id}`, { headers });
       await fetchData();
-      await fetchCategoriesAndProducts();
+      await dispatch(fetchProducts());
       setShowDeleteDialog(false);
       setTransactionToDelete(null);
     } catch (err: any) {

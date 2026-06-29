@@ -4,10 +4,17 @@ import { Poppins } from "next/font/google";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "react-datepicker/dist/react-datepicker.css";
-import { useState } from "react";
+import { Provider } from "react-redux";
+import { store } from "@/redux/store";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { toggleSidebar } from "@/redux/slices/appSlice";
 import Sidebar from "@/components/Sidebar";
 import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
+import { useEffect, useRef } from "react";
+import { fetchCurrentStaff } from "@/redux/slices/authSlice";
+import { fetchLeadStatuses } from "@/redux/slices/leadStatusSlice";
+import { fetchLeadLabels } from "@/redux/slices/leadLabelSlice";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -15,20 +22,35 @@ const poppins = Poppins({
   display: "swap",
 });
 
-export default function App({ Component, pageProps }: AppProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const pathName = usePathname()
+function AppContent({ Component, pageProps }: AppProps) {
+  const isSidebarOpen = useAppSelector((state) => state.app.isSidebarOpen);
+  const dispatch = useAppDispatch();
+  const pathName = usePathname();
   const isLoginPage = pathName === "/login";
+  const authStatus = useAppSelector((state) => state.auth.status);
+  const leadStatusStatus = useAppSelector((state) => state.leadStatus.status);
+  const leadLabelStatus = useAppSelector((state) => state.leadLabel.status);
+  
+  const hasDispatched = useRef(false);
+
+  useEffect(() => {
+    if (!isLoginPage && !hasDispatched.current) {
+      hasDispatched.current = true;
+      if (authStatus === 'idle') dispatch(fetchCurrentStaff());
+      if (leadStatusStatus === 'idle') dispatch(fetchLeadStatuses());
+      if (leadLabelStatus === 'idle') dispatch(fetchLeadLabels());
+    }
+  }, [authStatus, leadStatusStatus, leadLabelStatus, dispatch, isLoginPage]);
 
   const getLabel = () => {
-    if (pathName === "/") return "Dashboard"
-    if (pathName === "/leads") return "Leads"
-    if (pathName === "/leads/list") return "Leads List"
-    if (pathName === "/leads/kanban") return "Leads Kanban"
-    if (pathName === "/setup") return "Setup"
-    if (pathName === "/tasks") return "Tasks"
-    return ""
-  }
+    if (pathName === "/") return "Dashboard";
+    if (pathName === "/leads") return "Leads";
+    if (pathName === "/leads/list") return "Leads List";
+    if (pathName === "/leads/kanban") return "Leads Kanban";
+    if (pathName === "/setup") return "Setup";
+    if (pathName === "/tasks") return "Tasks";
+    return "";
+  };
 
   return (
     <div className={poppins.className}>
@@ -36,7 +58,7 @@ export default function App({ Component, pageProps }: AppProps) {
         {!isLoginPage && (
           <Sidebar
             isOpen={isSidebarOpen}
-            toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+            toggleSidebar={() => dispatch(toggleSidebar())}
           />
         )}
         <div
@@ -47,7 +69,7 @@ export default function App({ Component, pageProps }: AppProps) {
           <main className="animate-in fade-in duration-300">
             {/* Only show header for non-login pages */}
             {!isLoginPage ? (
-              <Header toggleSidebar={() => setIsSidebarOpen((prev) => !prev)} />
+              <Header toggleSidebar={() => dispatch(toggleSidebar())} />
             ) : null}
             <div className={isLoginPage ? "p-0" : "p-4 md:p-6"}>
               <Component {...pageProps} />
@@ -67,5 +89,13 @@ export default function App({ Component, pageProps }: AppProps) {
         theme="colored"
       />
     </div>
+  );
+}
+
+export default function App({ Component, pageProps }: AppProps) {
+  return (
+    <Provider store={store}>
+      <AppContent Component={Component} pageProps={pageProps} />
+    </Provider>
   );
 }

@@ -10,6 +10,7 @@ import { baseUrl, getAuthToken } from '@/config';
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 import LeadsListView from '@/components/leads/LeadsListView';
+import { useAppSelector } from '@/redux/hooks';
 import LeadsKanbanView from '@/components/leads/LeadsKanbanView';
 import LeadAddDialog from '@/components/leads/LeadAddDialog';
 import LeadViewDialog from '@/components/leads/LeadViewDialog';
@@ -86,35 +87,25 @@ export default function LeadsPage() {
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
 
   // ── Fetch permissions ────────────────────────────────────────────────────
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+
   useEffect(() => {
-    if (!token) return;
+    if (currentStaff) {
+      setCurrentUser(currentStaff);
+      const role = currentStaff.role || {};
+      const rawPerms = Array.isArray(role.permissions)
+        ? role.permissions[0]
+        : role.permissions || {};
 
-    const fetchPermissions = async () => {
-      try {
-        const res = await axios.get(baseUrl.currentStaff, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const staff = res.data?.data;
-        setCurrentUser(staff);
-        const role = staff?.role || {};
-        const rawPerms = Array.isArray(role.permissions)
-          ? role.permissions[0]
-          : role.permissions || {};
-
-        const lp = rawPerms.lead || {};
-        setLeadPermissions(lp);
-        if (!lp.readAll && lp.readOwn) setActiveTab('my');
-        const roleName = (role.roleName || '').toLowerCase();
-        setIsAdmin(roleName === 'admin');
-      } catch (error) {
-        console.error('Failed to fetch permissions:', error);
-        setLeadPermissions(null);
-      }
-    };
-
-    fetchPermissions();
-  }, [token]);
+      const lp = rawPerms.lead || {};
+      setLeadPermissions(lp);
+      if (!lp.readAll && lp.readOwn) setActiveTab('my');
+      const roleName = (role.roleName || '').toLowerCase();
+      setIsAdmin(roleName === 'admin');
+    } else {
+      setLeadPermissions(null);
+    }
+  }, [currentStaff]);
 
   const filters = useMemo(
     () => ({

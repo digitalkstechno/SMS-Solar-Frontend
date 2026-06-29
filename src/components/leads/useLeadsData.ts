@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { baseUrl, getAuthToken } from '@/config';
 import { ApiLead, ApiSource, ApiStatus, ApiUser, LeadLabel, LeadCountSummary } from './types';
+import { useAppSelector } from '@/redux/hooks';
 
 type Filters = {
   search?: string;
@@ -34,6 +35,25 @@ export function useLeadsData(
   const [permissions, setPermissions] = useState({
     create: false, update: false, delete: false, readAll: false, readOwn: false,
   });
+
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const leadStatusesData = useAppSelector((state) => state.leadStatus.data);
+
+  useEffect(() => {
+    if (currentStaff) {
+      const role: any = currentStaff.role || {};
+      const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+      const lp = rawPerms.lead || {};
+      setPermissions({
+        create: !!lp.create, update: !!lp.update, delete: !!lp.delete,
+        readAll: !!lp.readAll, readOwn: !!lp.readOwn,
+      });
+    }
+  }, [currentStaff]);
+
+  useEffect(() => {
+    setStatuses(leadStatusesData || []);
+  }, [leadStatusesData]);
 
   // List pagination
   const [listPage, setListPage] = useState(1);
@@ -72,7 +92,8 @@ export function useLeadsData(
 
   const fetchKanbanLeads = useCallback(async (
     tab = stateRef.current.activeTab,
-    f: Filters = stateRef.current.filters
+    f: Filters = stateRef.current.filters,
+    signal?: AbortSignal
   ) => {
     try {
       const useKanbanEndpoint = !!baseUrl.getKanbanData;
@@ -90,6 +111,7 @@ export function useLeadsData(
             to: f.to || undefined,
             limit: LIMIT,
           },
+          signal,
         });
 
         const data = res.data?.data;
@@ -116,10 +138,12 @@ export function useLeadsData(
             to: f.to || undefined,
             limit: 100,
           },
+          signal,
         });
         setLeads(res.data?.data || []);
       }
     } catch (e) {
+      if (axios.isCancel(e)) return;
       console.error('fetchKanbanLeads error:', e);
       setLeads([]);
     }
@@ -128,7 +152,8 @@ export function useLeadsData(
   const fetchLeadsList = useCallback(async (
     tab = stateRef.current.activeTab,
     f: Filters = stateRef.current.filters,
-    page = stateRef.current.listPage
+    page = stateRef.current.listPage,
+    signal?: AbortSignal
   ) => {
     try {
       const url = tab === 'my' ? baseUrl.myLeads : baseUrl.getAllLeads;
@@ -144,6 +169,7 @@ export function useLeadsData(
           page,
           limit: LIMIT,
         },
+        signal,
       });
       const arr = res.data?.data || [];
       const p = res.data?.pagination || {};
@@ -151,6 +177,7 @@ export function useLeadsData(
       setListTotalItems(p.totalRecords ?? p.total ?? p.count ?? arr.length);
       setListTotalPages(p.totalPages ?? (p.totalRecords ? Math.ceil(p.totalRecords / LIMIT) : 1));
     } catch (e) {
+      if (axios.isCancel(e)) return;
       console.error('fetchLeadsList error:', e);
       setLeadsList([]);
     }
@@ -159,7 +186,8 @@ export function useLeadsData(
   const fetchLostLeads = useCallback(async (
     tab = stateRef.current.activeTab,
     f: Filters = stateRef.current.filters,
-    page = stateRef.current.lostPage
+    page = stateRef.current.lostPage,
+    signal?: AbortSignal
   ) => {
     try {
       const res = await axios.get(baseUrl.getLostLeads, {
@@ -175,6 +203,7 @@ export function useLeadsData(
           page,
           limit: LIMIT,
         },
+        signal,
       });
       const raw = res.data?.data;
       const arr: ApiLead[] = Array.isArray(raw) ? raw : (raw?.data || []);
@@ -183,6 +212,7 @@ export function useLeadsData(
       setLostTotalItems(p.totalRecords ?? p.total ?? p.count ?? arr.length);
       setLostTotalPages(p.totalPages ?? (p.totalRecords ? Math.ceil(p.totalRecords / LIMIT) : 1));
     } catch (e) {
+      if (axios.isCancel(e)) return;
       console.error('fetchLostLeads error:', e);
       setLostLeads([]);
     }
@@ -191,7 +221,8 @@ export function useLeadsData(
   const fetchWonLeads = useCallback(async (
     tab = stateRef.current.activeTab,
     f: Filters = stateRef.current.filters,
-    page = stateRef.current.wonPage
+    page = stateRef.current.wonPage,
+    signal?: AbortSignal
   ) => {
     try {
       const res = await axios.get(baseUrl.getWonLeads, {
@@ -207,6 +238,7 @@ export function useLeadsData(
           page,
           limit: LIMIT,
         },
+        signal,
       });
       const raw = res.data?.data;
       const arr: ApiLead[] = Array.isArray(raw) ? raw : (raw?.data || []);
@@ -215,6 +247,7 @@ export function useLeadsData(
       setWonTotalItems(p.totalRecords ?? p.total ?? p.count ?? arr.length);
       setWonTotalPages(p.totalPages ?? (p.totalRecords ? Math.ceil(p.totalRecords / LIMIT) : 1));
     } catch (e) {
+      if (axios.isCancel(e)) return;
       console.error('fetchWonLeads error:', e);
       setWonLeads([]);
     }
@@ -239,39 +272,25 @@ export function useLeadsData(
       });
       setCounts(res.data?.data || null);
     } catch (e) {
+      if (axios.isCancel(e)) return;
       console.error('fetchCounts error:', e);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const fetchMeta = useCallback(async () => {
     try {
-      const [stRes, meRes] = await Promise.all([
-        axios.get(baseUrl.leadStatuses, { headers: getHeaders() }),
-        axios.get(baseUrl.currentStaff || baseUrl.me, { headers: getHeaders() })
-      ]);
-      setStatuses(stRes.data?.data ?? []);
-      const role = meRes.data?.data?.role || {};
-      const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
-      const lp = rawPerms.lead || {};
-      const sp = rawPerms.setup || {};
-      setPermissions({
-        create: !!lp.create, update: !!lp.update, delete: !!lp.delete,
-        readAll: !!lp.readAll, readOwn: !!lp.readOwn,
-      });
-
       try {
         const staffRes = await axios.get(baseUrl.getSalesExecutives || baseUrl.getAllStaff || baseUrl.getAllUsers, { headers: getHeaders() });
         setStaffMembers(staffRes.data?.data ?? []);
       } catch (err) {
         console.error('Failed to fetch staff members, falling back to current user:', err);
-        const currentUser = meRes.data?.data;
-        if (currentUser) {
+        if (currentStaff) {
           setStaffMembers([
             {
-              _id: currentUser._id,
-              fullName: currentUser.fullName,
-              email: currentUser.email,
-              phone: currentUser.phone,
-              status: currentUser.status,
+              _id: currentStaff._id,
+              fullName: currentStaff.fullName,
+              email: currentStaff.email,
+              phone: currentStaff.phone,
+              status: currentStaff.status,
             } as any
           ]);
         } else {
@@ -281,7 +300,7 @@ export function useLeadsData(
     } catch (e) {
       console.error('fetchMeta error:', e);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentStaff]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─────────────────────────────────────────────────────────────────────────
   // refetchAll — always reads latest values from ref, no stale closures
@@ -310,85 +329,81 @@ export function useLeadsData(
   // 1. Meta — once
   useEffect(() => { fetchMeta(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 2. Initial data load
-  useEffect(() => {
-    let cancelled = false;
-    const init = async () => {
-      setLoading(true);
-      if (viewMode === 'list') {
-        await Promise.all([
-          fetchLeadsList(activeTab, filters, 1), 
-          fetchCounts(activeTab, filters)
-        ]);
-      } else {
-        const calls: Promise<void>[] = [
-          fetchCounts(activeTab, filters),
-          fetchLostLeads(activeTab, filters, 1),
-          fetchWonLeads(activeTab, filters, 1)
-        ];
-        await Promise.all(calls);
-      }
-      if (!cancelled) setLoading(false);
-    };
-    init();
-    return () => { cancelled = true; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 3. Re-fetch when viewMode / activeTab / filters change
+  // 2. Unified load & Re-fetch when viewMode / activeTab / filters / pagination change
   const prevKey = useRef('');
+  const prevFiltersKey = useRef('');
+  
   useEffect(() => {
-    const key = JSON.stringify({ viewMode, activeTab, filters });
+    const filtersKey = JSON.stringify({ viewMode, activeTab, filters });
+    let pageResetNeeded = false;
+    
+    if (filtersKey !== prevFiltersKey.current) {
+      prevFiltersKey.current = filtersKey;
+      if (listPage !== 1 || lostPage !== 1 || wonPage !== 1) {
+        setListPage(1);
+        setLostPage(1);
+        setWonPage(1);
+        pageResetNeeded = true;
+      }
+    }
+
+    if (pageResetNeeded) return; // Exit early, the state updates will trigger an immediate re-render
+
+    const key = JSON.stringify({ viewMode, activeTab, filters, kanbanSubView, listPage, lostPage, wonPage });
     if (key === prevKey.current) return;
+    
+    const prevParsed = prevKey.current ? JSON.parse(prevKey.current) : null;
     prevKey.current = key;
 
-    setListPage(1);
-    setLostPage(1);
-    setWonPage(1);
+    const controller = new AbortController();
+    const signal = controller.signal;
 
-    if (viewMode === 'list') {
-      fetchLeadsList(activeTab, filters, 1);
-      fetchCounts(activeTab, filters);
-    } else {
-      fetchCounts(activeTab, filters);
-      fetchLostLeads(activeTab, filters, 1);
-      fetchWonLeads(activeTab, filters, 1);
-    }
-  }, [viewMode, activeTab, filters]); // eslint-disable-line react-hooks/exhaustive-deps
+    const load = async () => {
+      setLoading(true);
+      const calls: Promise<void>[] = [];
+      
+      const filtersChanged = !prevParsed || prevParsed.activeTab !== activeTab || JSON.stringify(prevParsed.filters) !== JSON.stringify(filters);
+      const viewModeChanged = prevParsed && prevParsed.viewMode !== viewMode;
+      
+      if (filtersChanged || viewModeChanged) {
+        calls.push(fetchCounts(activeTab, filters));
+      }
 
-  // 4. Kanban sub-view changed
-  const prevSubView = useRef(kanbanSubView);
-  useEffect(() => {
-    if (prevSubView.current === kanbanSubView) return;
-    prevSubView.current = kanbanSubView;
-    if (viewMode !== 'kanban') return;
-    // if (kanbanSubView === 'board') fetchKanbanLeads(activeTab, filters); // Handled by component
-    if (kanbanSubView === 'lost') fetchLostLeads(activeTab, filters, lostPage);
-    if (kanbanSubView === 'won') fetchWonLeads(activeTab, filters, wonPage);
-  }, [kanbanSubView]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 5. List page change
-  const prevListPage = useRef(listPage);
-  useEffect(() => {
-    if (prevListPage.current === listPage) return;
-    prevListPage.current = listPage;
-    if (viewMode === 'list') fetchLeadsList(activeTab, filters, listPage);
-  }, [listPage]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 6. Lost page change
-  const prevLostPage = useRef(lostPage);
-  useEffect(() => {
-    if (prevLostPage.current === lostPage) return;
-    prevLostPage.current = lostPage;
-    if (viewMode === 'kanban' && kanbanSubView === 'lost') fetchLostLeads(activeTab, filters, lostPage);
-  }, [lostPage]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 7. Won page change
-  const prevWonPage = useRef(wonPage);
-  useEffect(() => {
-    if (prevWonPage.current === wonPage) return;
-    prevWonPage.current = wonPage;
-    if (viewMode === 'kanban' && kanbanSubView === 'won') fetchWonLeads(activeTab, filters, wonPage);
-  }, [wonPage]); // eslint-disable-line react-hooks/exhaustive-deps
+      if (viewMode === 'list') {
+        const listPageChanged = !prevParsed || prevParsed.listPage !== listPage;
+        if (filtersChanged || viewModeChanged || listPageChanged) {
+          calls.push(fetchLeadsList(activeTab, filters, listPage, signal));
+        }
+      } else {
+        const lostPageChanged = !prevParsed || prevParsed.lostPage !== lostPage;
+        const wonPageChanged = !prevParsed || prevParsed.wonPage !== wonPage;
+        const kanbanSubViewChanged = !prevParsed || prevParsed.kanbanSubView !== kanbanSubView;
+        
+        if (filtersChanged || viewModeChanged || kanbanSubViewChanged) {
+          if (kanbanSubView === 'board') {
+            calls.push(fetchKanbanLeads(activeTab, filters, signal));
+          } else if (kanbanSubView === 'lost') {
+            calls.push(fetchLostLeads(activeTab, filters, lostPage, signal));
+          } else if (kanbanSubView === 'won') {
+            calls.push(fetchWonLeads(activeTab, filters, wonPage, signal));
+          }
+        } else {
+          // Pagination changes for lost/won while staying on the same subview
+          if (kanbanSubView === 'lost' && lostPageChanged) calls.push(fetchLostLeads(activeTab, filters, lostPage, signal));
+          if (kanbanSubView === 'won' && wonPageChanged) calls.push(fetchWonLeads(activeTab, filters, wonPage, signal));
+        }
+      }
+      
+      if (calls.length > 0) {
+        await Promise.all(calls);
+      }
+      
+      if (!signal.aborted) setLoading(false);
+    };
+    
+    load();
+    return () => { controller.abort(); };
+  }, [viewMode, activeTab, filters, kanbanSubView, listPage, lostPage, wonPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─────────────────────────────────────────────────────────────────────────
 

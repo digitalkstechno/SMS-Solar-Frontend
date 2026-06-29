@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { io } from 'socket.io-client';
 import Swal from 'sweetalert2';
+import { useAppSelector } from '@/redux/hooks';
 
 interface Notification {
   _id: string;
@@ -39,6 +40,8 @@ export default function Header({ toggleSidebar }: HeaderProps) {
   } | null>(null);
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
 
   const isLoginPage = router?.pathname === "/login";
 
@@ -151,151 +154,139 @@ export default function Header({ toggleSidebar }: HeaderProps) {
 
   useEffect(() => {
     const token = getAuthToken();
-    if (!token) return;
+    if (!token || !currentStaff) return;
 
     let socket: any;
+    
+    const user = currentStaff;
+    setCurrentUser(user as any);
+    const currentUserId = user?._id;
+    if (!currentUserId) return;
 
-    axios
-      .get(baseUrl.currentStaff, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        const user = res.data?.data;
-        setCurrentUser(user);
-        const currentUserId = user?._id;
-        if (!currentUserId) return;
+    // ✅ Correct socket URL (NO /api/v1/api)
+    const socketUrl = (
+      process.env.NEXT_PUBLIC_SOCKET_URL ||
+      process.env.NEXT_PUBLIC_IMAGE_URL ||
+      ''
+    ).replace(/\/api\/?$/, '');
 
-        // ✅ Correct socket URL (NO /api/v1/api)
-        const socketUrl = (
-          process.env.NEXT_PUBLIC_SOCKET_URL ||
-          process.env.NEXT_PUBLIC_IMAGE_URL ||
-          ''
-        ).replace(/\/api\/?$/, '');
+    console.log('[Socket] Connecting to:', socketUrl);
 
-        console.log('[Socket] Connecting to:', socketUrl);
+    socket = io(socketUrl || 'http://localhost:5000', {
+      transports: ['websocket', 'polling'],
+    });
 
-        socket = io(socketUrl || 'http://localhost:5000', {
-          transports: ['websocket', 'polling'],
-        });
+    // =========================
+    // 🔥 GLOBAL EVENT LOGGER
+    // =========================
+    socket.onAny((event: string, ...args: any[]) => {
+      console.log('[Socket][onAny] 👉', event, args);
+    });
 
-        // =========================
-        // 🔥 GLOBAL EVENT LOGGER
-        // =========================
-        socket.onAny((event: string, ...args: any[]) => {
-          console.log('[Socket][onAny] 👉', event, args);
-        });
+    // =========================
+    // 🔌 CONNECTION EVENTS
+    // =========================
+    socket.on('connect', () => {
+      console.log('[Socket] ✅ Connected:', socket.id);
 
-        // =========================
-        // 🔌 CONNECTION EVENTS
-        // =========================
-        socket.on('connect', () => {
-          console.log('[Socket] ✅ Connected:', socket.id);
+      socket.emit('joinRoom', currentUserId);
+      console.log('[Socket] 📌 Joined room:', currentUserId);
+    });
 
-          socket.emit('joinRoom', currentUserId);
-          console.log('[Socket] 📌 Joined room:', currentUserId);
-        });
+    socket.on('disconnect', (reason: string) => {
+      console.log('[Socket] ❌ Disconnected:', reason);
+    });
 
-        socket.on('disconnect', (reason: string) => {
-          console.log('[Socket] ❌ Disconnected:', reason);
-        });
+    socket.on('connect_error', (error: any) => {
+      console.error('[Socket] 🚨 Connect Error:', error.message);
+    });
 
-        socket.on('connect_error', (error: any) => {
-          console.error('[Socket] 🚨 Connect Error:', error.message);
-        });
+    // =========================
+    // 🔄 RECONNECT EVENTS
+    // =========================
+    socket.io.on('reconnect_attempt', () => {
+      console.log('[Socket] 🔄 Reconnect Attempt...');
+    });
 
-        // =========================
-        // 🔄 RECONNECT EVENTS
-        // =========================
-        socket.io.on('reconnect_attempt', () => {
-          console.log('[Socket] 🔄 Reconnect Attempt...');
-        });
+    socket.io.on('reconnect', (attempt: number) => {
+      console.log('[Socket] ♻️ Reconnected after:', attempt);
+    });
 
-        socket.io.on('reconnect', (attempt: number) => {
-          console.log('[Socket] ♻️ Reconnected after:', attempt);
-        });
+    socket.io.on('reconnect_error', (err: any) => {
+      console.error('[Socket] 🚨 Reconnect Error:', err.message);
+    });
 
-        socket.io.on('reconnect_error', (err: any) => {
-          console.error('[Socket] 🚨 Reconnect Error:', err.message);
-        });
+    // =========================
+    // ⚡ ENGINE EVENTS (DEEP DEBUG)
+    // =========================
+    socket.io.engine.on('upgrade', () => {
+      console.log('[Socket] ⚡ Upgraded to WebSocket');
+    });
 
-        // =========================
-        // ⚡ ENGINE EVENTS (DEEP DEBUG)
-        // =========================
-        socket.io.engine.on('upgrade', () => {
-          console.log('[Socket] ⚡ Upgraded to WebSocket');
-        });
+    socket.io.engine.on('packet', (packet: any) => {
+      console.log('[Socket] 📦 Packet:', packet);
+    });
 
-        socket.io.engine.on('packet', (packet: any) => {
-          console.log('[Socket] 📦 Packet:', packet);
-        });
+    // =========================
+    // 📩 CUSTOM EVENTS
+    // =========================
 
-        // =========================
-        // 📩 CUSTOM EVENTS
-        // =========================
+    socket.on('new_task_assigned', (notif: Notification) => {
+      console.log('[Socket] 📩 new_task_assigned:', notif);
 
-        socket.on('new_task_assigned', (notif: Notification) => {
-          console.log('[Socket] 📩 new_task_assigned:', notif);
+      setNotifications((prev) => [notif, ...prev]);
 
-          setNotifications((prev) => [notif, ...prev]);
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+          const browserNotif = new window.Notification(notif.title, {
+            body: notif.message,
+            icon: '/notification-icon.png',
+            badge: '/badge-icon.png',
+          });
 
-          if (typeof window !== 'undefined' && 'Notification' in window) {
-            if (Notification.permission === 'granted') {
-              const browserNotif = new window.Notification(notif.title, {
-                body: notif.message,
-                icon: '/notification-icon.png',
-                badge: '/badge-icon.png',
-              });
-
-              browserNotif.onclick = async () => {
-                window.focus();
-                try {
-                  if (!notif.isRead) {
-                    await axios.put(
-                      `${baseUrl.getBaseUrl?.endsWith('/') ? baseUrl.getBaseUrl.slice(0, -1) : baseUrl.getBaseUrl}/notification/mark-read/${notif._id}`,
-                      {},
-                      {
-                        headers: {
-                          Authorization: `Bearer ${getAuthToken()}`,
-                        },
-                      }
-                    );
+          browserNotif.onclick = async () => {
+            window.focus();
+            try {
+              if (!notif.isRead) {
+                await axios.put(
+                  `${baseUrl.getBaseUrl?.endsWith('/') ? baseUrl.getBaseUrl.slice(0, -1) : baseUrl.getBaseUrl}/notification/mark-read/${notif._id}`,
+                  {},
+                  {
+                    headers: {
+                      Authorization: `Bearer ${getAuthToken()}`,
+                    },
                   }
-                  router.push(
-                    notif.type === 'task' ? '/tasks' : '/leads/list'
-                  );
-                } catch (e) {
-                  console.error(e);
-                }
-                browserNotif.close();
-              };
+                );
+              }
+              router.push(
+                notif.type === 'task' ? '/tasks' : '/leads/list'
+              );
+            } catch (e) {
+              console.error(e);
             }
-          }
-        });
+            browserNotif.close();
+          };
+        }
+      }
+    });
 
-        socket.on('new_lead_assigned', (notif: Notification) => {
-          console.log('[Socket] 📩 new_lead_assigned:', notif);
-          setNotifications((prev) => [notif, ...prev]);
-        });
+    socket.on('new_lead_assigned', (notif: Notification) => {
+      console.log('[Socket] 📩 new_lead_assigned:', notif);
+      setNotifications((prev) => [notif, ...prev]);
+    });
 
-        socket.on('task_updated', (notif: Notification) => {
-          console.log('[Socket] 📩 task_updated:', notif);
-          setNotifications((prev) => [notif, ...prev]);
-        });
-      })
-      .catch((err) => {
-        console.error('[Socket] ❌ Failed to get user:', err);
-      });
+    socket.on('task_updated', (notif: Notification) => {
+      console.log('[Socket] 📩 task_updated:', notif);
+      setNotifications((prev) => [notif, ...prev]);
+    });
 
-    // =========================
-    // 🧹 CLEANUP
-    // =========================
     return () => {
       if (socket) {
         console.log('[Socket] 🧹 Cleaning up...');
         socket.disconnect();
       }
     };
-  }, [router]);
+  }, [router, currentStaff]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

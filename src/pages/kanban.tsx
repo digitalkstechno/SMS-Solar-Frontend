@@ -10,6 +10,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { useRouter } from "next/router";
 import { baseUrl, getAuthToken } from "@/config";
+import { useAppSelector } from '@/redux/hooks';
 import Dialog from "@/components/Dialog";
 import { ListCollapse, Plus } from "lucide-react";
 import Select from "react-select";
@@ -275,31 +276,16 @@ export default function LeadsPage() {
     }
   };
 
-  const fetchLeadLabels = async () => {
-    try {
-      const token = getAuthToken();
-      const res = await axios.get(baseUrl.leadLabels, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = res.data?.data;
-      setLeadLabels(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Failed to fetch lead labels", error);
-    }
-  };
+  const leadLabelsData = useAppSelector((state) => state.leadLabel.data);
+  const leadStatusesData = useAppSelector((state) => state.leadStatus.data);
 
-  const fetchStatuses = async () => {
-    try {
-      const token = getAuthToken();
-      const res = await axios.get(baseUrl.leadStatuses, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = res.data?.data ?? res.data;
-      setStatuses(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Failed to fetch statuses", error);
-    }
-  };
+  useEffect(() => {
+    setLeadLabels(leadLabelsData as any[]);
+  }, [leadLabelsData]);
+
+  useEffect(() => {
+    setStatuses(leadStatusesData as any[]);
+  }, [leadStatusesData]);
 
   const fetchStaff = async () => {
     try {
@@ -317,11 +303,9 @@ export default function LeadsPage() {
   useEffect(() => {
     fetchLeads();
     fetchSources();
-    fetchStatuses();
     fetchStaff();
     fetchLostLeads();
     fetchWonLeads();
-    fetchLeadLabels();
   }, []);
 
   const handleSaveLead = async () => {

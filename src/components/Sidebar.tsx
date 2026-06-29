@@ -23,6 +23,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { useRouter } from "next/navigation";
+import { useAppSelector } from '@/redux/hooks';
 import axios from "axios";
 import { baseUrl, clearAuthToken, getAuthToken } from "@/config";
 import Swal from 'sweetalert2';
@@ -54,31 +55,29 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   const [canViewProduct, setCanViewProduct] = useState(false);
   const [canViewStock, setCanViewStock] = useState(false);
 
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+
   useEffect(() => {
     const token = getAuthToken();
-    if (!token) return;
-    axios
-      .get(baseUrl.currentStaff, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        const role = res.data?.data?.role || {};
-        const rawPerms = Array.isArray(role.permissions)
-          ? role.permissions[0]
-          : role.permissions || {};
-        const leadPerms = rawPerms.lead || {};
-        const taskPerms = rawPerms.task || {};
-        const staffPerms = rawPerms.staff || {};
-        const rolePerms = rawPerms.role || {};
-        const leadStatusPerms = rawPerms.leadStatus || {};
-        const leadSourcePerms = rawPerms.leadSource || {};
-        const leadLabelPerms = rawPerms.leadLabel || {};
-        const setupPerms = rawPerms.setup || {};
-        const categoryPerms = rawPerms.category || {};
-        const productPerms = rawPerms.product || {};
-        const stockPerms = rawPerms.stock || {};
+    if (!token || !currentStaff) return;
+    
+    const role: any = currentStaff.role || {};
+    const rawPerms = Array.isArray(role.permissions)
+      ? role.permissions[0]
+      : role.permissions || {};
+    const leadPerms = rawPerms.lead || {};
+    const taskPerms = rawPerms.task || {};
+    const staffPerms = rawPerms.staff || {};
+    const rolePerms = rawPerms.role || {};
+    const leadStatusPerms = rawPerms.leadStatus || {};
+    const leadSourcePerms = rawPerms.leadSource || {};
+    const leadLabelPerms = rawPerms.leadLabel || {};
+    const setupPerms = rawPerms.setup || {};
+    const categoryPerms = rawPerms.category || {};
+    const productPerms = rawPerms.product || {};
+    const stockPerms = rawPerms.stock || {};
 
-        const isAdmin = role.roleName?.toLowerCase() === "admin";
+    const isAdmin = role.roleName?.toLowerCase() === "admin";
 
         setCanViewLead(isAdmin || !!(leadPerms.readOwn || leadPerms.readAll));
         setCanViewTask(isAdmin || !!(taskPerms.readOwn || taskPerms.readAll));
@@ -90,20 +89,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
         setCanViewCategory(isAdmin || !!(categoryPerms.readAll || categoryPerms.readOwn || setupPerms.readAll));
         setCanViewProduct(isAdmin || !!(productPerms.readAll || productPerms.readOwn || setupPerms.readAll));
         setCanViewStock(isAdmin || !!(stockPerms.readAll || stockPerms.readOwn || setupPerms.readAll));
-      })
-      .catch(() => {
-        setCanViewLead(false);
-        setCanViewTask(false);
-        setCanViewStaff(false);
-        setCanViewRole(false);
-        setCanViewLeadStatus(false);
-        setCanViewLeadSource(false);
-        setCanViewLeadLabel(false);
-        setCanViewCategory(false);
-        setCanViewProduct(false);
-        setCanViewStock(false);
-      });
-  }, []);
+  }, [currentStaff]);
 
   const menuItems: MenuItem[] = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/" },

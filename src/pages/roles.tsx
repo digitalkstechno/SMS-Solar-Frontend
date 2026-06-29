@@ -8,6 +8,7 @@ import { baseUrl } from '@/config';
 import { getAuthToken } from '@/config';
 import { toast } from 'react-toastify';
 import DeleteDialog from '@/components/DeleteDialog';
+import { useAppSelector } from '@/redux/hooks';
 
 // ──────────────────────────────────────────────── Types
 type CapabilityPartial = Partial<{
@@ -160,25 +161,19 @@ export function RolesContent() {
     delete?: boolean;
   } | null>(null);
 
-  useEffect(() => {
-    if (!token) return;
-    axios
-      .get(baseUrl.currentStaff, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        const role = res.data?.data?.role || {};
-        const rawPerms = Array.isArray(role.permissions)
-          ? role.permissions[0]
-          : role.permissions || {};
-        setSetupPermissions(rawPerms.role || null);
-      })
-      .catch(() => {
-        setSetupPermissions(null);
-      });
-  }, [token]);
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
 
-  const fetchRoles = useCallback(async () => {
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token || !currentStaff) return;
+    const role: any = currentStaff.role || {};
+    const rawPerms = Array.isArray(role.permissions)
+      ? role.permissions[0]
+      : role.permissions || {};
+    setSetupPermissions(rawPerms.role || null);
+  }, [currentStaff]);
+
+  const fetchRoles = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
     try {
       const params = {
@@ -189,6 +184,7 @@ export function RolesContent() {
 
       const res = await axios.get(baseUrl.getAllRoles, {
         params,
+        signal,
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
 
@@ -205,6 +201,7 @@ export function RolesContent() {
         setCurrentPage(pagination.totalPages || 1);
       }
     } catch (err) {
+      if (axios.isCancel(err)) return;
       console.error('Failed to fetch roles:', err);
       setRolesData([]);
       setTotalRecords(0);
@@ -215,7 +212,9 @@ export function RolesContent() {
   }, [currentPage, pageSize, debouncedSearch, token]);
 
   useEffect(() => {
-    fetchRoles();
+    const controller = new AbortController();
+    fetchRoles(controller.signal);
+    return () => controller.abort();
   }, [fetchRoles]);
 
   const refreshAfterMutation = () => {

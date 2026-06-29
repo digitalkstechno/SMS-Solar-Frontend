@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Dialog from '@/components/Dialog';
+import { useAppSelector, useAppDispatch } from '@/redux/hooks';
+import { fetchCategories } from '@/redux/slices/categorySlice';
 import DataTable, { Column } from '@/components/DataTable';
 import axios from 'axios';
 import { baseUrl, getAuthToken } from '@/config';
@@ -49,7 +51,14 @@ const validationSchema = Yup.object({
 
 export function ProductContent() {
   const [allData, setAllData] = useState<ProductItem[]>([]);
-  const [categories, setCategories] = useState<CategoryType[]>([]);
+  const [categories, setCategories] = useState<{ _id: string; name: string }[]>([]);
+
+  const dispatch = useAppDispatch();
+  const reduxCategories = useAppSelector((state) => state.category.data);
+  const catStatus = useAppSelector((state) => state.category.status);
+
+  const hasFetchedData = useRef(false);
+  const hasDispatchedCat = useRef(false);
   const [totalRecords, setTotalRecords] = useState(0);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 600);
@@ -78,20 +87,24 @@ export function ProductContent() {
     enableReinitialize: true,
   });
 
-
-  const fetchCategories = async () => {
-    try {
-      const res = await axios.get(baseUrl.category, { headers });
-      setCategories(res.data?.data || []);
-    } catch (err) {
-      console.error('Failed to load categories', err);
+  useEffect(() => {
+    if (reduxCategories && reduxCategories.length > 0) {
+      setCategories(reduxCategories.map(c => ({ _id: c._id, name: c.name })));
     }
-  };
+  }, [reduxCategories]);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (catStatus === 'idle' && !hasDispatchedCat.current) {
+      hasDispatchedCat.current = true;
+      dispatch(fetchCategories());
+    }
+  }, [catStatus, dispatch]);
+
+  const fetchData = async (signal?: AbortSignal) => {
     try {
       const res = await axios.get(baseUrl.product, {
         headers,
+        signal,
         params: {
           search: debouncedSearch || undefined,
           page: currentPage,
@@ -119,6 +132,7 @@ export function ProductContent() {
       setAllData(filteredItems);
       setTotalRecords(filteredItems.length); 
     } catch (err) {
+      if (axios.isCancel(err)) return;
       console.error('Failed to load products', err);
       setAllData([]);
       setTotalRecords(0);
@@ -126,11 +140,9 @@ export function ProductContent() {
   };
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
   }, [debouncedSearch, currentPage, pageSize]);
 
 

@@ -130,6 +130,8 @@ export default function SalesExecutiveForm({
   }, [initialData, isOpen]);
 
   useEffect(() => {
+    if (!isOpen) return;
+    
     const storedToken = getAuthToken();
     const headers = { Authorization: `Bearer ${storedToken}` };
 
@@ -141,7 +143,7 @@ export default function SalesExecutiveForm({
       .then((res) => setDepartment(res.data?.data ?? []))
       .catch(() => setDepartment([]));
 
-  }, []);
+  }, [isOpen]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
