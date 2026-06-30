@@ -504,6 +504,7 @@ export default function LeadsPage() {
             loading={loading}
             pagination={listPagination}
             onSearch={(val) => setSearch(val)}
+            currentUser={currentUser}
           />
         ) : (
           <LeadsKanbanView

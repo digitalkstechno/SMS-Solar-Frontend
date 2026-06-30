@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { Phone, Mail, Plus } from 'lucide-react';
+import { Phone, Mail, Plus, FileText } from 'lucide-react';
 import { baseUrl, getAuthToken } from '@/config';
 import { ApiSource, ApiStatus, ApiUser, ApiLead } from './types';
 import DataTable, { Column } from '@/components/DataTable';
 import DeleteDialog from '@/components/DeleteDialog';
 import Swal from 'sweetalert2';
 import ProjectDetailDrawer from './ProjectDetailDrawer';
+import LeadDocumentsModal from './LeadDocumentsModal';
 
 // ── Debounce helper ──────────────────────────────────────────────────────────
 function useDebounce<T>(value: T, delay = 500): T {
@@ -74,6 +75,7 @@ interface Props {
     handleRowsPerPageChange: (rows: number) => void;
   };
   onSearch?: (value: string) => void;
+  currentUser?: any;
 }
 
 function mapLead(item: any): TableLead {
@@ -110,6 +112,7 @@ export default function LeadsListView({
   loading: loadingProp,
   pagination, // Receive pagination from parent
   onSearch,
+  currentUser,
 }: Props) {
   const router = useRouter();
   const [leads, setLeads] = useState<TableLead[]>([]);
@@ -117,6 +120,7 @@ export default function LeadsListView({
   const [deleteTarget, setDeleteTarget] = useState<TableLead | null>(null);
   const [localLoading, setLocalLoading] = useState(false);
   const [projectDetailLead, setProjectDetailLead] = useState<ApiLead | null>(null);
+  const [documentLead, setDocumentLead] = useState<ApiLead | null>(null);
 
   // Use loading from prop or local state
   const loading = loadingProp !== undefined ? loadingProp : localLoading;
@@ -209,6 +213,26 @@ export default function LeadsListView({
       key: 'paymentAmount', 
       label: 'AMOUNT',
       render: (v) => (v ? <span className="font-bold text-emerald-600">₹{v.toLocaleString()}</span> : <span className="text-gray-400">-</span>)
+    },
+    {
+      key: 'docs',
+      label: 'DOCS',
+      render: (_, row) => {
+        const isWon = row.status?.toLowerCase() === 'won' || row.status?.toLowerCase() === 'won leads';
+        const roleName = currentUser?.role?.roleName?.toLowerCase() || '';
+        const isDocDept = currentUser?.department?.toLowerCase().includes('document') || roleName.includes('document');
+        const isAdmin = roleName.includes('admin');
+        
+        return isWon && (isDocDept || isAdmin) ? (
+          <button 
+            onClick={(e) => { e.stopPropagation(); setDocumentLead(row._raw || row as unknown as ApiLead); }}
+            className="p-1.5 text-primary hover:bg-primary/10 rounded-md transition-colors"
+            title="View Documents"
+          >
+            <FileText className="w-4 h-4" />
+          </button>
+        ) : <span className="text-gray-400">-</span>
+      }
     },
   ];
 
@@ -389,6 +413,13 @@ export default function LeadsListView({
         lead={projectDetailLead}
         onClose={() => setProjectDetailLead(null)}
         onSaved={() => { onRefresh(); setProjectDetailLead(null); }}
+      />
+      
+      {/* Lead Documents Modal */}
+      <LeadDocumentsModal
+        isOpen={!!documentLead}
+        onClose={() => setDocumentLead(null)}
+        lead={documentLead}
       />
     </div>
   );

@@ -6,6 +6,7 @@ export type ApiUser = {
   fullName: string;
   email: string;
   avatar?: string;
+  department?: string;
 };
 
 export type ApiSource = {

@@ -314,19 +314,11 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
     }
 
     if (step === 'photos') {
-      PHOTO_FIELDS.forEach(({ key, label }) => {
-        if (!files[key] && !existingFiles[key]) {
-          newErrors[key] = `${label} is required`;
-        }
-      });
+      // Photos are no longer strictly required to allow partial saves
     }
 
     if (step === 'regDocs') {
-      REG_DOC_FIELDS.forEach(({ key, label }) => {
-        if (!files[key] && !existingFiles[key]) {
-          newErrors[key] = `${label} is required`;
-        }
-      });
+      // Reg docs are no longer strictly required to allow partial saves
     }
 
     if (step === 'payment') {
@@ -857,7 +849,6 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
                       fieldKey={f.key}
                       label={f.label}
                       accept="image/*,application/pdf"
-                      required
                       existingFiles={existingFiles}
                       files={files}
                       onFileChange={handleFileChange}
@@ -878,7 +869,6 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
                       label={f.label}
                       accept="image/*,application/pdf"
                       isPdf
-                      required
                       existingFiles={existingFiles}
                       files={files}
                       onFileChange={handleFileChange}

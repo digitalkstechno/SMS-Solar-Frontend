@@ -7,12 +7,13 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { baseUrl, getAuthToken } from '@/config';
 import { ApiLead } from './types';
-import { RefreshCw, Plus } from 'lucide-react';
+import { RefreshCw, Plus, FileText } from 'lucide-react';
 import DataTable, { Column } from '@/components/DataTable';
 import KanbanCard from './KanbanCard';
 import Swal from 'sweetalert2';
 import ProjectDetailDrawer from './ProjectDetailDrawer';
 import PaymentModal from './PaymentModal';
+import LeadDocumentsModal from './LeadDocumentsModal';
 
 type PaginationShape = {
     currentPage: number;
@@ -80,6 +81,7 @@ export default function LeadsKanbanView({
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [projectDetailLead, setProjectDetailLead] = useState<ApiLead | null>(null);
     const [paymentLead, setPaymentLead] = useState<ApiLead | null>(null);
+    const [documentLead, setDocumentLead] = useState<ApiLead | null>(null);
 
     const canEditLead = (lead: ApiLead) => {
         if (isAdmin) return true;
@@ -386,6 +388,24 @@ export default function LeadsKanbanView({
         { key: 'wonDate', label: 'WON DATE', render: (v) => (v ? new Date(v).toLocaleDateString() : 'N/A') },
         { key: 'assignedTo', label: 'ASSIGNED TO', render: (v) => v?.fullName || '-' },
         { key: 'paymentAmount', label: 'AMOUNT', render: (v) => (v ? `₹${v.toLocaleString()}` : '-') },
+        { 
+            key: 'docs', 
+            label: 'DOCS', 
+            render: (v, row) => {
+                const roleName = currentUser?.role?.roleName?.toLowerCase() || '';
+                const isDocDept = currentUser?.department?.toLowerCase().includes('document') || roleName.includes('document');
+                const isAdmin = roleName.includes('admin');
+                return (isDocDept || isAdmin) ? (
+                    <button 
+                        onClick={() => setDocumentLead(row)}
+                        className="p-1.5 text-primary hover:bg-primary/10 rounded-md transition-colors"
+                        title="View Documents"
+                    >
+                        <FileText className="w-4 h-4" />
+                    </button>
+                ) : <span className="text-gray-400">-</span>;
+            }
+        },
     ];
 
     return (
@@ -393,8 +413,10 @@ export default function LeadsKanbanView({
             <div className="flex flex-wrap items-center justify-between gap-3 px-1">
                 <div className="flex items-center gap-2">
                     {(['board', 'lost', 'won'] as SubView[]).map((v) => {
-                        const lostCount = lostPagination?.totalItems ?? lostLeads.length;
-                        const wonCount = wonPagination?.totalItems ?? wonLeads.length;
+                        const lostStatusGrp = statusGroups.find(g => g.title.toLowerCase() === 'lost' || g.title.toLowerCase() === 'lost leads');
+                        const wonStatusGrp = statusGroups.find(g => g.title.toLowerCase() === 'won' || g.title.toLowerCase() === 'won leads');
+                        const lostCount = lostPagination?.totalItems || lostLeads.length || Math.max(lostStatusGrp?.count || 0, lostStatusGrp?.leads?.length || 0);
+                        const wonCount = wonPagination?.totalItems || wonLeads.length || Math.max(wonStatusGrp?.count || 0, wonStatusGrp?.leads?.length || 0);
                         const label = v === 'board' ? 'Kanban View' : v === 'lost' ? 'Lost Leads' : 'Won Leads';
                         const count = v === 'lost' ? lostCount : v === 'won' ? wonCount : null;
                         return (
@@ -585,6 +607,13 @@ export default function LeadsKanbanView({
                 lead={paymentLead}
                 onClose={() => setPaymentLead(null)}
                 onPaymentAdded={onRefresh}
+            />
+
+            {/* Document Viewer Modal */}
+            <LeadDocumentsModal
+                isOpen={!!documentLead}
+                onClose={() => setDocumentLead(null)}
+                lead={documentLead}
             />
         </div>
     );

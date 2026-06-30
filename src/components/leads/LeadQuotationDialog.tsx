@@ -33,6 +33,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
   const [options, setOptions] = useState<string[]>(['OPTION 1']);
   const [rows, setRows] = useState([
     { title: 'No. of Panel', values: [''] },
+    { title: 'WP', values: [''] },
     { title: 'SYSTEM CAPACITY', values: [''] },
     { title: 'METER CHARGES REGISTRATION', values: [''] },
     { title: 'CUSTOMER PAYABLE AMOUNT', values: [''] },
@@ -64,6 +65,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
         } else {
           setRows([
             { title: 'No. of Panel', values: [''] },
+            { title: 'WP', values: [''] },
             { title: 'SYSTEM CAPACITY', values: [''] },
             { title: 'METER CHARGES REGISTRATION', values: [''] },
             { title: 'CUSTOMER PAYABLE AMOUNT', values: [''] },
@@ -79,6 +81,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
         setOptions(['OPTION 1']);
         setRows([
           { title: 'No. of Panel', values: [''] },
+          { title: 'WP', values: [''] },
           { title: 'SYSTEM CAPACITY', values: [''] },
           { title: 'METER CHARGES REGISTRATION', values: [''] },
           { title: 'CUSTOMER PAYABLE AMOUNT', values: [''] },
