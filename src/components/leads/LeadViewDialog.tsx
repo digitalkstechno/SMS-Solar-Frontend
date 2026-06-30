@@ -476,6 +476,8 @@ import { toast } from 'react-toastify';
 import Dialog, { CenterDialog } from '@/components/Dialog';
 import { baseUrl, getAuthToken } from '@/config';
 import { ApiLead, ApiStatus } from './types';
+import { FiPhone, FiMail, FiMapPin, FiCalendar, FiClock, FiCheckSquare, FiMessageSquare, FiList, FiEdit2, FiX, FiCheck, FiFileText } from 'react-icons/fi';
+import CustomTimePicker from '../ui/CustomTimePicker';
 import { Eye, Download, FileText, Image, File, FileSpreadsheet, Search, Trash2 } from 'lucide-react';
 import { getFileIcon } from '@/utills/utill';
 import LeadQuotationDialog from './LeadQuotationDialog';
@@ -1062,11 +1064,9 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-gray-500">Time</label>
-                      <input
-                        type="time"
+                      <CustomTimePicker
                         value={editNextTime}
-                        onChange={(e) => setEditNextTime(e.target.value)}
-                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 transition-all outline-none"
+                        onChange={(val) => setEditNextTime(val)}
                       />
                     </div>
                   </div>

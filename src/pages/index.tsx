@@ -9,6 +9,12 @@
     Cell,
     ResponsiveContainer,
     Tooltip,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Legend
   } from "recharts";
   import {
     Users,
@@ -86,6 +92,12 @@
     const [staffPerformance, setStaffPerformance] = useState<
       { name: string; converted: number; pending: number; lost: number }[]
     >([]);
+
+    const [kwGrowthData, setKwGrowthData] = useState<any>({ total: 0, chartData: [] });
+    const [kwTimeframe, setKwTimeframe] = useState<string>("month");
+    
+    const [salesWinRateData, setSalesWinRateData] = useState<any[]>([]);
+    const [salesTimeframe, setSalesTimeframe] = useState<string>("all");
 
     // Upcoming Follow-ups (paginated)
     const [upcomingPage, setUpcomingPage] = useState(1);
@@ -190,7 +202,7 @@
     const fetchLeadsBySource = async () => {
       if (!token) return;
       try {
-        const res = await axios.get(baseUrl.leadSources, {
+        const res = await axios.get(baseUrl.leadsBySourceAnalytics, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -211,7 +223,7 @@
           name: item.name,
           value: item.count || 0,
           fill: colorPalette[idx % colorPalette.length],
-        }));
+        })).filter((item: any) => item.value > 0);
 
         setLeadsBySource(chartData);
       } catch (err) {
@@ -236,6 +248,40 @@
         console.error("Staff performance error:", err);
       }
     };
+
+    const fetchKwGrowth = async () => {
+      if (!token) return;
+      try {
+        const res = await axios.get(baseUrl.kwGrowth, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { timeframe: kwTimeframe }
+        });
+        setKwGrowthData(res.data.data);
+      } catch (err) {
+        console.error("KW Growth error:", err);
+      }
+    };
+
+    const fetchSalesWinRate = async () => {
+      if (!token) return;
+      try {
+        const res = await axios.get(baseUrl.salesWinRate, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { timeframe: salesTimeframe }
+        });
+        setSalesWinRateData(res.data.data);
+      } catch (err) {
+        console.error("Sales win rate error:", err);
+      }
+    };
+
+    useEffect(() => {
+      fetchKwGrowth();
+    }, [kwTimeframe, token]);
+
+    useEffect(() => {
+      fetchSalesWinRate();
+    }, [salesTimeframe, token]);
 
     const fetchUpcomingFollowups = async (page: number) => {
       if (!token) return;
@@ -888,6 +934,87 @@
                 </div>
               </div>
             )}
+          </div>
+
+          {/* New Charts Section */}
+          <div className="grid grid-cols-1 gap-8">
+            {/* KW Growth Chart */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Total KW Growth</h3>
+                  <div className="text-3xl font-bold text-gray-900 mt-2">
+                    {kwGrowthData.total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} KW
+                  </div>
+                </div>
+                <div className="flex bg-gray-100 rounded-lg p-1 mt-4 sm:mt-0">
+                  {['month', 'week', 'year'].map(tf => (
+                    <button
+                      key={tf}
+                      onClick={() => setKwTimeframe(tf)}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${kwTimeframe === tf ? 'bg-[#10b981] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      {tf.charAt(0).toUpperCase() + tf.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={kwGrowthData.chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#6B7280', fontSize: 12}} dy={10} />
+                    <Tooltip
+                      cursor={{fill: '#F3F4F6'}}
+                      contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'}}
+                    />
+                    <Bar dataKey="kw" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={60} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Sales Executive Win Rate */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <h3 className="text-xl font-bold text-gray-900">Sales Executive — Win Rate</h3>
+                  <div className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-sm font-semibold">
+                    {salesWinRateData.reduce((acc, curr) => acc + curr.total, 0)} Total Leads
+                  </div>
+                </div>
+                <div className="flex bg-gray-100 rounded-lg p-1 mt-4 sm:mt-0">
+                  {['all', 'week', 'month', 'year'].map(tf => (
+                    <button
+                      key={tf}
+                      onClick={() => setSalesTimeframe(tf)}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${salesTimeframe === tf ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      {tf.charAt(0).toUpperCase() + tf.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={salesWinRateData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barSize={50}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#6B7280', fontSize: 12}} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#6B7280', fontSize: 12}} dx={-10} />
+                    <Tooltip
+                      cursor={{fill: '#F3F4F6'}}
+                      contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'}}
+                    />
+                    <Legend iconType="circle" wrapperStyle={{paddingTop: '20px'}} />
+                    <Bar dataKey="won" name="Won" fill="#10B981" radius={[4, 4, 0, 0]} barSize={20} />
+                    <Bar dataKey="lost" name="Lost" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={20} />
+                    <Bar dataKey="inProgress" name="In Progress" fill="#FBBF24" radius={[4, 4, 0, 0]} barSize={20} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
 
           {/* Follow-ups and Tasks Section */}

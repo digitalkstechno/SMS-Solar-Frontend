@@ -7,6 +7,7 @@ import { baseUrl, getAuthToken } from '@/config';
 import { toast } from 'react-toastify';
 import Label from './ui/Label';
 import Select from 'react-select';
+import CustomTimePicker from './ui/CustomTimePicker';
 
 interface DropdownItem {
   _id: string;
@@ -513,16 +514,18 @@ export default function LeadAddDialog({
                     className="w-full border border-slate-400 rounded px-3 py-2 text-black"
                   />
                 </div>
-                <div>
-                  <Label>Next Follow-up Time</Label>
-                  <input
-                    type="time"
-                    name="nextFollowupTime"
-                    value={formData.nextFollowupTime}
-                    onChange={handleChange}
-                    className="w-full border border-slate-400 rounded px-3 py-2 text-black"
-                  />
-                </div>
+                  <div>
+                    <Label>Next Follow-up Time</Label>
+                    <CustomTimePicker
+                      value={formData.nextFollowupTime}
+                      onChange={(val) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          nextFollowupTime: val,
+                        }))
+                      }
+                    />
+                  </div>
               </div>
 
               <div>

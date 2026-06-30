@@ -7,6 +7,7 @@ import { FormSelect } from '../ui/FormSelect';
 import FormInput from '../ui/Input';
 import DatePicker from 'react-datepicker';
 import { useAppSelector } from '@/redux/hooks';
+import CustomTimePicker from '../ui/CustomTimePicker';
 
 interface ApiLead {
   _id: string;
@@ -57,7 +58,8 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
   useEffect(() => {
     if (!isOpen) return;
 
-    setActionType('stage');
+    const isWon = lead?.leadStatus?.name?.toLowerCase() === 'won';
+    setActionType(isWon ? 'followup' : 'stage');
     setSelectedStage(lead?.leadStatus?._id || lead?.leadStatus || '');
     setNextDate('');
     setNextTime('');
@@ -157,28 +159,32 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
       <div className="space-y-6">
         {/* Action Type Radio Buttons */}
         <div className="flex flex-col gap-3 sm:flex-row sm:gap-6">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="actionType"
-              value="done"
-              checked={actionType === 'done'}
-              onChange={() => setActionType('done')}
-              className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-            />
-            <span className="text-sm font-medium text-gray-700">Follow Up Done</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="actionType"
-              value="stage"
-              checked={actionType === 'stage'}
-              onChange={() => setActionType('stage')}
-              className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-            />
-            <span className="text-sm font-medium text-gray-700">Stage</span>
-          </label>
+          {lead?.leadStatus?.name?.toLowerCase() !== 'won' && (
+            <>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="actionType"
+                  value="done"
+                  checked={actionType === 'done'}
+                  onChange={() => setActionType('done')}
+                  className="w-4 h-4 text-[#A63C71] border-gray-300 focus:ring-[#A63C71]"
+                />
+                <span className="text-sm font-medium text-gray-700">Follow Up Done</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="actionType"
+                  value="stage"
+                  checked={actionType === 'stage'}
+                  onChange={() => setActionType('stage')}
+                  className="w-4 h-4 text-[#A63C71] border-gray-300 focus:ring-[#A63C71]"
+                />
+                <span className="text-sm font-medium text-gray-700">Stage</span>
+              </label>
+            </>
+          )}
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
@@ -186,7 +192,7 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
               value="followup"
               checked={actionType === 'followup'}
               onChange={() => setActionType('followup')}
-              className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+              className="w-4 h-4 text-[#A63C71] border-gray-300 focus:ring-[#A63C71]"
             />
             <span className="text-sm font-medium text-gray-700">Next Follow up</span>
           </label>
@@ -226,13 +232,13 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
                     popperProps={{ strategy: 'fixed' }}
                   />
                 </div>
-                <FormInput
-                  label="Next Followup Time"
-                  name="nextTime"
-                  type="time"
-                  value={nextTime}
-                  onChange={(e) => setNextTime(e.target.value)}
-                />
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-700">Next Followup Time</label>
+                  <CustomTimePicker
+                    value={nextTime}
+                    onChange={(val) => setNextTime(val)}
+                  />
+                </div>
               </div>
               <FormInput
                 label="Note"

@@ -320,4 +320,9 @@ button {
 .react-datepicker-wrapper input:focus {
   border-color: #000000 !important;
   box-shadow: 0 0 0 1px #000000 !important;
+}input[type="time"], input[type="date"], input[type="datetime-local"] {
+  accent-color: #A63C71;
+}
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: hue-rotate(320deg) saturate(200%);
 }

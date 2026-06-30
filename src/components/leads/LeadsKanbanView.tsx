@@ -486,11 +486,11 @@ export default function LeadsKanbanView({
                                                 key={lead._id}
                                                 lead={lead}
                                                 isUpdating={updatingId === lead._id}
-                                                onDragStart={canEditLead(lead) ? () => setDraggingId(lead._id) : undefined}
+                                                onDragStart={canEditLead(lead) && lead.leadStatus?.name?.toLowerCase() !== 'won' ? () => setDraggingId(lead._id) : undefined}
                                                 onView={() => onView?.(lead)}
                                                 onEdit={canEditLead(lead) ? () => onEdit?.(lead) : undefined}
-                                                onMarkLost={canEditLead(lead) ? () => markLost(lead._id) : undefined}
-                                                onMarkWon={canEditLead(lead) ? () => markWon(lead._id) : undefined}
+                                                onMarkLost={canEditLead(lead) && lead.leadStatus?.name?.toLowerCase() !== 'won' ? () => markLost(lead._id) : undefined}
+                                                onMarkWon={canEditLead(lead) && lead.leadStatus?.name?.toLowerCase() !== 'won' ? () => markWon(lead._id) : undefined}
                                             />
                                         ))
                                     )}
