@@ -9,6 +9,7 @@ import axios from 'axios';
 import { baseUrl, getAuthToken } from '@/config';
 import DeleteDialog from '@/components/DeleteDialog';
 import FormInput from '@/components/ui/Input';
+import toast from 'react-hot-toast';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -139,9 +140,8 @@ export function LeadSourcesContent() {
       // Close dialog and reset form
       setIsDialogOpen(false);
       formik.resetForm();
-    } catch (err) {
-      console.error('Failed to save lead source', err);
-      alert('Operation failed');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Operation failed');
     } finally {
       setIsSubmitting(false);
     }

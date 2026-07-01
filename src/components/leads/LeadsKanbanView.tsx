@@ -7,7 +7,9 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { baseUrl, getAuthToken } from '@/config';
 import { ApiLead } from './types';
-import { RefreshCw, Plus, FileText } from 'lucide-react';
+import { RefreshCw, Plus, FileText, Calendar, X } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import DataTable, { Column } from '@/components/DataTable';
 import KanbanCard from './KanbanCard';
 import Swal from 'sweetalert2';
@@ -82,6 +84,10 @@ export default function LeadsKanbanView({
     const [projectDetailLead, setProjectDetailLead] = useState<ApiLead | null>(null);
     const [paymentLead, setPaymentLead] = useState<ApiLead | null>(null);
     const [documentLead, setDocumentLead] = useState<ApiLead | null>(null);
+    
+    // Custom Modal for Mark Lost
+    const [lostModalLeadId, setLostModalLeadId] = useState<string | null>(null);
+    const [lostModalData, setLostModalData] = useState({ reason: '', date: '' });
 
     const canEditLead = (lead: ApiLead) => {
         if (isAdmin) return true;
@@ -289,52 +295,26 @@ export default function LeadsKanbanView({
         });
     };
 
-    const markLost = async (id: string) => {
-        const { value: formValues } = await Swal.fire({
-            title: 'Mark Lead as Lost?',
-            html: `
-                <div style="text-align: left; margin-bottom: 10px;">
-                    <label style="font-weight: bold; font-size: 14px; display: block; margin-bottom: 5px;">
-                        <span style="color: #7d558f; margin-right: 5px;">✖</span> Remove Reason
-                    </label>
-                    <input id="swal-input1" class="swal2-input" placeholder="Enter reason for marking lead as lost" style="width: 100%; box-sizing: border-box; height: 40px; margin: 0; font-size: 14px;">
-                </div>
-                <div style="text-align: left;">
-                    <label style="font-weight: bold; font-size: 14px; display: block; margin-bottom: 5px;">
-                        <span style="color: #7d558f; margin-right: 5px;">📅</span> Lost Date
-                    </label>
-                    <input id="swal-input2" type="date" class="swal2-input" style="width: 100%; box-sizing: border-box; height: 40px; margin: 0; font-size: 14px;">
-                </div>
-            `,
-            focusConfirm: false,
-            showCancelButton: true,
-            confirmButtonText: 'Yes, Confirm',
-            cancelButtonText: 'Cancel',
-            confirmButtonColor: '#7d558f',
-            cancelButtonColor: '#6D7A86',
-            preConfirm: () => {
-                const reason = (document.getElementById('swal-input1') as HTMLInputElement).value;
-                const date = (document.getElementById('swal-input2') as HTMLInputElement).value;
-                if (!reason || !date) {
-                    Swal.showValidationMessage('Both reason and date are required');
-                    return false;
-                }
-                return { reason, date };
-            }
-        });
+    const markLost = (id: string) => {
+        setLostModalData({ reason: '', date: '' });
+        setLostModalLeadId(id);
+    };
+
+    const confirmMarkLost = async () => {
+        if (!lostModalLeadId || !lostModalData.reason || !lostModalData.date) return;
         
-        if (formValues) {
-            try {
-                const lostStatusId = statuses.find(s => s.name.match(/^lost$/i))?._id;
-                await axios.put(`${baseUrl.updateLead}/${id}`, 
-                    { leadStatus: lostStatusId, lostReason: formValues.reason, lostDate: formValues.date }, 
-                    { headers: { Authorization: `Bearer ${token()}` } }
-                );
-                toast.success('Lead marked as lost');
-                removeLeadFromBoard(id);
-                onRefresh();
-            } catch { toast.error('Failed to update lead'); }
-        }
+        try {
+            const lostStatusId = statuses.find(s => s.name.match(/^lost$/i))?._id;
+            await axios.put(`${baseUrl.updateLead}/${lostModalLeadId}`, 
+                { leadStatus: lostStatusId, lostReason: lostModalData.reason, lostDate: lostModalData.date }, 
+                { headers: { Authorization: `Bearer ${token()}` } }
+            );
+            toast.success('Lead marked as lost');
+            removeLeadFromBoard(lostModalLeadId);
+            onRefresh();
+        } catch { toast.error('Failed to update lead'); }
+        
+        setLostModalLeadId(null);
     };
 
     const markWon = async (id: string) => {
@@ -431,12 +411,10 @@ export default function LeadsKanbanView({
                         >
                             {label}
                             {count !== null && (
-                                <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
-                                    subView === v
-                                        ? 'bg-primary text-white'
-                                        : v === 'lost'
-                                            ? 'bg-red-100 text-red-700'
-                                            : 'bg-green-100 text-green-700'
+                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                    v === 'lost'
+                                        ? 'bg-red-100 text-red-700'
+                                        : 'bg-green-100 text-green-700'
                                 }`}>
                                     {count}
                                 </span>
@@ -615,6 +593,58 @@ export default function LeadsKanbanView({
                 onClose={() => setDocumentLead(null)}
                 lead={documentLead}
             />
+
+            {lostModalLeadId && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="p-6 text-center text-gray-800 text-2xl font-bold border-b border-gray-100">
+                            Mark Lead as Lost?
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-1 text-left">
+                                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <X className="w-4 h-4 text-[#A63C71]" /> Remove Reason
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Enter reason for marking lead as lost"
+                                    value={lostModalData.reason}
+                                    onChange={e => setLostModalData(p => ({ ...p, reason: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#A63C71] focus:border-[#A63C71]"
+                                />
+                            </div>
+                            <div className="space-y-1 text-left">
+                                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-[#A63C71]" /> Lost Date
+                                </label>
+                                <DatePicker
+                                    selected={lostModalData.date ? new Date(lostModalData.date) : null}
+                                    onChange={(date) => setLostModalData(p => ({ ...p, date: date ? date.toISOString().split('T')[0] : '' }))}
+                                    placeholderText="dd-mm-yyyy"
+                                    dateFormat="dd-MM-yyyy"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#A63C71] focus:border-[#A63C71]"
+                                    wrapperClassName="w-full"
+                                />
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 bg-gray-50 border-t flex justify-center gap-3">
+                            <button
+                                onClick={confirmMarkLost}
+                                disabled={!lostModalData.reason || !lostModalData.date}
+                                className="px-6 py-2 bg-[#A63C71] text-white font-medium rounded hover:bg-[#8f325f] disabled:opacity-50 transition-colors"
+                            >
+                                Yes, Confirm
+                            </button>
+                            <button
+                                onClick={() => setLostModalLeadId(null)}
+                                className="px-6 py-2 bg-[#6D7A86] text-white font-medium rounded hover:bg-[#5b6670] transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

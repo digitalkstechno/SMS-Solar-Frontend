@@ -165,7 +165,6 @@ export function LeadStatusContent() {
       setIsDialogOpen(false);
       formik.resetForm();
     } catch (err: any) {
-      console.error('Failed to save', err);
       toast.error(err?.response?.data?.message || 'Operation failed');
     } finally {
       setIsSubmitting(false);
@@ -213,6 +212,12 @@ export function LeadStatusContent() {
     return ['new lead', 'won', 'lost'].includes(name?.toLowerCase());
   };
 
+  const canEditDelete = (row: any) => {
+    if (!isReserved(row.name)) return true;
+    const firstReserved = allData.find((d: any) => d.name?.toLowerCase() === row.name?.toLowerCase());
+    return firstReserved?._id !== row._id;
+  };
+
   return (
     <div className="space-y-6">
       <div className="mb-6">
@@ -254,8 +259,8 @@ export function LeadStatusContent() {
           }
         }}
         onDelete={handleDeleteClick}
-        canEdit={(row) => !isReserved(row.name)}
-        canDelete={(row) => !isReserved(row.name)}
+        canEdit={canEditDelete}
+        canDelete={canEditDelete}
         addButton={{
           label: 'Add Status',
           onClick: () => {

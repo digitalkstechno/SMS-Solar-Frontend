@@ -174,7 +174,7 @@ export default function Setup() {
       // { name: "Task Status", icon: Settings, visible: canViewTaskStatus },
       // { name: "Teams", icon: UsersRound, visible: canViewTeams },
       // { name: "Organizations", icon: Building2, visible: canViewOrgs },
-      { name: "Field Settings", icon: Settings2, visible: true },
+      { name: "Field Settings", icon: Settings2, visible: false },
       // { name: "Category", icon: List, visible: canViewCategory },
       // { name: "Product", icon: Package, visible: canViewProduct },
       // { name: "Stock In", icon: PackagePlus, visible: canViewStock },

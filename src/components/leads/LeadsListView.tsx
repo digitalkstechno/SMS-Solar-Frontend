@@ -10,6 +10,7 @@ import DeleteDialog from '@/components/DeleteDialog';
 import Swal from 'sweetalert2';
 import ProjectDetailDrawer from './ProjectDetailDrawer';
 import LeadDocumentsModal from './LeadDocumentsModal';
+import PaymentModal from './PaymentModal';
 
 // ── Debounce helper ──────────────────────────────────────────────────────────
 function useDebounce<T>(value: T, delay = 500): T {
@@ -35,6 +36,7 @@ type TableLead = {
   staff: string;
   lastFollowUp: string;
   isActive?: boolean;
+  paymentAmount?: number;
   _raw?: any;
 };
 
@@ -94,6 +96,7 @@ function mapLead(item: any): TableLead {
       ? new Date(item.updatedAt).toLocaleDateString()
       : '-',
     isActive: item.isActive,
+    paymentAmount: item.paymentAmount,
     _raw: item,
   };
 }
@@ -121,6 +124,7 @@ export default function LeadsListView({
   const [localLoading, setLocalLoading] = useState(false);
   const [projectDetailLead, setProjectDetailLead] = useState<ApiLead | null>(null);
   const [documentLead, setDocumentLead] = useState<ApiLead | null>(null);
+  const [paymentLead, setPaymentLead] = useState<ApiLead | null>(null);
 
   // Use loading from prop or local state
   const loading = loadingProp !== undefined ? loadingProp : localLoading;
@@ -347,32 +351,10 @@ export default function LeadsListView({
             label: 'Payment',
             icon: <span className="text-xs font-bold">₹</span>,
             color: 'emerald',
-            show: (row) => row.status?.toLowerCase() === 'won',
-            onClick: async (row) => {
-              const { value: amount } = await Swal.fire({
-                title: 'Add Payment',
-                input: 'number',
-                inputLabel: 'Enter payment amount',
-                inputPlaceholder: 'e.g. 5000',
-                showCancelButton: true,
-                inputValidator: (value: any) => {
-                  if (!value) return 'You need to write something!';
-                  if (isNaN(value) || value < 0) return 'Please enter a valid amount';
-                }
-              });
-
-              if (amount) {
-                try {
-                  await axios.put(`${baseUrl.updateLead}/${row.id}`, 
-                    { paymentAmount: Number(amount) }, 
-                    { headers: { Authorization: `Bearer ${getAuthToken()}` } }
-                  );
-                  Swal.fire('Success', 'Payment added successfully', 'success');
-                  onRefresh?.();
-                } catch (err) {
-                  Swal.fire('Error', 'Failed to add payment', 'error');
-                }
-              }
+            show: (row) => row.status?.toLowerCase() === 'won' || row.status?.toLowerCase() === 'won leads',
+            onClick: (row) => {
+              const rawLead: ApiLead = row._raw || row;
+              setPaymentLead(rawLead);
             }
           }
         ] : undefined}
@@ -420,6 +402,14 @@ export default function LeadsListView({
         isOpen={!!documentLead}
         onClose={() => setDocumentLead(null)}
         lead={documentLead}
+      />
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={!!paymentLead}
+        lead={paymentLead}
+        onClose={() => setPaymentLead(null)}
+        onPaymentAdded={onRefresh}
       />
     </div>
   );

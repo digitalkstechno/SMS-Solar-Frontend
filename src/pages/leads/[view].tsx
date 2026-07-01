@@ -236,8 +236,7 @@ export default function LeadsPage() {
     statusFilter.length > 0 ||
     staffFilter.length > 0 ||
     fromDate ||
-    toDate ||
-    search
+    toDate
   );
 
   // ── Access denied ─────────────────────────────────────────────────────────
@@ -320,21 +319,7 @@ export default function LeadsPage() {
             </div>
           </div>
 
-          {/* Search Bar */}
-          {viewMode !== 'list' && (
-            <div className="w-full md:flex-1 md:max-w-md">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search leads..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-          )}
+
 
           <div className="flex flex-wrap items-center gap-2 md:gap-3 md:ml-auto">
             {/* Tab Toggle (All/My) */}
@@ -358,11 +343,7 @@ export default function LeadsPage() {
             {/* Advanced Filter Button */}
             <button
               onClick={() => setShowFilterDrawer(!showFilterDrawer)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-xs md:text-sm font-medium transition-all cursor-pointer ${
-                showFilterDrawer || hasActiveFilters
-                  ? 'bg-primary-50 text-primary-600 border border-primary-200 hover:bg-primary-100'
-                  : 'bg-gray-100 text-gray-700 border border-transparent hover:bg-gray-200'
-              }`}
+              className="flex items-center gap-2 px-3 py-2 rounded-md text-xs md:text-sm font-medium transition-all cursor-pointer bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
             >
               <Filter className="h-4 w-4" />
               <span className="hidden sm:inline">Filters</span>

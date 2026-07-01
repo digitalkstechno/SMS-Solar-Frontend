@@ -797,14 +797,6 @@
             </div>
             
             <div className="flex items-center gap-4">
-              <DateRangePicker
-                fromDate={fromDate}
-                toDate={toDate}
-                onFromDateChange={setFromDate}
-                onToDateChange={setToDate}
-                onReset={() => handleQuickFilter('reset')}
-                labelType="floating"
-              />
             </div>
           </div>
 

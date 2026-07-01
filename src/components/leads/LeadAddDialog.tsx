@@ -46,7 +46,7 @@ export default function LeadAddDialog({
   const [attachments, setAttachments] = useState<File[]>([]);
   const [quotationOpen, setQuotationOpen] = useState(false);
 
-  const [requiredFields, setRequiredFields] = useState<string[]>([]);
+  const [requiredFields] = useState<string[]>(["fullName", "contact", "email", "leadSource", "leadStatus", "assignedTo", "kwRequirement"]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const currentStaff = useAppSelector((state) => state.auth.currentStaff);
   const leadStatusesData = useAppSelector((state) => state.leadStatus.data);
@@ -69,25 +69,6 @@ export default function LeadAddDialog({
     return roleName.includes('admin') || roleName.includes('hr');
   }, [currentUser]);
 
-  useEffect(() => {
-    const loadRequiredFields = () => {
-      const saved = localStorage.getItem('leadRequiredFields');
-      if (saved) {
-        try {
-          setRequiredFields(JSON.parse(saved));
-        } catch (e) {
-          setRequiredFields(['fullName', 'contact', 'leadStatus', 'assignedTo']);
-        }
-      } else {
-        setRequiredFields(['fullName', 'contact', 'leadStatus', 'assignedTo']);
-      }
-    };
-
-    loadRequiredFields();
-    window.addEventListener('fieldSettingsUpdated', loadRequiredFields);
-    return () => window.removeEventListener('fieldSettingsUpdated', loadRequiredFields);
-  }, []);
-
   const leadValidationSchema = useMemo(() => {
     let shape: any = {
       fullName: Yup.string()
@@ -99,7 +80,7 @@ export default function LeadAddDialog({
       email: Yup.string()
         .matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Invalid email format')
         .max(100, 'Email must not exceed 100 characters'),
-      kwRequirement: Yup.string(),
+      kwRequirement: Yup.string().required('KW Requirement is required'),
       discomName: Yup.string(),
       leadrefrance: Yup.string(),
       projecttype: Yup.string(),
@@ -215,7 +196,7 @@ export default function LeadAddDialog({
             return { ...u, departmentName: d ? (d.roleName || d.name) : '' };
           });
          
-          const salesUsers = isAdminOrHR 
+          const salesUsers = false 
             ? usersWithDepts 
             : usersWithDepts.filter((u: any) => 
                 u.departmentName && u.departmentName.toLowerCase().includes('sales')
@@ -236,7 +217,7 @@ export default function LeadAddDialog({
             return { ...u, departmentName: d ? (d.roleName || d.name) : '' };
           });
     
-          const salesUsers = isAdminOrHR 
+          const salesUsers = false 
             ? usersWithDepts 
             : usersWithDepts.filter((u: any) => 
                 u.departmentName && u.departmentName.toLowerCase().includes('sales')
@@ -309,7 +290,7 @@ export default function LeadAddDialog({
               type="submit"
               form="lead-form"
               disabled={formik.isSubmitting || loading || !formik.isValid}
-              className="min-w-[80px] cursor-pointer rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="min-w-[80px] cursor-pointer rounded-lg bg-[#a63c71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] disabled:opacity-50"
             >
               {formik.isSubmitting ? 'Saving...' : mode === 'edit' ? 'Update Lead' : 'Save Lead'}
             </button>
@@ -318,7 +299,7 @@ export default function LeadAddDialog({
       >
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#a63c71] border-t-transparent" />
           </div>
         ) : (
           <form id="lead-form" onSubmit={formik.handleSubmit} className="space-y-4">
@@ -405,6 +386,7 @@ export default function LeadAddDialog({
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
                 error={getFieldError('kwRequirement')}
+                required={requiredFields.includes('kwRequirement')}
               />
             </div>
 

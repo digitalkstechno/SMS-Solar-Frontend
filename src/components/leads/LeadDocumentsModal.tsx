@@ -208,14 +208,14 @@ export default function LeadDocumentsModal({ isOpen, onClose, lead }: LeadDocume
                                                 href={fileUrl} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer"
-                                                className="flex-1 flex justify-center items-center gap-2 py-2 px-4 bg-gray-50 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-800 hover:text-white hover:shadow-md transition-all duration-200 cursor-pointer"
+                                                className="flex-1 flex justify-center items-center gap-2 py-2 px-4 bg-gradient-to-r from-[#4b6cb7] via-[#7b558f] to-[#a63c71] text-white rounded-lg text-sm font-semibold hover:opacity-90 hover:shadow-md transition-all duration-200 cursor-pointer"
                                             >
                                                 <ExternalLink className="w-4 h-4" />
                                                 View
                                             </a>
                                             <button 
                                                 onClick={(e) => handleDownload(e, fileUrl, docName)}
-                                                className="flex-1 flex justify-center items-center gap-2 py-2 px-4 bg-gray-50 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-800 hover:text-white hover:shadow-md transition-all duration-200 cursor-pointer"
+                                                className="flex-1 flex justify-center items-center gap-2 py-2 px-4 bg-gradient-to-r from-[#4b6cb7] via-[#7b558f] to-[#a63c71] text-white rounded-lg text-sm font-semibold hover:opacity-90 hover:shadow-md transition-all duration-200 cursor-pointer"
                                             >
                                                 <Download className="w-4 h-4" />
                                                 Download

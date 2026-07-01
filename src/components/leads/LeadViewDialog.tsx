@@ -958,7 +958,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-lg bg-[#a63c71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
@@ -1225,10 +1225,10 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
 
             {/* Attachments */}
             <div className="rounded-lg bg-gray-50 p-4">
-              <div className="mb-3 text-sm font-medium text-gray-600 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="text-sm font-bold text-gray-800 flex items-center gap-2">
                   <span>Attachments</span>
-                  <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs">
+                  <span className="bg-gray-200 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-normal">
                     {localAttachments?.length || 0}
                   </span>
                 </div>
@@ -1239,13 +1239,13 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                       multiple
                       accept="image/*,.pdf"
                       onChange={handleFileUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       title="Upload Attachments"
                     />
                     <button
                       type="button"
                       disabled={saving}
-                      className="text-xs bg-secondary text-white px-3 py-1.5 font-semibold rounded shadow-sm hover:bg-blue-700 pointer-events-none transition-colors"
+                      className="rounded-lg bg-[#a63c71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] flex items-center justify-center gap-2 transition-colors pointer-events-none relative z-0"
                     >
                       + Add Attachments
                     </button>
@@ -1317,8 +1317,8 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                   })}
                 </div>
               ) : (
-                <div className="text-sm text-gray-500 py-2 border-t border-gray-100 mt-2">
-                  No attachments available
+                <div className="py-6 text-center bg-white rounded-xl border border-gray-100 border-dashed">
+                  <p className="text-gray-400 text-sm">No attachments available.</p>
                 </div>
               )}
             </div>
@@ -1356,7 +1356,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                       setEditQuotationIndex(null);
                       setQuotationOpen(true);
                     }}
-                    className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-white hover:bg-primary flex items-center justify-center gap-2 transition-colors"
+                    className="rounded-lg bg-[#a63c71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] flex items-center justify-center gap-2 transition-colors"
                   >
                     <FileText className="h-4 w-4" /> Add Quotation
                   </button>

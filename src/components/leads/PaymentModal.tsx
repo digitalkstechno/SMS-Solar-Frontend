@@ -107,7 +107,7 @@ export default function PaymentModal({ isOpen, lead, onClose, onPaymentAdded }: 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-4 flex items-center justify-between">
+        <div className="bg-[#a63c71] px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">
             {showAddPayment ? 'Add Payment' : 'Payment History'}
           </h2>
@@ -131,13 +131,14 @@ export default function PaymentModal({ isOpen, lead, onClose, onPaymentAdded }: 
             <form onSubmit={handleAddPayment} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                  <span className="text-orange-600">₹</span> Amount <span className="text-red-600">*</span>
+                  <span className="text-[#a63c71]">₹</span> Amount <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="number"
+                  min="0"
                   value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  onChange={(e) => setForm({ ...form, amount: e.target.value.replace(/-/g, '') })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a63c71]"
                   placeholder="Enter amount"
                   required
                 />
@@ -151,7 +152,7 @@ export default function PaymentModal({ isOpen, lead, onClose, onPaymentAdded }: 
                   type="date"
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a63c71]"
                   required
                 />
               </div>
@@ -168,7 +169,7 @@ export default function PaymentModal({ isOpen, lead, onClose, onPaymentAdded }: 
                       onClick={() => setForm({ ...form, mode })}
                       className={`px-4 py-3 rounded-lg border-2 text-sm font-medium transition ${
                         form.mode === mode
-                          ? 'border-orange-500 bg-orange-50 text-orange-700'
+                          ? 'border-[#a63c71] bg-[#a63c71]/10 text-[#a63c71]'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
@@ -187,7 +188,7 @@ export default function PaymentModal({ isOpen, lead, onClose, onPaymentAdded }: 
                     type="file"
                     accept="image/*,application/pdf"
                     onChange={(e) => setForm({ ...form, proof: e.target.files?.[0] || null })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a63c71]"
                   />
                 </div>
                 {form.proof && (
@@ -207,7 +208,7 @@ export default function PaymentModal({ isOpen, lead, onClose, onPaymentAdded }: 
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-[#a63c71] text-white rounded-lg font-medium hover:opacity-90 transition flex items-center justify-center gap-2"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Save Payment
@@ -217,7 +218,7 @@ export default function PaymentModal({ isOpen, lead, onClose, onPaymentAdded }: 
           ) : (
             <div className="space-y-4">
               {/* Total Received */}
-              <div className="bg-blue-900 text-white px-4 py-3 rounded-lg flex items-center justify-between">
+              <div className="bg-[#a63c71] text-white px-4 py-3 rounded-lg flex items-center justify-between">
                 <span className="font-bold">Total Received</span>
                 <span className="text-lg font-bold flex items-center gap-2">
                   <span className="text-blue-300">₹</span>
@@ -225,7 +226,7 @@ export default function PaymentModal({ isOpen, lead, onClose, onPaymentAdded }: 
                 </span>
                 <button
                   onClick={() => setShowAddPayment(true)}
-                  className="bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1"
+                  className="bg-white text-[#a63c71] hover:bg-gray-100 font-bold px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1"
                 >
                   <Plus className="w-4 h-4" /> Add Payment
                 </button>
@@ -248,7 +249,7 @@ export default function PaymentModal({ isOpen, lead, onClose, onPaymentAdded }: 
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                            <span className="text-orange-600">₹</span>
+                            <span className="text-[#a63c71]">₹</span>
                             {payment.amount.toLocaleString()}
                           </p>
                           <p className="text-sm text-gray-600">
@@ -279,7 +280,7 @@ export default function PaymentModal({ isOpen, lead, onClose, onPaymentAdded }: 
           <div className="border-t border-gray-200 px-6 py-4">
             <button
               onClick={onClose}
-              className="w-full px-4 py-2 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600 transition"
+              className="w-full px-4 py-2 bg-[#a63c71] text-white rounded-lg font-medium hover:bg-[#a63c71]/80 transition"
             >
               Close
             </button>
