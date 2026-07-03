@@ -478,7 +478,7 @@ import { baseUrl, getAuthToken } from '@/config';
 import { ApiLead, ApiStatus } from './types';
 import { FiPhone, FiMail, FiMapPin, FiCalendar, FiClock, FiCheckSquare, FiMessageSquare, FiList, FiEdit2, FiX, FiCheck, FiFileText } from 'react-icons/fi';
 import CustomTimePicker from '../ui/CustomTimePicker';
-import { Eye, Download, FileText, Image, File, FileSpreadsheet, Search, Trash2 } from 'lucide-react';
+import { Eye, Download, FileText, Image, File, FileSpreadsheet, Search, Trash2, MessageCircle } from 'lucide-react';
 import { getFileIcon } from '@/utills/utill';
 import LeadQuotationDialog from './LeadQuotationDialog';
 import { FormSelect } from '../ui/FormSelect';
@@ -867,7 +867,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
     if (!lead) return;
     const quotation = localQuotations[index];
     
-    const toastId = toast.loading('Preparing PDF for download...');
+    const toastId = toast.loading('Downloading PDF...');
     try {
       let qData = quotation;
       if (quotation._id) {
@@ -878,10 +878,59 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
         qData = res.data?.data || quotation;
       }
       
-      await generateQuotationPDF({ ...lead, quotation: qData });
-      toast.update(toastId, { render: 'PDF Downloaded successfully!', type: 'success', isLoading: false, autoClose: 3000 });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
+      const response = await axios.post(`${apiUrl}quotation/generate`, {
+        quotation: qData,
+        fullName: lead.fullName
+      }, {
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${getAuthToken()}` }
+      });
+      
+      const blobUrl = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = 'quotation.pdf';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast.update(toastId, { render: 'PDF Downloaded!', type: 'success', isLoading: false, autoClose: 3000 });
     } catch (e: any) {
-      toast.update(toastId, { render: 'Failed to download quotation', type: 'error', isLoading: false, autoClose: 3000 });
+      toast.update(toastId, { render: 'Failed to download PDF', type: 'error', isLoading: false, autoClose: 3000 });
+    }
+  };
+
+  const handleSendWhatsApp = async (index: number) => {
+    if (!lead) return;
+    const quotation = localQuotations[index];
+    
+    const toastId = toast.loading('Sending Quotation via WhatsApp...');
+    try {
+      let qData = quotation;
+      if (quotation._id) {
+        const res = await axios.get(
+          `${baseUrl.updateLead}/${lead._id}/quotation/${quotation._id}`,
+          { headers: { Authorization: `Bearer ${getAuthToken()}` } }
+        );
+        qData = res.data?.data || quotation;
+      }
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
+      const response = await axios.post(`${apiUrl}quotation/whatsapp`, {
+        quotation: qData,
+        lead: lead
+      }, {
+        headers: { Authorization: `Bearer ${getAuthToken()}` }
+      });
+      
+      if (response.data.success) {
+        toast.update(toastId, { render: 'WhatsApp Sent Successfully!', type: 'success', isLoading: false, autoClose: 3000 });
+      } else {
+        toast.update(toastId, { render: response.data.message || 'Failed to send WhatsApp', type: 'error', isLoading: false, autoClose: 3000 });
+      }
+    } catch (e: any) {
+      toast.update(toastId, { render: 'Failed to send WhatsApp', type: 'error', isLoading: false, autoClose: 3000 });
     }
   };
 
@@ -1429,6 +1478,15 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                                 title="Download PDF"
                               >
                                 <Download className="h-4 w-4" />
+                              </button>
+                              
+                              <button
+                                type="button"
+                                onClick={() => handleSendWhatsApp(idx)}
+                                className="p-1 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                                title="Send via WhatsApp"
+                              >
+                                <MessageCircle className="h-4 w-4" />
                               </button>
                               {canUpdateLead && (
                                 <>

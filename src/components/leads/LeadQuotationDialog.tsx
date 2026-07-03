@@ -6,7 +6,6 @@ import { toast } from 'react-toastify';
 import { ApiLead } from './types';
 import FormInput from '../ui/Input';
 import { Trash2, X, Download } from 'lucide-react';
-import { generateQuotationPDF } from '@/utills/quotationPdfGenerator';
 
 interface Props {
   isOpen: boolean;
@@ -223,16 +222,34 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
             Cancel
           </button>
           <button
-            onClick={() => generateQuotationPDF({
-              ...lead,
-              quotation: {
-                date,
-                solarModule,
-                inverter,
-                options,
-                rows
+            onClick={async () => {
+              try {
+                const toastId = toast.loading('Downloading PDF...');
+                const qData = { date, solarModule, inverter, options, rows };
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
+                
+                const response = await axios.post(`${apiUrl}quotation/generate`, {
+                  quotation: qData,
+                  fullName: lead?.fullName
+                }, {
+                  responseType: 'blob',
+                  headers: { Authorization: `Bearer ${getAuthToken()}` }
+                });
+                
+                const blobUrl = window.URL.createObjectURL(response.data);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = 'quotation.pdf';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                
+                toast.update(toastId, { render: 'PDF Downloaded!', type: 'success', isLoading: false, autoClose: 3000 });
+              } catch (e) {
+                toast.dismiss();
+                toast.error('Failed to download PDF');
               }
-            })}
+            }}
             className="rounded-lg border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-100 flex items-center gap-1.5"
           >
             <Download className="h-4 w-4" /> Download PDF
