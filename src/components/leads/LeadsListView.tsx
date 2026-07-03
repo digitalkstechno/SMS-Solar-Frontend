@@ -91,7 +91,7 @@ function mapLead(item: any): TableLead {
     address: item.address,
     locationLink: item.locationLink,
     status: item.leadStatus?.name || item.status?.name || '-',
-    staff: item.assignedTo?.fullName || '-',
+    staff: item.createdBy?.fullName || item.createdBy?.name || '-',
     lastFollowUp: item.updatedAt
       ? new Date(item.updatedAt).toLocaleDateString()
       : '-',
@@ -211,7 +211,7 @@ export default function LeadsListView({
     { key: 'kwRequirement', label: 'KW REQ' },
     { key: 'discomName', label: 'DISCOM' },
     { key: 'status', label: 'STATUS' },
-    { key: 'staff', label: 'ASSIGNED STAFF' },
+    { key: 'staff', label: 'CREATED BY' },
     { key: 'lastFollowUp', label: 'LAST FOLLOW-UP' },
     { 
       key: 'paymentAmount', 

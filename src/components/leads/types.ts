@@ -49,7 +49,7 @@ export type ApiLead = {
   priority?: string;
   phone?: string;
   note?: string;
-  createdBy?: ApiUser | string;
+  createdBy?: ApiUser;
   leadLabel?: LeadLabel[] | string[];
   leadStatus?: ApiStatus;
   assignedTo?: ApiUser;
