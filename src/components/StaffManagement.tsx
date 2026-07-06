@@ -81,7 +81,7 @@ export default function SalesExecutiveForm({
       email: Yup.string()
         .required('Email is required')
         .matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Invalid email format'),
-      password: isUpdate 
+      password: isUpdate
         ? Yup.string().notRequired()
         : Yup.string().required('Password is required').min(6, 'Password must be at least 6 characters'),
       city: Yup.string()
@@ -131,7 +131,7 @@ export default function SalesExecutiveForm({
 
   useEffect(() => {
     if (!isOpen) return;
-    
+
     const storedToken = getAuthToken();
     const headers = { Authorization: `Bearer ${storedToken}` };
 
@@ -172,7 +172,7 @@ export default function SalesExecutiveForm({
   const handleSubmit = async (values: any) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const payload = new FormData();
 
