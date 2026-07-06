@@ -182,8 +182,9 @@ export default function LeadAddDialog({
 
         let leadData = null;
         if (mode === 'edit' && initialData?._id) {
+          const cityQuery = initialData.city ? `?city=${initialData.city}` : '';
           const [staffRes, deptRes, leadRes, sourcesRes] = await Promise.all([
-            axios.get(baseUrl.getSalesExecutives, { headers }),
+            axios.get(`${baseUrl.getSalesExecutives}${cityQuery}`, { headers }),
             axios.get(baseUrl.department, { headers }),
             axios.get(`${baseUrl.findLeadById}/${initialData._id}`, { headers }),
             axios.get(baseUrl.leadSources, { headers })
@@ -422,13 +423,26 @@ export default function LeadAddDialog({
                   label="City"
                   name="city"
                   value={formik.values.city || ''}
-                  onChange={(val) => {
+                  onChange={async (val) => {
                     formik.setFieldValue('city', val);
                     if (val) {
-                      const selectedUser = staff.find((u: any) => u._id === formik.values.assignedTo) as any;
-                      if (selectedUser && selectedUser.city?.toLowerCase() !== val.toLowerCase()) {
-                        formik.setFieldValue('assignedTo', '');
+                      try {
+                        const headers = { Authorization: `Bearer ${token()}` };
+                        const res = await axios.get(`${baseUrl.getSalesExecutives}?city=${val}`, { headers });
+                        setStaff(res.data?.data || []);
+                        const currentAssigned = res.data?.data?.find((u: any) => u._id === formik.values.assignedTo);
+                        if (!currentAssigned) {
+                          formik.setFieldValue('assignedTo', '');
+                        }
+                      } catch (err) {
+                        console.error('Failed to fetch sales execs by city', err);
                       }
+                    } else {
+                      try {
+                        const headers = { Authorization: `Bearer ${token()}` };
+                        const res = await axios.get(baseUrl.getSalesExecutives, { headers });
+                        setStaff(res.data?.data || []);
+                      } catch (err) {}
                     }
                   }}
                   onBlur={() => formik.setFieldTouched('city')}

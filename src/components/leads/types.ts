@@ -45,6 +45,7 @@ export type ApiLead = {
   projecttype?: string;
   address?: string;
   locationLink?: string;
+  city?: string;
   companyName?: string;
   priority?: string;
   phone?: string;
