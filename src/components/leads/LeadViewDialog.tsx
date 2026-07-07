@@ -833,7 +833,9 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
       showCancelButton: true,
       confirmButtonText: 'Yes, Delete',
       cancelButtonText: 'Cancel',
-      confirmButtonColor: '#d33',
+      width: '300px',
+      padding: '1em',
+      confirmButtonColor: '#A63C71',
       cancelButtonColor: '#6D7A86',
     });
 

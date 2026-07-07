@@ -7,7 +7,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { Provider } from "react-redux";
 import { store } from "@/redux/store";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { toggleSidebar } from "@/redux/slices/appSlice";
+import { toggleSidebar, setSidebarOpen } from "@/redux/slices/appSlice";
 import Sidebar from "@/components/Sidebar";
 import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
@@ -45,6 +45,17 @@ function AppContent({ Component, pageProps }: AppProps) {
       if (leadLabelStatus === 'idle') dispatch(fetchLeadLabels());
     }
   }, [authStatus, leadStatusStatus, leadLabelStatus, dispatch, isLoginPage]);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem('isSidebarOpen');
+    if (saved !== null) {
+      dispatch(setSidebarOpen(saved === 'true'));
+    } else if (window.innerWidth >= 768) {
+      dispatch(setSidebarOpen(true));
+    }
+  }, [dispatch]);
 
   // Page transition loader state
   const [isNavigating, setIsNavigating] = useState(false);
@@ -84,7 +95,7 @@ function AppContent({ Component, pageProps }: AppProps) {
           />
         )}
         <div
-          className={`flex-1 min-w-0 transition-all duration-300 ease-in-out ${
+          className={`flex-1 min-w-0 ${mounted ? 'transition-all duration-300 ease-in-out' : ''} ${
             !isLoginPage ? (isSidebarOpen ? 'md:ml-64' : 'md:ml-20') : ''
           }`}
         >
