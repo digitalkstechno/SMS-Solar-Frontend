@@ -62,6 +62,7 @@ export function LeadLabelsContent() {
     const [allData, setAllData] = useState<LeadLabel[]>([]);
     const [totalRecords, setTotalRecords] = useState(0);
     const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
     const debouncedSearch = useDebounce(search, 600);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
@@ -94,6 +95,7 @@ export function LeadLabelsContent() {
     /* ================= LOAD DATA ================= */
 
     const fetchData = async () => {
+    setIsLoading(true);
         try {
             const res = await axios.get(`${baseUrl.leadLabels}`, {
                 headers,
@@ -113,7 +115,9 @@ export function LeadLabelsContent() {
             setTotalRecords(0);
             toast.error(err?.response?.data?.message || 'Failed to load lead labels');
         }
-    };
+     finally {
+      setIsLoading(false);
+    }};
 
     // initial load & whenever search/page/limit changes
     useEffect(() => {
@@ -254,6 +258,7 @@ export function LeadLabelsContent() {
                 totalPages={Math.ceil(totalRecords / pageSize)}
                 totalRecords={totalRecords}
                 pageSize={pageSize}
+        loading={isLoading}
                 onSearch={(v) => {
                     setSearch(v);
                     setCurrentPage(1);

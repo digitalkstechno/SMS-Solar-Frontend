@@ -38,6 +38,7 @@ export function OrganizationsContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const debouncedSearch = useDebounce(search);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -85,6 +86,7 @@ export function OrganizationsContent() {
   }, [currentStaff]);
 
   const fetchData = async () => {
+    setIsLoading(true);
     try {
       const res = await axios.get(baseUrl.organizations, {
         headers,
@@ -97,7 +99,9 @@ export function OrganizationsContent() {
       setData([]);
       toast.error(err?.response?.data?.message || 'Failed to load organizations');
     }
-  };
+   finally {
+      setIsLoading(false);
+    }};
 
   useEffect(() => { fetchData(); }, [debouncedSearch, currentPage, pageSize]);
 
@@ -193,6 +197,7 @@ export function OrganizationsContent() {
         totalPages={Math.ceil(totalRecords / pageSize) || 1}
         totalRecords={totalRecords}
         pageSize={pageSize}
+        loading={isLoading}
         onSearch={(v) => { setSearch(v); setCurrentPage(1); }}
         onPageChange={setCurrentPage}
         onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
