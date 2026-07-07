@@ -262,7 +262,9 @@ export const FormMultiSelect: React.FC<FormMultiSelectProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const triggerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const coords = useDropdownPosition(triggerRef, isOpen);
 
   const hasError = !!error;
@@ -275,6 +277,7 @@ export const FormMultiSelect: React.FC<FormMultiSelectProps> = ({
         if (portal && portal.contains(e.target as Node)) return;
         setIsOpen(false);
         setIsFocused(false);
+        setSearchQuery("");
       }
     };
     if (isOpen) document.addEventListener("mousedown", handler);
@@ -285,6 +288,10 @@ export const FormMultiSelect: React.FC<FormMultiSelectProps> = ({
     if (disabled) return;
     setIsOpen((prev) => !prev);
     setIsFocused(true);
+    if (!isOpen) {
+      setSearchQuery("");
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
   };
 
   const handleSelect = (option: SelectOption) => {
@@ -399,11 +406,24 @@ export const FormMultiSelect: React.FC<FormMultiSelectProps> = ({
                   <span>{value.length}/{maxSelected}</span>
                 </div>
               )}
+              
+              <div className="p-2 border-b border-gray-100">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/50"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+
               <ul className="max-h-64 overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-gray-200">
                 {options.length === 0 ? (
                   <li className="px-4 py-6 text-sm text-gray-400 text-center">No options available</li>
                 ) : (
-                  options.map((option) => {
+                  options.filter(o => o.label.toLowerCase().includes(searchQuery.toLowerCase())).map((option) => {
                     const isSelected = value.includes(option.value);
                     const isMaxReached = !!maxSelected && value.length >= maxSelected && !isSelected;
                     return (

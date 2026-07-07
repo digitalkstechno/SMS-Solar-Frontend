@@ -158,6 +158,15 @@ export default function DataTable<T extends Record<string, any>>({
     }
   }, [pagination, currentPage, data.length, totalRecords, onPageChange]);
 
+  const filteredData = data.filter(row => {
+    if (!searchValue) return true;
+    const lowerSearch = searchValue.toLowerCase();
+    return Object.values(row).some(value => {
+      if (value === null || value === undefined) return false;
+      return String(value).toLowerCase().includes(lowerSearch);
+    });
+  });
+
   return (
     <div className="rounded-md bg-white border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-2xl">
       {/* Header - Premium Design */}
@@ -174,7 +183,7 @@ export default function DataTable<T extends Record<string, any>>({
             )}
             {totalRecords > 0 && (
               <p className="text-xs text-gray-400 mt-2">
-                Showing {data.length} of {totalRecords} entries
+                Showing {filteredData.length} of {totalRecords} entries
               </p>
             )}
           </div>
@@ -265,7 +274,7 @@ export default function DataTable<T extends Record<string, any>>({
                   </div>
                 </td>
               </tr>
-            ) : data.length === 0 ? (
+            ) : filteredData.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + (actions ? 1 : 0)} className="px-3 py-16 text-center">
                   <div className="flex flex-col items-center justify-center gap-3">
@@ -286,7 +295,7 @@ export default function DataTable<T extends Record<string, any>>({
                 </td>
               </tr>
             ) : (
-              data.map((row, index) => (
+              filteredData.map((row, index) => (
                 <tr
                   key={index}
                   onMouseEnter={() => setHoveredRow(index)}
@@ -376,7 +385,7 @@ export default function DataTable<T extends Record<string, any>>({
       </div>
 
       {/* Pagination - Modern Design */}
-      {pagination && totalPages > 0 && !loading && data.length > 0 && (
+      {pagination && totalPages > 0 && !loading && filteredData.length > 0 && (
         <div className="border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white px-4 md:px-6 py-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-4 text-sm">

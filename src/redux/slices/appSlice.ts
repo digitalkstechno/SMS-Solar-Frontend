@@ -16,9 +16,11 @@ export const appSlice = createSlice({
   reducers: {
     toggleSidebar: (state) => {
       state.isSidebarOpen = !state.isSidebarOpen;
+      if (typeof window !== 'undefined') localStorage.setItem('isSidebarOpen', String(state.isSidebarOpen));
     },
     setSidebarOpen: (state, action: PayloadAction<boolean>) => {
       state.isSidebarOpen = action.payload;
+      if (typeof window !== 'undefined') localStorage.setItem('isSidebarOpen', String(action.payload));
     },
     setGlobalLoading: (state, action: PayloadAction<boolean>) => {
       state.globalLoading = action.payload;

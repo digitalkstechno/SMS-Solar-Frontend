@@ -44,6 +44,8 @@ interface MenuItem {
 export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [canViewLead, setCanViewLead] = useState(false);
   const [canViewTask, setCanViewTask] = useState(false);
@@ -149,11 +151,13 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
       text: "You will be logged out of your account",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
+      confirmButtonColor: '#A63C71',
+      cancelButtonColor: '#6D7A86',
       confirmButtonText: 'Yes, logout',
       cancelButtonText: 'Cancel',
       background: '#fff',
+      width: '300px',
+      padding: '1em',
       backdrop: true,
       allowOutsideClick: false,
       allowEscapeKey: true,
@@ -216,7 +220,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-40 h-screen bg-gradient-to-b from-[#4b6cb7] via-[#7b558f] to-[#a63c71] text-white shadow-2xl transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 z-40 h-screen bg-gradient-to-b from-[#4b6cb7] via-[#7b558f] to-[#a63c71] text-white shadow-2xl ${mounted ? 'transition-all duration-300 ease-in-out' : ''} ${
           isOpen 
             ? 'w-64 translate-x-0' 
             : 'w-64 -translate-x-full md:w-20 md:translate-x-0'

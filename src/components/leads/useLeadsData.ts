@@ -284,6 +284,13 @@ export function useLeadsData(
           setStaffMembers([]);
         }
       }
+
+      try {
+        const sourceRes = await axios.get(baseUrl.leadSources, { headers: getHeaders() });
+        setSources(sourceRes.data?.data ?? []);
+      } catch (err) {
+        console.error('Failed to fetch lead sources:', err);
+      }
     } catch (e) {
       console.error('fetchMeta error:', e);
     }
