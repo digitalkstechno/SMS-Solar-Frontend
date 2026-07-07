@@ -105,7 +105,6 @@ function AppContent({ Component, pageProps }: AppProps) {
               <Header toggleSidebar={() => dispatch(toggleSidebar())} />
             ) : null}
             <div className={isLoginPage ? "p-0" : "p-4 md:p-6 relative min-h-[calc(100vh-80px)]"}>
-              {(isNavigating || globalLoading) && <PremiumLoader text="Loading" isFullScreen={true} />}
               <Component {...pageProps} />
             </div>
           </main>

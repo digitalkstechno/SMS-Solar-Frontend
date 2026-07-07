@@ -13,6 +13,7 @@ import {
   FiMoreVertical,
   FiRefreshCw
 } from 'react-icons/fi';
+import smsLogo from '../../public/logo/solar (2).png';
 
 export interface Column<T> {
   key: keyof T | string;
@@ -267,12 +268,50 @@ export default function DataTable<T extends Record<string, any>>({
           <tbody className="divide-y divide-gray-50 bg-white">
             {loading ? (
               <tr>
-                <td colSpan={columns.length + (actions ? 1 : 0)} className="px-6 py-16 text-center">
-                  <div className="flex flex-col items-center justify-center gap-4">
-                    <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-200 border-r-blue-600"></div>
-                    <p className="text-sm font-medium text-gray-600">Loading your data...</p>
-                  </div>
-                </td>
+                  <td colSpan={columns.length + (actions ? 1 : 0)} className="px-6 py-16 text-center">
+                    <div className="flex min-h-[300px] flex-col items-center justify-center">
+  <div className="relative flex items-center justify-center">
+    {/* Outer Glow */}
+    <div className="absolute h-32 w-32 rounded-full bg-[#A63C71]/10 blur-2xl"></div>
+
+    {/* Static Circle */}
+    <div className="absolute h-24 w-24 rounded-full border-2 border-[#A63C71]/20"></div>
+
+    {/* Spinning Ring */}
+    <div
+      className="absolute h-24 w-24 rounded-full border-[3px] border-transparent border-t-[#A63C71] border-r-[#A63C71] animate-spin"
+      style={{ animationDuration: "1s" }}
+    ></div>
+
+    {/* Inner Circle */}
+    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-xl ring-4 ring-[#A63C71]/10">
+      <img
+        src={smsLogo.src}
+        alt="Loading"
+        className="h-10 w-auto object-contain animate-pulse"
+      />
+    </div>
+  </div>
+
+  {/* Loading Text */}
+  <div className="mt-8 flex flex-col items-center">
+    <h3 className="text-base font-semibold tracking-wide text-[#A63C71]">
+      Loading Your Data
+    </h3>
+
+    <p className="mt-1 text-sm text-gray-500">
+      Please wait while we fetch the latest information...
+    </p>
+
+    {/* Animated Dots */}
+    <div className="mt-5 flex gap-2">
+      <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-[#A63C71] [animation-delay:-0.3s]"></span>
+      <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-[#A63C71] [animation-delay:-0.15s]"></span>
+      <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-[#A63C71]"></span>
+    </div>
+  </div>
+</div>
+                  </td>
               </tr>
             ) : filteredData.length === 0 ? (
               <tr>
