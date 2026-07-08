@@ -61,6 +61,7 @@ export function ProductContent() {
   const hasDispatchedCat = useRef(false);
   const [totalRecords, setTotalRecords] = useState(0);
   const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const debouncedSearch = useDebounce(search, 600);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -101,6 +102,7 @@ export function ProductContent() {
   }, [catStatus, dispatch]);
 
   const fetchData = async () => {
+    setIsLoading(true);
     try {
       const res = await axios.get(baseUrl.product, {
         headers,
@@ -136,7 +138,9 @@ export function ProductContent() {
       setAllData([]);
       setTotalRecords(0);
     }
-  };
+   finally {
+      setIsLoading(false);
+    }};
 
   useEffect(() => {
     fetchData();
@@ -209,6 +213,7 @@ export function ProductContent() {
         totalPages={Math.ceil(totalRecords / pageSize)}
         totalRecords={totalRecords}
         pageSize={pageSize}
+        loading={isLoading}
         onSearch={(v) => {
           setSearch(v);
           setCurrentPage(1);

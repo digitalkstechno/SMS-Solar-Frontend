@@ -47,28 +47,36 @@ interface Props {
     };
     scope?: 'all' | 'my';
     filters: {
-        search?: string;
-        status?: string;
-        source?: string;
-        staff?: string;
-        from?: string;
-        to?: string;
+        search: string;
+        status: string;
+        staff: string;
+        source: string;
+        from?: Date | null;
+        to?: Date | null;
     };
-    lostPagination?: PaginationShape;
-    wonPagination?: PaginationShape;
-    onSubViewChange?: (subView: 'board' | 'lost' | 'won') => void;
+    lostPagination?: PaginationData;
+    wonPagination?: PaginationData;
+    onSubViewChange?: (view: SubView) => void;
     refreshKey?: number;
-    currentUser?: any;
+    currentUser?: ApiUser | null;
     isAdmin?: boolean;
     onSearch?: (value: string) => void;
+    loading?: boolean;
 }
 
 type SubView = 'board' | 'lost' | 'won';
 
 export default function LeadsKanbanView({
-    lostLeads, wonLeads,
+    leads,
+    lostLeads,
+    wonLeads,
     statuses,
-    onEdit, onView, onRefresh, counts, permissions, scope = 'all',
+    onEdit,
+    onView,
+    onRefresh,
+    counts,
+    permissions,
+    scope = 'all',
     filters,
     lostPagination,
     wonPagination,
@@ -77,6 +85,7 @@ export default function LeadsKanbanView({
     currentUser,
     isAdmin,
     onSearch,
+    loading = false,
 }: Props) {
     const [subView, setSubView] = useState<SubView>('board');
     const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -351,7 +360,18 @@ export default function LeadsKanbanView({
         { key: 'fullName', label: 'LEAD NAME', render: (v) => (<div><div className="font-semibold text-gray-900">{v}</div><span className="text-xs text-red-500">• Lost</span></div>) },
         { key: 'kwRequirement', label: 'KW REQ', render: (v) => <span className="text-sm">{v || '-'}</span> },
         { key: 'discomName', label: 'DISCOM', render: (v) => <span className="text-sm">{v || '-'}</span> },
-        { key: 'address', label: 'LOCATION', render: (v) => <span className="text-sm">{v || '-'}</span> },
+        { key: 'address', label: 'LOCATION', render: (v) => (
+            <div className="group relative flex items-center">
+                <div className="text-sm max-w-[150px] truncate cursor-pointer text-gray-700">
+                    {v || '-'}
+                </div>
+                {v && (
+                    <div className="absolute bottom-full left-0 z-[9999] mb-1 hidden group-hover:block w-max max-w-[250px] whitespace-normal rounded-md bg-gray-800 px-3 py-2 text-xs leading-relaxed text-white shadow-xl">
+                        {v}
+                    </div>
+                )}
+            </div>
+        ) },
         { key: 'contact', label: 'CONTACT', render: (v, row) => <ContactCell phone={v} /> },
         { key: 'lostDate', label: 'LOST DATE', render: (v) => (v ? new Date(v).toLocaleDateString() : 'N/A') },
         { key: 'createdBy', label: 'CREATED BY', render: (v) => v?.fullName || v?.name || '-' },
@@ -362,11 +382,22 @@ export default function LeadsKanbanView({
         { key: 'fullName', label: 'LEAD NAME', render: (v) => <span className="font-semibold text-gray-900">{v}</span> },
         { key: 'kwRequirement', label: 'KW REQ', render: (v) => <span className="text-sm">{v || '-'}</span> },
         { key: 'discomName', label: 'DISCOM', render: (v) => <span className="text-sm">{v || '-'}</span> },
-        { key: 'address', label: 'LOCATION', render: (v) => <span className="text-sm">{v || '-'}</span> },
+        { key: 'address', label: 'LOCATION', render: (v) => (
+            <div className="group relative flex items-center">
+                <div className="text-sm max-w-[150px] truncate cursor-pointer text-gray-700">
+                    {v || '-'}
+                </div>
+                {v && (
+                    <div className="absolute bottom-full left-0 z-[9999] mb-1 hidden group-hover:block w-max max-w-[250px] whitespace-normal rounded-md bg-gray-800 px-3 py-2 text-xs leading-relaxed text-white shadow-xl">
+                        {v}
+                    </div>
+                )}
+            </div>
+        ) },
         { key: 'contact', label: 'CONTACT', render: (v, row) => <ContactCell phone={v} /> },
         { key: 'wonDate', label: 'WON DATE', render: (v) => (v ? new Date(v).toLocaleDateString() : 'N/A') },
         { key: 'createdBy', label: 'CREATED BY', render: (v) => v?.fullName || v?.name || '-' },
-        { key: 'paymentAmount', label: 'AMOUNT', render: (v) => (v ? `₹${v.toLocaleString()}` : '-') },
+        /* { key: 'paymentAmount', label: 'AMOUNT', render: (v) => (v ? `₹${v.toLocaleString()}` : '-') }, */
         { 
             key: 'docs', 
             label: 'DOCS', 
@@ -500,7 +531,7 @@ export default function LeadsKanbanView({
                     <DataTable
                         data={lostLeads}
                         columns={lostLeadsColumns}
-                        loading={false}
+                        loading={loading}
                         pagination
                         searchValue={filters.search}
                         onSearch={onSearch}
@@ -536,7 +567,7 @@ export default function LeadsKanbanView({
                     <DataTable
                         data={wonLeads}
                         columns={wonLeadsColumns}
-                        loading={false}
+                        loading={loading}
                         pagination
                         searchValue={filters.search}
                         onSearch={onSearch}

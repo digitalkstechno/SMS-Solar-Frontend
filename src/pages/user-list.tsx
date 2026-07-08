@@ -353,6 +353,7 @@ export function UserContent() {
             setSearch(value);
             setPage(1);
           }}
+          loading={isLoading}
           onEdit={canUpdate ? handleEdit : undefined}
           onDelete={canDelete ? handleDeleteClick : undefined} // Changed to handleDeleteClick
           actions

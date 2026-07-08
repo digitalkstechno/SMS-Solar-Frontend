@@ -156,11 +156,14 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
       confirmButtonText: 'Yes, logout',
       cancelButtonText: 'Cancel',
       background: '#fff',
-      width: '300px',
-      padding: '1em',
+      width: '360px',
+      padding: '0.5em 1em 1em',
       backdrop: true,
       allowOutsideClick: false,
       allowEscapeKey: true,
+      customClass: {
+        popup: 'rounded-[20px]',
+      }
     }).then((result) => {
       if (result.isConfirmed) {
         // Show loading state

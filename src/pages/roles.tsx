@@ -323,6 +323,7 @@ export function RolesContent() {
           totalRecords={totalRecords}
           pageSize={pageSize}
           onPageChange={setCurrentPage}
+          loading={isLoading}
           onPageSizeChange={(size) => {
             setPageSize(size);
             setCurrentPage(1);

@@ -50,6 +50,7 @@ export function CategoryContent() {
   const [allData, setAllData] = useState<CategoryItem[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const debouncedSearch = useDebounce(search, 600);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -86,6 +87,7 @@ export function CategoryContent() {
   }, [reduxStatus, dispatch]);
 
   const fetchData = async () => {
+    setIsLoading(true);
     try {
       const res = await axios.get(baseUrl.category, {
         headers,
@@ -110,7 +112,9 @@ export function CategoryContent() {
       console.error('Failed to load categories', err);
       setAllData([]);
     }
-  };
+   finally {
+      setIsLoading(false);
+    }};
 
   useEffect(() => {
     fetchData();
@@ -177,6 +181,7 @@ export function CategoryContent() {
         totalPages={Math.ceil(totalRecords / pageSize)}
         totalRecords={totalRecords}
         pageSize={pageSize}
+        loading={isLoading}
         onSearch={(v) => {
           setSearch(v);
           setCurrentPage(1);

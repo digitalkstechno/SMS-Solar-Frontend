@@ -205,11 +205,11 @@ export default function LeadsListView({
     { key: 'status', label: 'STATUS' },
     { key: 'staff', label: 'CREATED BY' },
     { key: 'lastFollowUp', label: 'LAST FOLLOW-UP' },
-    { 
+    /* { 
       key: 'paymentAmount', 
       label: 'AMOUNT',
       render: (v) => (v ? <span className="font-bold text-emerald-600">₹{v.toLocaleString()}</span> : <span className="text-gray-400">-</span>)
-    },
+    }, */
     {
       key: 'docs',
       label: 'DOCS',
