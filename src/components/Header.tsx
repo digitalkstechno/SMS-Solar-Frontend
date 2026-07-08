@@ -413,7 +413,7 @@ export default function Header({ toggleSidebar }: HeaderProps) {
           timer: 1500,
           showConfirmButton: false,
         }).then(() => {
-          router.replace("/login");
+          window.location.href = '/login';
         });
       }
     });

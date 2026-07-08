@@ -43,7 +43,7 @@ export default function LoginPage() {
         if (result.status === 'Success') {
           setAuthToken(result.token);
           toast.success(result.message || 'Login successful');
-          router.push('/');
+          window.location.href = '/';
         } else {
           toast.error(result.message || 'Login failed');
         }

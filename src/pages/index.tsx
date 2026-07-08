@@ -16,7 +16,10 @@ import {
   CartesianGrid,
   Legend,
   ComposedChart,
-  Line
+  Line,
+  LineChart,
+  AreaChart,
+  Area
 } from "recharts";
 import {
   Users,
@@ -103,22 +106,56 @@ const YearSelect = ({
   onChange: (val: number) => void;
   options: number[];
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(parseInt(e.target.value))}
-      className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#a63c71] cursor-pointer"
-    >
-      {options.map((yr) => (
-        <option key={yr} value={yr}>
-          {yr}
-        </option>
-      ))}
-    </select>
+    <div className="relative inline-block text-left">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold text-gray-750 shadow-sm focus:outline-none flex items-center gap-2 hover:bg-gray-50 cursor-pointer min-w-[100px] justify-between"
+      >
+        <span>{value}</span>
+        <svg
+          className={`h-3 w-3 text-gray-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div
+            className="absolute right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 min-w-[110px] py-1.5 overflow-hidden origin-top-right"
+            style={{ animation: "fadeInScale 0.15s ease-out forwards" }}
+          >
+            {options.map((yr) => (
+              <div
+                key={yr}
+                onClick={() => {
+                  onChange(yr);
+                  setIsOpen(false);
+                }}
+                className={`px-4 py-2.5 text-xs font-bold transition-colors cursor-pointer ${value === yr
+                  ? "bg-[#a63c71] text-white"
+                  : "text-gray-700 hover:bg-[#a63c71]/10 hover:text-[#a63c71]"
+                  }`}
+              >
+                {yr}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 };
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 20;
 
 const CustomDarkTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -148,6 +185,35 @@ const CustomDarkTooltip = ({ active, payload, label }: any) => {
   }
   return null;
 };
+
+const CustomSalesTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white border border-gray-100 p-3 rounded-xl shadow-xl text-xs min-w-[130px] flex flex-col gap-1.5">
+        <p className="font-bold text-gray-900 mb-1 pb-1 border-b border-gray-100">
+          {payload[0].payload.name}
+        </p>
+        <div className="space-y-1">
+          {payload.map((entry: any, index: number) => {
+            return (
+              <div key={index} className="flex justify-between items-center text-xs">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                  <span className="text-gray-500 font-medium">{entry.name}</span>
+                </div>
+                <div className="flex items-center gap-2 pl-4">
+                  <span className="font-bold text-gray-800">{entry.value}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 
 export default function Dashboard() {
   const router = useRouter();
@@ -183,15 +249,42 @@ export default function Dashboard() {
   const [totalRevenueChart, setTotalRevenueChart] = useState<number>(0);
   const [revenueGrowthData, setRevenueGrowthData] = useState<any[]>([]);
   const [revenueLoading, setRevenueLoading] = useState<boolean>(false);
+  const [followupFilter, setFollowupFilter] = useState<number>(new Date().getFullYear());
+  const [followupChartData, setFollowupChartData] = useState<any[]>([]);
+  const [leadSources, setLeadSources] = useState<any[]>([]);
+  const [leadSourceChartData, setLeadSourceChartData] = useState<any[]>([]);
+  const [leadAssignmentChartData, setLeadAssignmentChartData] = useState<any[]>([]);
 
   const [isUpdateLeadDialogOpen, setIsUpdateLeadDialogOpen] = useState(false);
   const [selectedLeadForUpdate, setSelectedLeadForUpdate] = useState<any>(null);
 
   const [permissions, setPermissions] = useState<{ readAll: boolean; readOwn: boolean; viewStaff: boolean }>({ readAll: false, readOwn: false, viewStaff: false });
   const [user, setUser] = useState<any>(null);
+  const isTelecaller = 
+    user?.role?.roleName?.toUpperCase() === "TELECALLING" || 
+    user?.role?.roleName?.toUpperCase() === "CALLING" ||
+    user?.role?.name?.toUpperCase() === "TELECALLING" ||
+    user?.role?.name?.toUpperCase() === "CALLING";
   const [greeting, setGreeting] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const getInitialDates = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const format = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    return { from: format(start), to: format(end) };
+  };
+
+  const initialDates = getInitialDates();
+  const [fromDate, setFromDate] = useState(initialDates.from);
+  const [toDate, setToDate] = useState(initialDates.to);
+  const [activeFilter, setActiveFilter] = useState<'today' | 'month' | 'prev-month' | 'year' | 'custom' | ''>('month');
+  const [kwFilter, setKwFilter] = useState<number>(new Date().getFullYear());
+  const [allLeads, setAllLeads] = useState<any[]>([]);
 
   const token = typeof window !== "undefined" ? getAuthToken() : null;
   const currentStaff = useAppSelector((state) => state.auth.currentStaff);
@@ -384,7 +477,19 @@ export default function Dashboard() {
     }
   };
 
-  const fetchLeadsAndCalculateRevenue = async () => {
+  const fetchLeadSources = async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(baseUrl.leadSources, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setLeadSources(res.data?.data || []);
+    } catch (err) {
+      console.error("Failed to fetch lead sources:", err);
+    }
+  };
+
+  const fetchAllLeads = async () => {
     if (!token) return;
     setRevenueLoading(true);
     try {
@@ -394,19 +499,120 @@ export default function Dashboard() {
         headers: { Authorization: `Bearer ${token}` },
         params: { limit: 10000 }
       });
-      const leads = res.data.data || [];
+      setAllLeads(res.data.data || []);
+    } catch (err) {
+      console.error("Failed to fetch all leads:", err);
+    } finally {
+      setRevenueLoading(false);
+    }
+  };
 
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const currentYear = new Date().getFullYear();
-      const currentMonthIndex = new Date().getMonth();
+  useEffect(() => {
+    if (token) {
+      fetchAllLeads();
+    }
+  }, [token, permissions]);
 
-      const leadsInYear = leads.filter((lead: any) => {
+  useEffect(() => {
+    if (allLeads.length === 0) {
+      setRevenueGrowthData([]);
+      setTotalRevenueChart(0);
+      setKwGrowthData({ total: 0, chartData: [] });
+      setSalesWinRateData([]);
+      return;
+    }
+
+    // 1. Process Revenue Growth
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const currentYear = new Date().getFullYear();
+    const currentMonthIndex = new Date().getMonth();
+
+    const isGlobalFilterActive = activeFilter === 'today' || activeFilter === 'month' || activeFilter === 'prev-month' || activeFilter === 'year';
+
+    const leadsInRevenue = allLeads.filter((lead: any) => {
+      if (isGlobalFilterActive) {
+        if (!lead.createdAt) return false;
+        const d = new Date(lead.createdAt);
+        d.setHours(0, 0, 0, 0);
+        if (fromDate) {
+          const fromD = new Date(fromDate);
+          fromD.setHours(0, 0, 0, 0);
+          if (d < fromD) return false;
+        }
+        if (toDate) {
+          const toD = new Date(toDate);
+          toD.setHours(0, 0, 0, 0);
+          if (d > toD) return false;
+        }
+        return true;
+      } else {
         const year = new Date(lead.createdAt).getFullYear();
         return year === revenueFilter;
-      });
+      }
+    });
 
-      let monthlyData = months.map((month, index) => {
-        const monthLeads = leadsInYear.filter((lead: any) => {
+    let monthlyData = [];
+    if (activeFilter === 'today') {
+      const currentHour = new Date().getHours();
+      const todayIntervals = [
+        { label: "12 AM - 4 AM", start: 0, end: 4 },
+        { label: "4 AM - 8 AM", start: 4, end: 8 },
+        { label: "8 AM - 12 PM", start: 8, end: 12 },
+        { label: "12 PM - 4 PM", start: 12, end: 16 },
+        { label: "4 PM - 8 PM", start: 16, end: 20 },
+        { label: "8 PM - 12 AM", start: 20, end: 24 },
+      ];
+      const visibleIntervals = todayIntervals.filter(interval => interval.start <= currentHour);
+
+      monthlyData = visibleIntervals.map((interval) => {
+        const intervalLeads = leadsInRevenue.filter((lead: any) => {
+          const hour = new Date(lead.createdAt).getHours();
+          return hour >= interval.start && hour < interval.end;
+        });
+        const sum = intervalLeads.reduce((acc: number, lead: any) => acc + (lead.paymentAmount || 0), 0);
+        return {
+          name: interval.label,
+          amt: sum,
+          lineAmt: sum > 0 ? sum * 1.08 : 0,
+          monthIndex: -1
+        };
+      });
+    } else if (activeFilter === 'month' || activeFilter === 'prev-month') {
+      const filterDate = fromDate ? new Date(fromDate) : new Date();
+      const yr = filterDate.getFullYear();
+      const mIdx = filterDate.getMonth();
+      const totalDays = new Date(yr, mIdx + 1, 0).getDate();
+
+      const weeks = [
+        { label: "Week 1 (1-7)", start: 1, end: 7 },
+        { label: "Week 2 (8-14)", start: 8, end: 14 },
+        { label: "Week 3 (15-21)", start: 15, end: 21 },
+        { label: "Week 4 (22-28)", start: 22, end: 28 },
+        { label: `Week 5 (29-${totalDays})`, start: 29, end: totalDays },
+      ];
+
+      const now = new Date();
+      const isCurrentMonthYear = yr === now.getFullYear() && mIdx === now.getMonth();
+      const visibleWeeks = isCurrentMonthYear
+        ? weeks.filter(w => w.start <= now.getDate())
+        : weeks;
+
+      monthlyData = visibleWeeks.map((w) => {
+        const weekLeads = leadsInRevenue.filter((lead: any) => {
+          const leadDate = new Date(lead.createdAt);
+          return leadDate.getDate() >= w.start && leadDate.getDate() <= w.end;
+        });
+        const sum = weekLeads.reduce((acc: number, lead: any) => acc + (lead.paymentAmount || 0), 0);
+        return {
+          name: w.label,
+          amt: sum,
+          lineAmt: sum > 0 ? sum * 1.08 : 0,
+          monthIndex: -1
+        };
+      });
+    } else {
+      monthlyData = months.map((month, index) => {
+        const monthLeads = leadsInRevenue.filter((lead: any) => {
           const m = new Date(lead.createdAt).getMonth();
           return m === index;
         });
@@ -414,29 +620,311 @@ export default function Dashboard() {
         return {
           name: month,
           amt: sum,
-          lineAmt: sum,
+          lineAmt: sum > 0 ? sum * 1.08 : 0,
           monthIndex: index
         };
       });
 
-      if (revenueFilter === currentYear) {
+      if (isGlobalFilterActive) {
+        const startMonth = fromDate ? new Date(fromDate).getMonth() : 0;
+        let endMonth = toDate ? new Date(toDate).getMonth() : 11;
+
+        const toYear = toDate ? new Date(toDate).getFullYear() : currentYear;
+        if (toYear === currentYear) {
+          if (endMonth > currentMonthIndex) {
+            endMonth = currentMonthIndex;
+          }
+        }
+        monthlyData = monthlyData.filter(d => d.monthIndex >= startMonth && d.monthIndex <= endMonth);
+      } else if (revenueFilter === currentYear) {
         monthlyData = monthlyData.filter(d => d.monthIndex <= currentMonthIndex);
       }
-
-      setRevenueGrowthData(monthlyData);
-
-      const total = monthlyData.reduce((sum, d) => sum + d.amt, 0);
-      setTotalRevenueChart(total);
-    } catch (err) {
-      console.error("Failed to fetch leads and calculate revenue:", err);
-    } finally {
-      setRevenueLoading(false);
     }
-  };
 
-  useEffect(() => {
-    fetchLeadsAndCalculateRevenue();
-  }, [token, revenueFilter, permissions]);
+    setRevenueGrowthData(monthlyData);
+    setTotalRevenueChart(monthlyData.reduce((sum, d) => sum + d.amt, 0));
+
+    // 2. Process KW Growth
+    const leadsInKw = allLeads.filter((lead: any) => {
+      const status = lead.leadStatus?.name?.toLowerCase() || '';
+      const isWon = status === 'won' || status === 'sales won';
+      if (!isWon) return false;
+
+      if (isGlobalFilterActive) {
+        if (!lead.createdAt) return false;
+        const d = new Date(lead.createdAt);
+        d.setHours(0, 0, 0, 0);
+        if (fromDate) {
+          const fromD = new Date(fromDate);
+          fromD.setHours(0, 0, 0, 0);
+          if (d < fromD) return false;
+        }
+        if (toDate) {
+          const toD = new Date(toDate);
+          toD.setHours(0, 0, 0, 0);
+          if (d > toD) return false;
+        }
+        return true;
+      } else {
+        const year = new Date(lead.createdAt).getFullYear();
+        return year === kwFilter;
+      }
+    });
+
+    let monthlyKwData = [];
+    if (activeFilter === 'today') {
+      const currentHour = new Date().getHours();
+      const todayIntervals = [
+        { label: "12 AM - 4 AM", start: 0, end: 4 },
+        { label: "4 AM - 8 AM", start: 4, end: 8 },
+        { label: "8 AM - 12 PM", start: 8, end: 12 },
+        { label: "12 PM - 4 PM", start: 12, end: 16 },
+        { label: "4 PM - 8 PM", start: 16, end: 20 },
+        { label: "8 PM - 12 AM", start: 20, end: 24 },
+      ];
+      const visibleIntervals = todayIntervals.filter(interval => interval.start <= currentHour);
+
+      monthlyKwData = visibleIntervals.map((interval) => {
+        const intervalLeads = leadsInKw.filter((lead: any) => {
+          const hour = new Date(lead.createdAt).getHours();
+          return hour >= interval.start && hour < interval.end;
+        });
+        const sum = intervalLeads.reduce((acc: number, lead: any) => {
+          const kw = parseFloat(lead.kwRequirement || "0");
+          return acc + (isNaN(kw) ? 0 : kw);
+        }, 0);
+        return {
+          date: interval.label,
+          kw: sum,
+          monthIndex: -1
+        };
+      });
+    } else if (activeFilter === 'month' || activeFilter === 'prev-month') {
+      const filterDate = fromDate ? new Date(fromDate) : new Date();
+      const yr = filterDate.getFullYear();
+      const mIdx = filterDate.getMonth();
+      const totalDays = new Date(yr, mIdx + 1, 0).getDate();
+
+      const weeks = [
+        { label: "Week 1 (1-7)", start: 1, end: 7 },
+        { label: "Week 2 (8-14)", start: 8, end: 14 },
+        { label: "Week 3 (15-21)", start: 15, end: 21 },
+        { label: "Week 4 (22-28)", start: 22, end: 28 },
+        { label: `Week 5 (29-${totalDays})`, start: 29, end: totalDays },
+      ];
+
+      const now = new Date();
+      const isCurrentMonthYear = yr === now.getFullYear() && mIdx === now.getMonth();
+      const visibleWeeks = isCurrentMonthYear
+        ? weeks.filter(w => w.start <= now.getDate())
+        : weeks;
+
+      monthlyKwData = visibleWeeks.map((w) => {
+        const weekLeads = leadsInKw.filter((lead: any) => {
+          const leadDate = new Date(lead.createdAt);
+          return leadDate.getDate() >= w.start && leadDate.getDate() <= w.end;
+        });
+        const sum = weekLeads.reduce((acc: number, lead: any) => {
+          const kw = parseFloat(lead.kwRequirement || "0");
+          return acc + (isNaN(kw) ? 0 : kw);
+        }, 0);
+        return {
+          date: w.label,
+          kw: sum,
+          monthIndex: -1
+        };
+      });
+    } else {
+      monthlyKwData = months.map((month, index) => {
+        const monthLeads = leadsInKw.filter((lead: any) => {
+          const m = new Date(lead.createdAt).getMonth();
+          return m === index;
+        });
+        const sum = monthLeads.reduce((acc: number, lead: any) => {
+          const kw = parseFloat(lead.kwRequirement || "0");
+          return acc + (isNaN(kw) ? 0 : kw);
+        }, 0);
+        return {
+          date: month,
+          kw: sum,
+          monthIndex: index
+        };
+      });
+
+      if (isGlobalFilterActive) {
+        const startMonth = fromDate ? new Date(fromDate).getMonth() : 0;
+        let endMonth = toDate ? new Date(toDate).getMonth() : 11;
+
+        const toYear = toDate ? new Date(toDate).getFullYear() : currentYear;
+        if (toYear === currentYear) {
+          if (endMonth > currentMonthIndex) {
+            endMonth = currentMonthIndex;
+          }
+        }
+        monthlyKwData = monthlyKwData.filter(d => d.monthIndex >= startMonth && d.monthIndex <= endMonth);
+      } else if (kwFilter === currentYear) {
+        monthlyKwData = monthlyKwData.filter(d => d.monthIndex <= currentMonthIndex);
+      }
+    }
+
+    const totalKwSum = monthlyKwData.reduce((sum, d) => sum + d.kw, 0);
+    setKwGrowthData({
+      total: totalKwSum,
+      chartData: monthlyKwData
+    });
+
+    // 3. Process Sales Win Rate (filtered by Welcome Banner dates fromDate & toDate)
+    const filteredLeads = allLeads.filter((lead: any) => {
+      if (!lead.createdAt) return false;
+      const d = new Date(lead.createdAt);
+      d.setHours(0, 0, 0, 0);
+      if (fromDate) {
+        const fromD = new Date(fromDate);
+        fromD.setHours(0, 0, 0, 0);
+        if (d < fromD) return false;
+      }
+      if (toDate) {
+        const toD = new Date(toDate);
+        toD.setHours(0, 0, 0, 0);
+        if (d > toD) return false;
+      }
+      return true;
+    });
+
+    const executiveMap: Record<string, { staffId: string; name: string; won: number; lost: number; inProgress: number; total: number }> = {};
+
+    filteredLeads.forEach((lead: any) => {
+      const staffName = lead.assignedTo?.fullName || "Unassigned";
+      const staffId = lead.assignedTo?._id || "unassigned";
+
+      if (!executiveMap[staffId]) {
+        executiveMap[staffId] = {
+          staffId,
+          name: staffName,
+          won: 0,
+          lost: 0,
+          inProgress: 0,
+          total: 0
+        };
+      }
+
+      const statusName = lead.leadStatus?.name?.toLowerCase() || "";
+      if (statusName.includes("won")) {
+        executiveMap[staffId].won += 1;
+      } else if (statusName.includes("lost")) {
+        executiveMap[staffId].lost += 1;
+      } else {
+        executiveMap[staffId].inProgress += 1;
+      }
+      executiveMap[staffId].total += 1;
+    });
+
+    const processedSalesData = Object.values(executiveMap).sort((a, b) => b.total - a.total);
+    setSalesWinRateData(processedSalesData);
+
+    // 4. Process Follow-up Analysis
+    const followupMonthlyData = months.map((month, index) => {
+      let completedCount = 0;
+      let upcomingCount = 0;
+
+      allLeads.forEach((lead: any) => {
+        // Completed followups
+        if (lead.followUps && Array.isArray(lead.followUps)) {
+          lead.followUps.forEach((f: any) => {
+            const dateStr = f.date || f.createdAt;
+            if (dateStr) {
+              const d = new Date(dateStr);
+              if (d.getFullYear() === followupFilter && d.getMonth() === index) {
+                completedCount++;
+              }
+            }
+          });
+        }
+
+        // Upcoming followups
+        if (lead.nextFollowupDate) {
+          const d = new Date(lead.nextFollowupDate);
+          if (d.getFullYear() === followupFilter && d.getMonth() === index) {
+            upcomingCount++;
+          }
+        }
+      });
+
+      return {
+        name: month,
+        completed: completedCount,
+        upcoming: upcomingCount,
+        monthIndex: index
+      };
+    });
+
+    let filteredFollowupData = followupMonthlyData;
+    if (followupFilter === currentYear) {
+      filteredFollowupData = followupMonthlyData.filter(d => d.monthIndex <= currentMonthIndex);
+    }
+    setFollowupChartData(filteredFollowupData);
+
+    // 5. Process Lead Source Overview
+    const sourceCountMap: Record<string, number> = {};
+    leadSources.forEach((s: any) => {
+      if (s.name) sourceCountMap[s.name] = 0;
+    });
+    if (!sourceCountMap["Others"]) {
+      sourceCountMap["Others"] = 0;
+    }
+
+    filteredLeads.forEach((lead: any) => {
+      const ref = lead.leadrefrance;
+      if (!ref) {
+        sourceCountMap["Others"]++;
+        return;
+      }
+      const match = leadSources.find(s => s._id === ref || s.name === ref);
+      if (match && match.name) {
+        sourceCountMap[match.name]++;
+      } else {
+        sourceCountMap["Others"]++;
+      }
+    });
+
+    const processedSourceData = Object.entries(sourceCountMap).map(([name, val]) => ({
+      name,
+      value: val
+    }));
+    setLeadSourceChartData(processedSourceData);
+
+    // 6. Process Lead Assignment Overview
+    const assignmentMap: Record<string, { name: string; newLead: number; won: number; lost: number; total: number }> = {};
+    filteredLeads.forEach((lead: any) => {
+      const assignedUser = lead.assignedTo;
+      if (!assignedUser) return;
+      const userId = assignedUser._id || "unassigned";
+      const userName = assignedUser.fullName || "Unknown";
+
+      if (!assignmentMap[userId]) {
+        assignmentMap[userId] = {
+          name: userName,
+          newLead: 0,
+          won: 0,
+          lost: 0,
+          total: 0
+        };
+      }
+
+      const statusName = (lead.leadStatus?.name || "").toLowerCase();
+      if (statusName.includes("won")) {
+        assignmentMap[userId].won++;
+      } else if (statusName.includes("lost")) {
+        assignmentMap[userId].lost++;
+      } else {
+        assignmentMap[userId].newLead++;
+      }
+      assignmentMap[userId].total++;
+    });
+
+    const processedAssignmentData = Object.values(assignmentMap).sort((a, b) => b.total - a.total);
+    setLeadAssignmentChartData(processedAssignmentData);
+  }, [allLeads, revenueFilter, kwFilter, followupFilter, fromDate, toDate, leadSources]);
 
   useEffect(() => {
     if (token) {
@@ -444,6 +932,7 @@ export default function Dashboard() {
       fetchUpcomingFollowups(1);
       fetchDueFollowups(1);
       fetchTodayTasks();
+      fetchLeadSources();
 
       // Only fetch staff stats if they have readAll
 
@@ -560,34 +1049,47 @@ export default function Dashboard() {
     fill: statusColorPalette[idx % statusColorPalette.length]
   }));
 
-  const handleQuickFilter = (range: string) => {
+  const handleQuickFilter = (range: 'today' | 'month' | 'prev-month' | 'year' | 'custom') => {
+    if (activeFilter === range) {
+      setActiveFilter('');
+      setFromDate('');
+      setToDate('');
+      return;
+    }
+
+    setActiveFilter(range);
     const now = new Date();
     let start = new Date();
     let end = new Date();
 
-    switch (range) {
-      case 'today':
-        break;
-      case 'yesterday':
-        start.setDate(now.getDate() - 1);
-        end.setDate(now.getDate() - 1);
-        break;
-      case '7days':
-        start.setDate(now.getDate() - 7);
-        break;
-      case '30days':
-        start.setDate(now.getDate() - 30);
-        break;
-      case 'month':
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-      case 'reset':
-        setFromDate("");
-        setToDate("");
-        return;
+    if (range === 'today') {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (range === 'month') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else if (range === 'prev-month') {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else if (range === 'year') {
+      start = new Date(now.getFullYear(), 0, 1);
+      end = new Date(now.getFullYear(), 11, 31);
+    } else if (range === 'custom') {
+      if (!fromDate || !toDate) {
+        const defaultDates = getInitialDates();
+        setFromDate(defaultDates.from);
+        setToDate(defaultDates.to);
+      }
+      return;
     }
 
-    const format = (d: Date) => d.toISOString().split("T")[0];
+    const format = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
     setFromDate(format(start));
     setToDate(format(end));
   };
@@ -601,7 +1103,7 @@ export default function Dashboard() {
     setPage: (p: number) => void,
     dateHeader: string = "Follow up Date",
   ) => (
-    <div className="rounded-md bg-white border border-gray-200 overflow-hidden h-full flex flex-col transition-all hover:shadow-xl">
+    <div className="rounded-3xl bg-white border border-gray-200 overflow-hidden h-full flex flex-col transition-all hover:shadow-xl">
       <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -614,7 +1116,7 @@ export default function Dashboard() {
             </div>
             <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           </div>
-          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${dateHeader === "Follow up Date"
+          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${dateHeader === "Follow up Date"
             ? "bg-blue-100 text-blue-700"
             : "bg-red-100 text-red-700"
             }`}>
@@ -638,68 +1140,63 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
-          <div className="overflow-y-auto flex-1">
-            <div className="divide-y divide-gray-50">
-              {items.map((lead, index) => (
-                <div
-                  key={lead._id || lead.id || index}
-                  className="p-4 hover:bg-blue-50/20 transition-all cursor-pointer group"
-                  onClick={() => router.push(`/leads/list`)}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold text-gray-900 text-sm">
-                          {lead.fullName || "Unknown"}
-                        </h4>
-                        {lead.contact && (
-                          <span className="text-xs text-gray-500 flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {lead.contact}
-                          </span>
-                        )}
+          <div className="overflow-y-auto max-h-[350px] flex-1">
+            <table className="min-w-full divide-y divide-gray-100 text-left border-collapse">
+              <thead className="sticky top-0 bg-white z-10 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">Lead Name & Contact</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">Schedule</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50 text-center">Status</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 bg-white">
+                {items.map((lead, index) => (
+                  <tr
+                    key={lead._id || lead.id || index}
+                    className="hover:bg-blue-50/10 transition-colors group"
+                    onClick={() => router.push(`/leads/list`)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="font-bold text-gray-900 text-sm">
+                        {lead.fullName || "Unknown"}
                       </div>
-                      <div className="flex items-center gap-3 text-xs mb-2">
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${getStatusColor(
-                            lead.leadStatus?.name || "",
-                          )}`}
-                        >
-                          {lead.leadStatus?.name || "-"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                      <div className="text-xs font-semibold text-gray-700">
+                      {lead.contact && (
+                        <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-1 font-medium">
+                          <Phone className="h-3.5 w-3.5 text-gray-400" />
+                          {lead.contact}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-xs sm:text-sm font-bold text-gray-900">
                         {lead.nextFollowupDate ? moment(lead.nextFollowupDate).format("DD-MM-YYYY") : "-"}
                       </div>
-                      <div className="text-[10px] font-medium text-gray-500">
+                      <div className="text-xs text-gray-500 mt-1 font-medium">
                         {lead.nextFollowupTime || "-"}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${getStatusColor(lead.leadStatus?.name || "")}`}>
+                        {lead.leadStatus?.name || "-"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedLeadForUpdate(lead);
                           setIsUpdateLeadDialogOpen(true);
                         }}
-                        className="px-3 py-1 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium transition-colors"
+                        className="px-3 py-1 rounded-lg bg-[#a63c71]/10 hover:bg-[#a63c71]/20 text-[#a63c71] border border-[#a63c71]/20 text-xs font-semibold transition-colors cursor-pointer"
                       >
                         Pending
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/leads/list`);
-                        }}
-                        className="px-3 py-1 rounded-full bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium transition-colors"
-                      >
-                        History
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           {totalPages > 1 && (
@@ -731,18 +1228,79 @@ export default function Dashboard() {
       <div className="space-y-8 w-full">
 
         {/* Welcome Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
           <div>
             <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
               {greeting}, {user?.fullName?.split(' ')[0] || 'User'}! 👋
             </h2>
             <p className="text-gray-500 mt-1 flex items-center gap-2">
-              <Activity className="h-4 w-4 text-blue-500" />
               Here's what's happening with your projects today.
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4 bg-gray-50/50 border border-gray-200/60 rounded-3xl p-4 shadow-sm">
+            <div className="flex flex-wrap items-center gap-3">
+              {[
+                { label: "Today", value: "today" },
+                { label: "This Month", value: "month" },
+                { label: "Previous Month", value: "prev-month" },
+                { label: "This Year", value: "year" },
+              ].map((btn) => (
+                <button
+                  key={btn.value}
+                  onClick={() => handleQuickFilter(btn.value as any)}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${activeFilter === btn.value
+                    ? "bg-[#a63c71] text-white shadow-sm border border-[#a63c71]"
+                    : "text-gray-500 hover:text-gray-800 hover:bg-gray-150/40"
+                    }`}
+                >
+                  {btn.label}
+                </button>
+              ))}
+
+              <button
+                onClick={() => handleQuickFilter('custom')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${activeFilter === 'custom'
+                  ? "bg-[#a63c71] text-white shadow-md border border-[#a63c71]"
+                  : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 shadow-sm"
+                  }`}
+              >
+                Custom
+              </button>
+            </div>
+
+            {activeFilter === 'custom' && (
+              <div className="flex items-center gap-3 border-t lg:border-t-0 lg:border-l border-gray-200 pt-3 lg:pt-0 lg:pl-4 transition-all duration-300">
+                <div className="relative">
+                  <span className="absolute -top-2 left-3 px-1 bg-white text-[9px] font-bold text-[#a63c71] tracking-wider uppercase scale-90 origin-left">From Date</span>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="border border-[#a63c71]/30 rounded-xl px-3 py-1.5 text-xs font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#a63c71] min-w-[130px]"
+                  />
+                </div>
+                <div className="relative">
+                  <span className="absolute -top-2 left-3 px-1 bg-white text-[9px] font-bold text-[#a63c71] tracking-wider uppercase scale-90 origin-left">To Date</span>
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="border border-[#a63c71]/30 rounded-xl px-3 py-1.5 text-xs font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#a63c71] min-w-[130px]"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    fetchAllLeads();
+                    fetchLeadSummary();
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-gray-200/60 transition-colors cursor-pointer text-gray-500 hover:text-gray-800"
+                  title="Refresh Data"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -751,54 +1309,388 @@ export default function Dashboard() {
           {summaryCards.map((card) => (
             <div
               key={card.key}
-              className="bg-white p-4 rounded-2xl border border-gray-200/80 flex items-center gap-4 transition-all duration-300"
+              className="bg-white p-4 rounded-3xl border border-gray-200/80 flex items-center gap-4 transition-all duration-300"
             >
               <div className={`p-3 rounded-2xl ${card.iconBg} ${card.iconColor} flex-shrink-0 flex items-center justify-center w-12 h-12`}>
                 <card.Icon className="h-6 w-6" />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[11px] sm:text-xs font-semibold text-gray-400 tracking-wide truncate">
+                <span className="text-[14px] text-gray-500 tracking-wider truncate">
                   {card.label}
                 </span>
-                <span className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 truncate">
+                <span className="text-2xl text-gray-900">
                   {card.value}
                 </span>
               </div>
             </div>
           ))}
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          {/* Lead Statistics - Pie Chart / Graph */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Lead Status Overview</h3>
-                <p className="text-sm text-gray-500 mt-1">Performance by status categories</p>
+        {permissions.readAll && !isTelecaller ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Sales Executive Stacked Bar Chart */}
+            <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-semibold text-gray-900">Sales Executive</h3>
+                  <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-semibold">
+                    {salesWinRateData.reduce((acc, curr) => acc + curr.total, 0)} Total Leads
+                  </span>
+                </div>
               </div>
-              <div className="flex bg-gray-100 rounded-full p-1 border border-gray-200/50 shadow-inner">
-                <button
-                  onClick={() => setChartType("pie")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer ${chartType === "pie"
-                    ? "bg-[#a63c71] text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-800"
-                    }`}
-                >
-                  Pie
-                </button>
-                <button
-                  onClick={() => setChartType("graph")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer ${chartType === "graph"
-                    ? "bg-[#a63c71] text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-800"
-                    }`}
-                >
-                  Graph
-                </button>
+              <p className="text-sm text-gray-500 mb-8">Lead status performance by assigned executive</p>
+
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={salesWinRateData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }} barSize={35}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "500" }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11 }} dx={-10} allowDecimals={false} />
+                    <Tooltip content={<CustomSalesTooltip />} cursor={{ fill: '#F3F4F6' }} />
+                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+                    <Bar dataKey="won" name="Won" fill="#bd5087" stackId="a" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="lost" name="Lost" fill="#d1669c" stackId="a" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="inProgress" name="In Progress" fill="#a63c71" stackId="a" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
-            {chartType === "pie" ? (
+            {/* Total Revenue - Composed Chart */}
+            <div className="min-h-[450px] rounded-3xl border border-gray-200 p-6 flex flex-col bg-white shadow-sm hover:shadow-md transition-shadow justify-between h-[456px]">
+              <div className="flex flex-col mb-2 shrink-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-gray-900">Total Revenue</h3>
+                  <YearSelect
+                    value={revenueFilter}
+                    onChange={setRevenueFilter}
+                    options={[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2]}
+                  />
+                </div>
+                <h3 className="text-lg text-gray-500 mt-1">
+                  ₹{(totalRevenueChart || 0).toLocaleString()}
+                </h3>
+              </div>
+
+              {revenueLoading ? (
+                <div className="h-[280px] flex items-center justify-center flex-grow">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#a63c71] border-r-transparent"></div>
+                </div>
+              ) : (
+                <div className="flex-grow mt-4 h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart
+                      data={revenueGrowthData}
+                      margin={{ top: 10, right: 0, left: 0, bottom: 5 }}
+                      barCategoryGap="30%"
+                    >
+                      <defs>
+                        <linearGradient id="colorAmtGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#f395c7" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#a63c71" stopOpacity={0.9} />
+                        </linearGradient>
+                        <marker
+                          id="arrow"
+                          viewBox="0 0 10 10"
+                          refX="6"
+                          refY="5"
+                          markerWidth="6"
+                          markerHeight="6"
+                          orient="auto-start-reverse"
+                        >
+                          <path d="M 0 0 L 10 5 L 0 10 z" fill="#8d295b" />
+                        </marker>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                      <XAxis
+                        dataKey="name"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "500" }}
+                        dy={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6B7280', fontSize: 11 }}
+                        dx={-10}
+                      />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload?.length) {
+                            return (
+                              <div className="bg-white border border-gray-100 p-3 rounded-xl shadow-xl text-xs">
+                                <p className="font-bold text-gray-900">
+                                  {payload[0].payload.name}
+                                </p>
+                                <p className="font-semibold text-[#a63c71]">
+                                  ₹{Number(payload[0].payload.amt).toLocaleString()}
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar
+                        dataKey="amt"
+                        fill="url(#colorAmtGrad)"
+                        radius={[4, 4, 0, 0]}
+                        barSize={35}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="lineAmt"
+                        stroke="#8d295b"
+                        strokeWidth={3}
+                        dot={false}
+                        activeDot={false}
+                        markerEnd="url(#arrow)"
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            {/* Lead Statistics - Pie Chart / Graph */}
+            <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Lead Status Overview</h3>
+                  <p className="text-sm text-gray-500 mt-1">Performance by status categories</p>
+                </div>
+                <div className="flex bg-gray-100 rounded-full p-1 border border-gray-200/50 shadow-inner">
+                  <button
+                    onClick={() => setChartType("pie")}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer ${chartType === "pie"
+                      ? "bg-[#a63c71] text-white shadow-sm"
+                      : "text-gray-500 hover:text-gray-800"
+                      }`}
+                  >
+                    Pie
+                  </button>
+                  <button
+                    onClick={() => setChartType("graph")}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer ${chartType === "graph"
+                      ? "bg-[#a63c71] text-white shadow-sm"
+                      : "text-gray-500 hover:text-gray-800"
+                      }`}
+                  >
+                    Graph
+                  </button>
+                </div>
+              </div>
+
+              {chartType === "pie" ? (
+                <div className="flex flex-col md:flex-row gap-8 items-center">
+                  <div className="h-[320px] w-[350px] flex-shrink-0 flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={statusChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={90}
+                          outerRadius={125}
+                          paddingAngle={4}
+                          dataKey="value"
+                          nameKey="name"
+                        >
+                          {statusChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} stroke="white" strokeWidth={3} />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<CustomLightTooltip />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="flex-1 w-full space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+                    {statusChartData.map((s, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50/80 transition-all duration-200 cursor-default">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.fill }}></div>
+                          <span className="text-sm font-semibold text-gray-700">{s.name}</span>
+                        </div>
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-gray-200/60 bg-white" style={{ color: s.fill }}>
+                          {s.value} {s.value === 1 ? 'Lead' : 'Leads'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="h-[280px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={statusChartData} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dx={-10} allowDecimals={false} />
+                      <Tooltip content={<CustomLightTooltip />} cursor={{ fill: '#F9FAFB' }} />
+                      <Bar dataKey="value" name="Leads" radius={[6, 6, 0, 0]} maxBarSize={45}>
+                        {statusChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            {/* Total KW Growth Chart */}
+            <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Total KW Growth</h3>
+                  <p className="text-lg text-gray-500 mt-1">
+                    {kwGrowthData.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KW
+                  </p>
+                </div>
+                <YearSelect
+                  value={kwFilter}
+                  onChange={setKwFilter}
+                  options={[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2]}
+                />
+              </div>
+              <div className="mb-8" />
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={kwGrowthData.chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorKwGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#a63c71" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#a63c71" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "600" }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11 }} dx={-10} allowDecimals={true} />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload?.length) {
+                          return (
+                            <div className="bg-white border border-gray-100 p-3 rounded-xl shadow-xl text-xs">
+                              <p className="font-bold text-gray-900">{payload[0].payload.date}</p>
+                              <p className="font-semibold text-[#a63c71]">
+                                {Number(payload[0].payload.kw).toFixed(2)} KW
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="kw"
+                      stroke="#a63c71"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorKwGrad)"
+                      dot={{ r: 4, strokeWidth: 2, fill: "white", stroke: "#a63c71" }}
+                      activeDot={{ r: 6, strokeWidth: 0, fill: "#a63c71" }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Upcoming Follow-ups */}
+            <div className="h-full min-h-[450px]">
+              {renderFollowupTable(
+                "Upcoming Follow-ups",
+                upcomingFollowups,
+                upcomingLoading,
+                upcomingPage,
+                upcomingTotalPages,
+                (p) => {
+                  if (p >= 1 && p <= upcomingTotalPages) fetchUpcomingFollowups(p);
+                },
+                "Follow up Date",
+              )}
+            </div>
+
+            {/* Overdue Follow-ups */}
+            <div className="h-full min-h-[450px]">
+              {renderFollowupTable(
+                "Overdue Follow-ups",
+                dueFollowups,
+                dueLoading,
+                duePage,
+                dueTotalPages,
+                (p) => {
+                  if (p >= 1 && p <= dueTotalPages) fetchDueFollowups(p);
+                },
+                "Due Date",
+              )}
+            </div>
+          </div>
+        ) : isTelecaller ? (
+          /* ================= TELECALLING VIEW GRID ================= */
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Lead Source Overview - Column Chart */}
+            <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Lead Source Overview</h3>
+                  <p className="text-sm text-gray-500 mt-1">Leads distribution by acquisition source</p>
+                </div>
+              </div>
+
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={leadSourceChartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="colorSourceGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f395c7" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#a63c71" stopOpacity={0.9} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "500" }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11 }} dx={-10} allowDecimals={false} />
+                    <Tooltip content={<CustomLightTooltip />} cursor={{ fill: '#F9FAFB' }} />
+                    <Bar dataKey="value" name="Leads" fill="url(#colorSourceGrad)" radius={[6, 6, 0, 0]} maxBarSize={45} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Lead Assignment Overview - Stacked Bar Chart */}
+            <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-semibold text-gray-900">Lead Assignment Overview</h3>
+                </div>
+              </div>
+              <p className="text-sm text-gray-500 mb-8">Lead status performance by assigned executive</p>
+
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={leadAssignmentChartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }} barSize={35}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "500" }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11 }} dx={-10} allowDecimals={false} />
+                    <Tooltip content={<CustomSalesTooltip />} cursor={{ fill: '#F3F4F6' }} />
+                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '13px' }} />
+                    <Bar dataKey="newLead" name="New Lead" fill="#f395c7" stackId="a" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="won" name="Won" fill="#a63c71" stackId="a" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="lost" name="Lost" fill="#bd5087" stackId="a" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Lead Status Overview - Pie Chart Only (no toggles) */}
+            <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Lead Status Overview</h3>
+                  <p className="text-sm text-gray-500 mt-1">Performance by status categories</p>
+                </div>
+              </div>
+
               <div className="flex flex-col md:flex-row gap-8 items-center">
                 <div className="h-[320px] w-[350px] flex-shrink-0 flex items-center justify-center">
                   <ResponsiveContainer width="100%" height="100%">
@@ -836,111 +1728,219 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
-            ) : (
-              <div className="h-[280px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={statusChartData} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dx={-10} allowDecimals={false} />
-                    <Tooltip content={<CustomLightTooltip />} cursor={{ fill: '#F9FAFB' }} />
-                    <Bar dataKey="value" name="Leads" radius={[6, 6, 0, 0]} maxBarSize={45}>
-                      {statusChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
+            </div>
 
-          {/* Total Revenue - Composed Chart */}
-          <div className="min-h-[450px] rounded-3xl border border-gray-200 p-6 flex flex-col bg-white shadow-sm hover:shadow-md transition-shadow justify-between h-[456px]">
-            <div className="flex flex-col mb-2 shrink-0">
-              <div className="flex items-center justify-between">
-                <p className="text-xl font-semibold text-gray-900">Total Revenue</p>
+            {/* Follow-up Analysis Chart */}
+            <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Follow-up Analysis</h3>
+                  <p className="text-sm text-gray-500 mt-1">Upcoming and completed follow-ups</p>
+                </div>
                 <YearSelect
-                  value={revenueFilter}
-                  onChange={setRevenueFilter}
+                  value={followupFilter}
+                  onChange={setFollowupFilter}
                   options={[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2]}
                 />
               </div>
-              <h3 className="text-lg text-gray-500 mt-1">
-                ₹{(totalRevenueChart || 0).toLocaleString()}
-              </h3>
+              <div className="mb-8" />
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={followupChartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "500" }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11 }} dx={-10} allowDecimals={false} />
+                    <Tooltip content={<CustomSalesTooltip />} cursor={{ stroke: '#F3F4F6', strokeWidth: 2 }} />
+                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '13px' }} />
+                    <Line
+                      type="monotone"
+                      dataKey="completed"
+                      name="Completed Follow-ups"
+                      stroke="#a63c71"
+                      strokeWidth={3}
+                      dot={{ r: 4, strokeWidth: 2, fill: "white", stroke: "#a63c71" }}
+                      activeDot={{ r: 6, strokeWidth: 0, fill: "#a63c71" }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="upcoming"
+                      name="Upcoming Follow-ups"
+                      stroke="#d1669c"
+                      strokeWidth={3}
+                      dot={{ r: 4, strokeWidth: 2, fill: "white", stroke: "#d1669c" }}
+                      activeDot={{ r: 6, strokeWidth: 0, fill: "#d1669c" }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
-            {revenueLoading ? (
-              <div className="h-[280px] flex items-center justify-center flex-grow">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#a63c71] border-r-transparent"></div>
+            {/* Upcoming Follow-ups */}
+            <div className="h-full min-h-[450px]">
+              {renderFollowupTable(
+                "Upcoming Follow-ups",
+                upcomingFollowups,
+                upcomingLoading,
+                upcomingPage,
+                upcomingTotalPages,
+                (p) => {
+                  if (p >= 1 && p <= upcomingTotalPages) fetchUpcomingFollowups(p);
+                },
+                "Follow up Date",
+              )}
+            </div>
+
+            {/* Overdue Follow-ups */}
+            <div className="h-full min-h-[450px]">
+              {renderFollowupTable(
+                "Overdue Follow-ups",
+                dueFollowups,
+                dueLoading,
+                duePage,
+                dueTotalPages,
+                (p) => {
+                  if (p >= 1 && p <= dueTotalPages) fetchDueFollowups(p);
+                },
+                "Due Date",
+              )}
+            </div>
+          </div>
+        ) : (
+          /* ================= SALES VIEW GRID ================= */
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Total Revenue - Composed Chart */}
+            <div className="min-h-[450px] rounded-3xl border border-gray-200 p-6 flex flex-col bg-white shadow-sm hover:shadow-md transition-shadow justify-between h-[456px]">
+              <div className="flex flex-col mb-2 shrink-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-gray-900">Total Revenue</h3>
+                  <YearSelect
+                    value={revenueFilter}
+                    onChange={setRevenueFilter}
+                    options={[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2]}
+                  />
+                </div>
+                <h3 className="text-lg text-gray-500 mt-1">
+                  ₹{(totalRevenueChart || 0).toLocaleString()}
+                </h3>
               </div>
-            ) : (
-              <div className="flex-grow mt-4 h-[280px]">
+
+              {revenueLoading ? (
+                <div className="h-[280px] flex items-center justify-center flex-grow">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#a63c71] border-r-transparent"></div>
+                </div>
+              ) : (
+                <div className="flex-grow mt-4 h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart
+                      data={revenueGrowthData}
+                      margin={{ top: 10, right: 0, left: 0, bottom: 5 }}
+                      barCategoryGap="30%"
+                    >
+                      <defs>
+                        <linearGradient id="colorAmtGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#f395c7" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#a63c71" stopOpacity={0.9} />
+                        </linearGradient>
+                        <marker
+                          id="arrow"
+                          viewBox="0 0 10 10"
+                          refX="6"
+                          refY="5"
+                          markerWidth="6"
+                          markerHeight="6"
+                          orient="auto-start-reverse"
+                        >
+                          <path d="M 0 0 L 10 5 L 0 10 z" fill="#8d295b" />
+                        </marker>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                      <XAxis
+                        dataKey="name"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "500" }}
+                        dy={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6B7280', fontSize: 11 }}
+                        dx={-10}
+                      />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload?.length) {
+                            return (
+                              <div className="bg-white border border-gray-100 p-3 rounded-xl shadow-xl text-xs">
+                                <p className="font-bold text-gray-900">
+                                  {payload[0].payload.name}
+                                </p>
+                                <p className="font-semibold text-[#a63c71]">
+                                  ₹{Number(payload[0].payload.amt).toLocaleString()}
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar
+                        dataKey="amt"
+                        fill="url(#colorAmtGrad)"
+                        radius={[4, 4, 0, 0]}
+                        barSize={35}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="lineAmt"
+                        stroke="#8d295b"
+                        strokeWidth={3}
+                        dot={false}
+                        activeDot={false}
+                        markerEnd="url(#arrow)"
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            {/* Total KW Growth Chart */}
+            <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Total KW Growth</h3>
+                  <p className="text-lg text-gray-500 mt-1">
+                    {kwGrowthData.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KW
+                  </p>
+                </div>
+                <YearSelect
+                  value={kwFilter}
+                  onChange={setKwFilter}
+                  options={[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2]}
+                />
+              </div>
+              <div className="mb-8" />
+              <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart
-                    data={revenueGrowthData}
-                    margin={{ top: 10, right: 0, left: 0, bottom: 5 }}
-                    barCategoryGap="30%"
-                  >
+                  <AreaChart data={kwGrowthData.chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="colorAmtGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f395c7" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#a63c71" stopOpacity={0.9} />
+                      <linearGradient id="colorKwGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#a63c71" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#a63c71" stopOpacity={0.0} />
                       </linearGradient>
-                      <marker
-                        id="arrow"
-                        viewBox="0 0 10 10"
-                        refX="6"
-                        refY="5"
-                        markerWidth="6"
-                        markerHeight="6"
-                        orient="auto-start-reverse"
-                      >
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#8d295b" />
-                      </marker>
                     </defs>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="#f0f0f0"
-                    />
-                    <XAxis
-                      dataKey="name"
-                      padding={{ left: 15, right: 15 }}
-                      tick={{ fontSize: 12, fill: "#4b5563", fontWeight: "600", dy: 8 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      domain={[0, (max: number) => max * 1.05]}
-                      tickFormatter={(val) => {
-                        if (val === 0) return "0";
-                        if (val >= 100000) {
-                          const lakhs = val / 100000;
-                          return lakhs % 1 === 0 ? `${lakhs}L` : `${lakhs.toFixed(1)}L`;
-                        }
-                        if (val >= 1000) {
-                          const k = Math.round(val / 1000);
-                          return k % 1 === 0 ? `${k}k` : `${k.toFixed(1)}k`;
-                        }
-                        return String(val);
-                      }}
-                      width={50}
-                      tick={{ fontSize: 11, fill: "#4b5563", dx: -8 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "600" }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11 }} dx={-10} allowDecimals={true} />
                     <Tooltip
                       content={({ active, payload }) => {
                         if (active && payload?.length) {
                           return (
                             <div className="bg-white border border-gray-100 p-3 rounded-xl shadow-xl text-xs">
-                              <p className="font-bold text-gray-900">
-                                {payload[0].payload.name}
-                              </p>
-                              <p className="font-semibold" style={{ color: "#a63c71" }}>
-                                ₹{Number(payload[0].payload.amt).toLocaleString()}
+                              <p className="font-bold text-gray-900">{payload[0].payload.date}</p>
+                              <p className="font-semibold text-[#a63c71]">
+                                {Number(payload[0].payload.kw).toFixed(2)} KW
                               </p>
                             </div>
                           );
@@ -948,134 +1948,145 @@ export default function Dashboard() {
                         return null;
                       }}
                     />
-                    <Bar
-                      dataKey="amt"
-                      fill="url(#colorAmtGrad)"
-                      radius={[4, 4, 0, 0]}
-                      barSize={35}
+                    <Area
+                      type="monotone"
+                      dataKey="kw"
+                      stroke="#a63c71"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorKwGrad)"
+                      dot={{ r: 4, strokeWidth: 2, fill: "white", stroke: "#a63c71" }}
+                      activeDot={{ r: 6, strokeWidth: 0, fill: "#a63c71" }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Lead Statistics - Pie Chart Only (no toggles) */}
+            <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Lead Status Overview</h3>
+                  <p className="text-sm text-gray-500 mt-1">Performance by status categories</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col md:flex-row gap-8 items-center">
+                <div className="h-[320px] w-[350px] flex-shrink-0 flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={statusChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={90}
+                        outerRadius={125}
+                        paddingAngle={4}
+                        dataKey="value"
+                        nameKey="name"
+                      >
+                        {statusChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} stroke="white" strokeWidth={3} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomLightTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="flex-1 w-full space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+                  {statusChartData.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50/80 transition-all duration-200 cursor-default">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.fill }}></div>
+                        <span className="text-sm font-semibold text-gray-700">{s.name}</span>
+                      </div>
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-gray-200/60 bg-white" style={{ color: s.fill }}>
+                        {s.value} {s.value === 1 ? 'Lead' : 'Leads'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Follow-up Analysis Chart */}
+            <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Follow-up Analysis</h3>
+                  <p className="text-sm text-gray-500 mt-1">Upcoming and completed follow-ups</p>
+                </div>
+                <YearSelect
+                  value={followupFilter}
+                  onChange={setFollowupFilter}
+                  options={[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2]}
+                />
+              </div>
+              <div className="mb-8" />
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={followupChartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "500" }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11 }} dx={-10} allowDecimals={false} />
+                    <Tooltip content={<CustomSalesTooltip />} cursor={{ stroke: '#F3F4F6', strokeWidth: 2 }} />
+                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+                    <Line
+                      type="monotone"
+                      dataKey="completed"
+                      name="Completed Follow-ups"
+                      stroke="#a63c71"
+                      strokeWidth={3}
+                      dot={{ r: 4, strokeWidth: 2, fill: "white", stroke: "#a63c71" }}
+                      activeDot={{ r: 6, strokeWidth: 0, fill: "#a63c71" }}
                     />
                     <Line
                       type="monotone"
-                      dataKey="lineAmt"
-                      stroke="#8d295b"
+                      dataKey="upcoming"
+                      name="Upcoming Follow-ups"
+                      stroke="#d1669c"
                       strokeWidth={3}
-                      dot={false}
-                      activeDot={false}
-                      markerEnd="url(#arrow)"
+                      dot={{ r: 4, strokeWidth: 2, fill: "white", stroke: "#d1669c" }}
+                      activeDot={{ r: 6, strokeWidth: 0, fill: "#d1669c" }}
                     />
-                  </ComposedChart>
+                  </LineChart>
                 </ResponsiveContainer>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* New Charts Section */}
-        <div className="grid grid-cols-1 gap-8">
-          {/* KW Growth Chart */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Total KW Growth</h3>
-                <div className="text-3xl font-bold text-gray-900 mt-2">
-                  {kwGrowthData.total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} KW
-                </div>
-              </div>
-              <div className="flex bg-gray-100 rounded-lg p-1 mt-4 sm:mt-0">
-                {['month', 'week', 'year'].map(tf => (
-                  <button
-                    key={tf}
-                    onClick={() => setKwTimeframe(tf)}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${kwTimeframe === tf ? 'bg-[#10b981] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'}`}
-                  >
-                    {tf.charAt(0).toUpperCase() + tf.slice(1)}
-                  </button>
-                ))}
-              </div>
             </div>
 
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={kwGrowthData.chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dy={10} />
-                  <Tooltip content={<CustomDarkTooltip />} cursor={{ fill: '#F3F4F6' }} />
-                  <Bar dataKey="kw" name="KW Growth" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={60} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Sales Executive Win Rate */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8">
-              <div className="flex items-center gap-4">
-                <h3 className="text-xl font-bold text-gray-900">Sales Executive — Win Rate</h3>
-                <div className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-sm font-semibold">
-                  {salesWinRateData.reduce((acc, curr) => acc + curr.total, 0)} Total Leads
-                </div>
-              </div>
-              <div className="flex bg-gray-100 rounded-lg p-1 mt-4 sm:mt-0">
-                {['all', 'week', 'month', 'year'].map(tf => (
-                  <button
-                    key={tf}
-                    onClick={() => setSalesTimeframe(tf)}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${salesTimeframe === tf ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'}`}
-                  >
-                    {tf.charAt(0).toUpperCase() + tf.slice(1)}
-                  </button>
-                ))}
-              </div>
+            {/* Upcoming Follow-ups */}
+            <div className="h-full min-h-[450px]">
+              {renderFollowupTable(
+                "Upcoming Follow-ups",
+                upcomingFollowups,
+                upcomingLoading,
+                upcomingPage,
+                upcomingTotalPages,
+                (p) => {
+                  if (p >= 1 && p <= upcomingTotalPages) fetchUpcomingFollowups(p);
+                },
+                "Follow up Date",
+              )}
             </div>
 
-            <div className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={salesWinRateData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barSize={50}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dx={-10} />
-                  <Tooltip content={<CustomDarkTooltip />} cursor={{ fill: '#F3F4F6' }} />
-                  <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-                  <Bar dataKey="won" name="Won" fill="#10B981" radius={[4, 4, 0, 0]} barSize={20} />
-                  <Bar dataKey="lost" name="Lost" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={20} />
-                  <Bar dataKey="inProgress" name="In Progress" fill="#FBBF24" radius={[4, 4, 0, 0]} barSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
+            {/* Overdue Follow-ups */}
+            <div className="h-full min-h-[450px]">
+              {renderFollowupTable(
+                "Overdue Follow-ups",
+                dueFollowups,
+                dueLoading,
+                duePage,
+                dueTotalPages,
+                (p) => {
+                  if (p >= 1 && p <= dueTotalPages) fetchDueFollowups(p);
+                },
+                "Due Date",
+              )}
             </div>
           </div>
-        </div>
-
-        {/* Follow-ups and Tasks Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="h-full min-h-[450px]">
-            {renderFollowupTable(
-              "Upcoming Follow-ups",
-              upcomingFollowups,
-              upcomingLoading,
-              upcomingPage,
-              upcomingTotalPages,
-              (p) => {
-                if (p >= 1 && p <= upcomingTotalPages) fetchUpcomingFollowups(p);
-              },
-              "Follow up Date",
-            )}
-          </div>
-
-          <div className="h-full min-h-[450px]">
-            {renderFollowupTable(
-              "Overdue Follow-ups",
-              dueFollowups,
-              dueLoading,
-              duePage,
-              dueTotalPages,
-              (p) => {
-                if (p >= 1 && p <= dueTotalPages) fetchDueFollowups(p);
-              },
-              "Due Date",
-            )}
-          </div>
-        </div>
-
+        )}
       </div>
 
       {isUpdateLeadDialogOpen && (
@@ -1087,6 +2098,8 @@ export default function Dashboard() {
           }}
           lead={selectedLeadForUpdate}
           onSuccess={() => {
+            fetchAllLeads();
+            fetchLeadSummary();
             fetchUpcomingFollowups(upcomingPage);
             fetchDueFollowups(duePage);
           }}
