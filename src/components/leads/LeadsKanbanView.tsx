@@ -375,7 +375,7 @@ export default function LeadsKanbanView({
         { key: 'contact', label: 'CONTACT', render: (v, row) => <ContactCell phone={v} /> },
         { key: 'wonDate', label: 'WON DATE', render: (v) => (v ? new Date(v).toLocaleDateString() : 'N/A') },
         { key: 'createdBy', label: 'CREATED BY', render: (v) => v?.fullName || v?.name || '-' },
-        { key: 'paymentAmount', label: 'AMOUNT', render: (v) => (v ? `₹${v.toLocaleString()}` : '-') },
+        /* { key: 'paymentAmount', label: 'AMOUNT', render: (v) => (v ? `₹${v.toLocaleString()}` : '-') }, */
         { 
             key: 'docs', 
             label: 'DOCS', 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   FiChevronLeft,
   FiChevronRight,
@@ -98,6 +98,18 @@ export default function DataTable<T extends Record<string, any>>({
 
   const [showFilters, setShowFilters] = useState(false);
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
+  const [pageSizeDropdownOpen, setPageSizeDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setPageSizeDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const renderCell = (column: Column<T>, row: T) => {
     const value = row[column.key as string];
@@ -430,15 +442,38 @@ export default function DataTable<T extends Record<string, any>>({
             <div className="flex flex-wrap items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-gray-600">Rows</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                  className="cursor-pointer rounded-lg border border-gray-200 bg-white px-2 py-1 text-sm font-medium text-gray-700 transition-all focus:border-primary-500 focus:outline-none"
-                >
-                  {[10, 25, 50, 100].map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setPageSizeDropdownOpen(!pageSizeDropdownOpen)}
+                    className="flex items-center gap-2 cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-all focus:border-[#A63C71] focus:ring-1 focus:ring-[#A63C71] hover:border-[#A63C71]/50 outline-none"
+                  >
+                    {pageSize}
+                    <svg className={`w-4 h-4 transition-transform ${pageSizeDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {pageSizeDropdownOpen && (
+                    <div className="absolute bottom-full left-0 mb-2 w-full min-w-[90px] overflow-hidden rounded-xl border border-gray-100 bg-white p-1.5 shadow-xl z-50">
+                      {[10, 25, 50, 100].map((s) => (
+                        <div
+                          key={s}
+                          onClick={() => {
+                            onPageSizeChange(s);
+                            setPageSizeDropdownOpen(false);
+                          }}
+                          className={`cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 flex items-center justify-between ${
+                            pageSize === s 
+                              ? 'bg-[#A63C71]/10 text-[#A63C71]' 
+                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          }`}
+                        >
+                          <span>{s}</span>
+                          {pageSize === s && (
+                            <div className="h-1.5 w-1.5 rounded-full bg-[#A63C71]"></div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <span className="text-gray-500 text-xs md:text-sm">
                 Showing <span className="font-medium text-gray-700">{(currentPage - 1) * pageSize + 1}</span> to{' '}
