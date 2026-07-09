@@ -743,14 +743,36 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
   const handleDeleteFollowup = async (fId: string) => {
     if (!lead) return;
     const result = await Swal.fire({
-      title: 'Delete Follow-up?',
-      text: 'Are you sure you want to delete this follow-up?',
-      icon: 'warning',
+      html: `
+        <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-[#A63C71]/10 text-[#A63C71] mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+            </div>
+            <h2 class="text-lg font-bold text-[#1f2937] mb-1">Delete Follow-up?</h2>
+            <p class="text-[14px] text-gray-500 leading-relaxed">Are you sure you want to delete<br/>this follow-up record?</p>
+        </div>
+      `,
       showCancelButton: true,
-      confirmButtonText: 'Yes, Delete',
+      confirmButtonText: 'Delete',
       cancelButtonText: 'Cancel',
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#6D7A86',
+      buttonsStyling: false,
+      background: '#ffffff',
+      width: '340px',
+      padding: '24px',
+      backdrop: 'rgba(0,0,0,0.5)',
+      customClass: {
+        popup: 'rounded-[24px] shadow-2xl border border-gray-100',
+        htmlContainer: 'm-0 p-0',
+        actions: 'flex w-full gap-3 mt-6 mb-0 p-0',
+        confirmButton: 'flex-1 bg-[#A63C71] text-white font-semibold rounded-xl px-4 py-2.5 hover:bg-[#8f325f] transition-all m-0 outline-none focus:ring-2 focus:ring-[#A63C71]/50 focus:ring-offset-1 border-0',
+        cancelButton: 'flex-1 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl px-4 py-2.5 hover:bg-gray-50 transition-all m-0 outline-none focus:ring-2 focus:ring-gray-200'
+      }
     });
 
     if (!result.isConfirmed) return;
@@ -798,14 +820,36 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
 
   const handleDeleteAttachment = async (attachment: any) => {
     const result = await Swal.fire({
-      title: 'Delete Attachment?',
-      text: `Are you sure you want to delete "${attachment.originalName}"?`,
-      icon: 'warning',
+      html: `
+        <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-[#A63C71]/10 text-[#A63C71] mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+            </div>
+            <h2 class="text-lg font-bold text-[#1f2937] mb-1">Delete Attachment?</h2>
+            <p class="text-[14px] text-gray-500 leading-relaxed">Are you sure you want to delete<br/>the attachment?</p>
+        </div>
+      `,
       showCancelButton: true,
-      confirmButtonText: 'Yes, Delete',
+      confirmButtonText: 'Delete',
       cancelButtonText: 'Cancel',
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#6D7A86',
+      buttonsStyling: false,
+      background: '#ffffff',
+      width: '340px',
+      padding: '24px',
+      backdrop: 'rgba(0,0,0,0.5)',
+      customClass: {
+        popup: 'rounded-[24px] shadow-2xl border border-gray-100',
+        htmlContainer: 'm-0 p-0',
+        actions: 'flex w-full gap-3 mt-6 mb-0 p-0',
+        confirmButton: 'flex-1 bg-[#A63C71] text-white font-semibold rounded-xl px-4 py-2.5 hover:bg-[#8f325f] transition-all m-0 outline-none focus:ring-2 focus:ring-[#A63C71]/50 focus:ring-offset-1 border-0',
+        cancelButton: 'flex-1 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl px-4 py-2.5 hover:bg-gray-50 transition-all m-0 outline-none focus:ring-2 focus:ring-gray-200'
+      }
     });
 
     if (!result.isConfirmed) return;
@@ -827,16 +871,36 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
     if (!lead) return;
     const quotation = localQuotations[indexToDelete];
     const result = await Swal.fire({
-      title: 'Delete Quotation?',
-      text: 'Are you sure you want to delete this quotation?',
-      icon: 'warning',
+      html: `
+        <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-[#A63C71]/10 text-[#A63C71] mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+            </div>
+            <h2 class="text-lg font-bold text-[#1f2937] mb-1">Delete Quotation?</h2>
+            <p class="text-[14px] text-gray-500 leading-relaxed">Are you sure you want to delete the quotation<br/>for <b>${quotation.kw || lead.kwRequirement || 'this lead'}</b>?</p>
+        </div>
+      `,
       showCancelButton: true,
-      confirmButtonText: 'Yes, Delete',
+      confirmButtonText: 'Delete',
       cancelButtonText: 'Cancel',
-      width: '300px',
-      padding: '1em',
-      confirmButtonColor: '#A63C71',
-      cancelButtonColor: '#6D7A86',
+      buttonsStyling: false,
+      background: '#ffffff',
+      width: '340px',
+      padding: '24px',
+      backdrop: 'rgba(0,0,0,0.5)',
+      customClass: {
+        popup: 'rounded-[24px] shadow-2xl border border-gray-100',
+        htmlContainer: 'm-0 p-0',
+        actions: 'flex w-full gap-3 mt-6 mb-0 p-0',
+        confirmButton: 'flex-1 bg-[#A63C71] text-white font-semibold rounded-xl px-4 py-2.5 hover:bg-[#8f325f] transition-all m-0 outline-none focus:ring-2 focus:ring-[#A63C71]/50 focus:ring-offset-1 border-0',
+        cancelButton: 'flex-1 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl px-4 py-2.5 hover:bg-gray-50 transition-all m-0 outline-none focus:ring-2 focus:ring-gray-200'
+      }
     });
 
     if (!result.isConfirmed) return;
@@ -993,32 +1057,21 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
   const handleDownload = async (attachment: any) => {
     try {
       const fileUrl = attachment.path?.startsWith('http') ? attachment.path : `${process.env.NEXT_PUBLIC_IMAGE_URL}${attachment.path}`;
+      const token = getAuthToken() || '';
       
-      // External URLs block CORS on fetch, so just open in new tab for them
-      if (attachment.path?.startsWith('http')) {
-        window.open(fileUrl, '_blank');
-        return;
-      }
-
-      const response = await fetch(fileUrl, {
-        headers: { Authorization: `Bearer ${getAuthToken()}` }
-      });
-
-      if (!response.ok) throw new Error('Download failed');
-
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
+      // Use the proxy API route to guarantee a forced download
+      const proxyUrl = `/api/download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(attachment.originalName || 'download')}&token=${encodeURIComponent(token)}`;
+      
       const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = attachment.originalName;
+      link.href = proxyUrl;
+      link.download = attachment.originalName || 'download';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-      toast.success('Download started');
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Failed to download file');
+      const fileUrl = attachment.path?.startsWith('http') ? attachment.path : `${process.env.NEXT_PUBLIC_IMAGE_URL}${attachment.path}`;
+      window.open(fileUrl, '_blank');
     }
   };
 
@@ -1162,13 +1215,13 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                       onChange={(e) => setFollowupNote(e.target.value)}
                       placeholder="Describe the interaction..."
                       rows={3}
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 transition-all outline-none resize-none"
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-[#A63C71] focus:border-[#A63C71] transition-all outline-none resize-none"
                     />
                   </div>
                   <button
                     onClick={handleAddFollowup}
                     disabled={!editNextDate || !followupNote || addingFollowup}
-                    className="mt-3 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    className="mt-3 w-full rounded-lg bg-[#A63C71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
                   >
                     {addingFollowup ? (
                       <span className="flex items-center justify-center gap-2">

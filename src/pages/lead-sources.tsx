@@ -54,6 +54,7 @@ export function LeadSourcesContent() {
   const [allData, setAllData] = useState<LeadItem[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const debouncedSearch = useDebounce(search, 600);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -84,6 +85,7 @@ export function LeadSourcesContent() {
   /* ================= LOAD DATA ================= */
 
   const fetchData = async () => {
+    setIsLoading(true);
     try {
       const res = await axios.get(baseUrl.leadSources, {
         headers,
@@ -108,7 +110,9 @@ export function LeadSourcesContent() {
       setAllData([]);
       setTotalRecords(0);
     }
-  };
+   finally {
+      setIsLoading(false);
+    }};
 
   // initial load & whenever search/page/limit changes
   useEffect(() => {
@@ -194,6 +198,7 @@ export function LeadSourcesContent() {
         totalPages={Math.ceil(totalRecords / pageSize)}
         totalRecords={totalRecords}
         pageSize={pageSize}
+        loading={isLoading}
         onSearch={(v) => {
           setSearch(v);
           setCurrentPage(1);

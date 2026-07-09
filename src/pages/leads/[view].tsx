@@ -486,6 +486,7 @@ export default function LeadsPage() {
             lostLeads={lostLeads}
             wonLeads={wonLeads}
             statuses={statuses}
+            staffMembers={staffMembers}
             counts={counts?.statusCounts}
             onEdit={canUpdate ? handleEdit : undefined}
             onView={handleView}

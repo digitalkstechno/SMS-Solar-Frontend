@@ -126,6 +126,7 @@ export default function Inquiry() {
         searchable={true}
         pagination={true}
         pageSize={10}
+        loading={false}
         actions={false}
       />
     </>

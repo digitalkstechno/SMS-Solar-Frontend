@@ -31,6 +31,7 @@ interface Props {
     lostLeads: ApiLead[];
     wonLeads: ApiLead[];
     statuses: any[];
+    staffMembers?: any[];
     onEdit?: (lead: ApiLead) => void;
     onView?: (lead: ApiLead) => void;
     onRefresh: () => void;
@@ -47,28 +48,37 @@ interface Props {
     };
     scope?: 'all' | 'my';
     filters: {
-        search?: string;
-        status?: string;
-        source?: string;
-        staff?: string;
-        from?: string;
-        to?: string;
+        search: string;
+        status: string;
+        staff: string;
+        source: string;
+        from?: Date | null;
+        to?: Date | null;
     };
-    lostPagination?: PaginationShape;
-    wonPagination?: PaginationShape;
-    onSubViewChange?: (subView: 'board' | 'lost' | 'won') => void;
+    lostPagination?: PaginationData;
+    wonPagination?: PaginationData;
+    onSubViewChange?: (view: SubView) => void;
     refreshKey?: number;
-    currentUser?: any;
+    currentUser?: ApiUser | null;
     isAdmin?: boolean;
     onSearch?: (value: string) => void;
+    loading?: boolean;
 }
 
 type SubView = 'board' | 'lost' | 'won';
 
 export default function LeadsKanbanView({
-    lostLeads, wonLeads,
+    leads,
+    lostLeads,
+    wonLeads,
     statuses,
-    onEdit, onView, onRefresh, counts, permissions, scope = 'all',
+    staffMembers,
+    onEdit,
+    onView,
+    onRefresh,
+    counts,
+    permissions,
+    scope = 'all',
     filters,
     lostPagination,
     wonPagination,
@@ -77,6 +87,7 @@ export default function LeadsKanbanView({
     currentUser,
     isAdmin,
     onSearch,
+    loading = false,
 }: Props) {
     const [subView, setSubView] = useState<SubView>('board');
     const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -327,19 +338,38 @@ export default function LeadsKanbanView({
 
     const reactivate = async (id: string) => {
         const result = await Swal.fire({
-            title: 'Reactivate Lead?',
-            text: 'This will move the lead back to the first stage',
-            icon: 'question',
+            html: `
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center bg-[#A63C71]/10 text-[#A63C71] mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                            <path d="M3 3v5h5"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-lg font-bold text-[#1f2937] mb-1">Reactivate Lead?</h2>
+                    <p class="text-[14px] text-gray-500 leading-relaxed">This will move the lead back to<br/>the first stage.</p>
+                </div>
+            `,
             showCancelButton: true,
-            confirmButtonText: 'Yes, Reactivate',
+            confirmButtonText: 'Reactivate',
             cancelButtonText: 'Cancel',
-            confirmButtonColor: '#7d558f',
-            cancelButtonColor: '#6D7A86',
+            buttonsStyling: false,
+            background: '#ffffff',
+            width: '340px',
+            padding: '24px',
+            backdrop: 'rgba(0,0,0,0.5)',
+            customClass: {
+                popup: 'rounded-[24px] shadow-2xl border border-gray-100',
+                htmlContainer: 'm-0 p-0',
+                actions: 'flex w-full gap-3 mt-6 mb-0 p-0',
+                confirmButton: 'flex-1 bg-[#A63C71] text-white font-semibold rounded-xl px-4 py-2.5 hover:bg-[#8f325f] transition-all m-0 outline-none focus:ring-2 focus:ring-[#A63C71]/50 focus:ring-offset-1 border-0',
+                cancelButton: 'flex-1 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl px-4 py-2.5 hover:bg-gray-50 transition-all m-0 outline-none focus:ring-2 focus:ring-gray-200'
+            }
         });
 
         if (result.isConfirmed) {
             try {
-                const newLeadStatusId = statuses.find(s => s.name.match(/^new lead$/i))?._id;
+                const newLeadStatusId = statuses.find(s => s.name.match(/^new lead$/i) || s.name.match(/^new$/i))?._id || statuses[0]?._id;
                 await axios.put(`${baseUrl.updateLead}/${id}`, { leadStatus: newLeadStatusId }, { headers: { Authorization: `Bearer ${token()}` } });
                 toast.success('Lead reactivated');
                 onRefresh();
@@ -351,10 +381,29 @@ export default function LeadsKanbanView({
         { key: 'fullName', label: 'LEAD NAME', render: (v) => (<div><div className="font-semibold text-gray-900">{v}</div><span className="text-xs text-red-500">• Lost</span></div>) },
         { key: 'kwRequirement', label: 'KW REQ', render: (v) => <span className="text-sm">{v || '-'}</span> },
         { key: 'discomName', label: 'DISCOM', render: (v) => <span className="text-sm">{v || '-'}</span> },
-        { key: 'address', label: 'LOCATION', render: (v) => <span className="text-sm">{v || '-'}</span> },
+        { key: 'address', label: 'LOCATION', render: (v) => (
+            <div className="group relative flex items-center">
+                <div className="text-sm max-w-[150px] truncate cursor-pointer text-gray-700">
+                    {v || '-'}
+                </div>
+                {v && (
+                    <div className="absolute bottom-full left-0 z-[9999] mb-1 hidden group-hover:block w-max max-w-[250px] whitespace-normal rounded-md bg-gray-800 px-3 py-2 text-xs leading-relaxed text-white shadow-xl">
+                        {v}
+                    </div>
+                )}
+            </div>
+        ) },
         { key: 'contact', label: 'CONTACT', render: (v, row) => <ContactCell phone={v} /> },
-        { key: 'lostDate', label: 'LOST DATE', render: (v) => (v ? new Date(v).toLocaleDateString() : 'N/A') },
-        { key: 'createdBy', label: 'CREATED BY', render: (v) => v?.fullName || v?.name || '-' },
+        { key: 'lostDate', label: 'LOST DATE', render: (v, row) => {
+            const dateStr = v || row.lostDate || row.updatedAt;
+            return dateStr ? new Date(dateStr).toLocaleDateString() : 'N/A';
+        } },
+        { key: 'createdBy', label: 'CREATED BY', render: (v, row) => {
+            if (typeof row.createdBy === 'object' && row.createdBy?.fullName) return row.createdBy.fullName;
+            if (typeof row.createdBy === 'object' && row.createdBy?.name) return row.createdBy.name;
+            const found = staffMembers?.find((s: any) => s._id === (v || row.createdBy));
+            return found?.fullName || found?.name || '-';
+        } },
         { key: 'lostReason', label: 'REASON', render: (v) => v || 'Not specified' },
     ];
 
@@ -362,11 +411,30 @@ export default function LeadsKanbanView({
         { key: 'fullName', label: 'LEAD NAME', render: (v) => <span className="font-semibold text-gray-900">{v}</span> },
         { key: 'kwRequirement', label: 'KW REQ', render: (v) => <span className="text-sm">{v || '-'}</span> },
         { key: 'discomName', label: 'DISCOM', render: (v) => <span className="text-sm">{v || '-'}</span> },
-        { key: 'address', label: 'LOCATION', render: (v) => <span className="text-sm">{v || '-'}</span> },
+        { key: 'address', label: 'LOCATION', render: (v) => (
+            <div className="group relative flex items-center">
+                <div className="text-sm max-w-[150px] truncate cursor-pointer text-gray-700">
+                    {v || '-'}
+                </div>
+                {v && (
+                    <div className="absolute bottom-full left-0 z-[9999] mb-1 hidden group-hover:block w-max max-w-[250px] whitespace-normal rounded-md bg-gray-800 px-3 py-2 text-xs leading-relaxed text-white shadow-xl">
+                        {v}
+                    </div>
+                )}
+            </div>
+        ) },
         { key: 'contact', label: 'CONTACT', render: (v, row) => <ContactCell phone={v} /> },
-        { key: 'wonDate', label: 'WON DATE', render: (v) => (v ? new Date(v).toLocaleDateString() : 'N/A') },
-        { key: 'createdBy', label: 'CREATED BY', render: (v) => v?.fullName || v?.name || '-' },
-        { key: 'paymentAmount', label: 'AMOUNT', render: (v) => (v ? `₹${v.toLocaleString()}` : '-') },
+        { key: 'wonDate', label: 'WON DATE', render: (v, row) => {
+            const dateStr = v || row.wonDate || row.updatedAt;
+            return dateStr ? new Date(dateStr).toLocaleDateString() : 'N/A';
+        } },
+        { key: 'createdBy', label: 'CREATED BY', render: (v, row) => {
+            if (typeof row.createdBy === 'object' && row.createdBy?.fullName) return row.createdBy.fullName;
+            if (typeof row.createdBy === 'object' && row.createdBy?.name) return row.createdBy.name;
+            const found = staffMembers?.find((s: any) => s._id === (v || row.createdBy));
+            return found?.fullName || found?.name || '-';
+        } },
+        /* { key: 'paymentAmount', label: 'AMOUNT', render: (v) => (v ? `₹${v.toLocaleString()}` : '-') }, */
         { 
             key: 'docs', 
             label: 'DOCS', 
@@ -466,8 +534,9 @@ export default function LeadsKanbanView({
                                                 onDragStart={canEditLead(lead) && lead.leadStatus?.name?.toLowerCase() !== 'won' && !lead.leadStatus?.name?.toLowerCase().includes('lost') ? () => setDraggingId(lead._id) : undefined}
                                                 onView={() => onView?.(lead)}
                                                 onEdit={canEditLead(lead) ? () => onEdit?.(lead) : undefined}
-                                                onMarkLost={canEditLead(lead) && lead.leadStatus?.name?.toLowerCase() !== 'won' ? () => markLost(lead._id) : undefined}
+                                                onMarkLost={canEditLead(lead) && lead.leadStatus?.name?.toLowerCase() !== 'won' && !lead.leadStatus?.name?.toLowerCase().includes('lost') ? () => markLost(lead._id) : undefined}
                                                 onMarkWon={canEditLead(lead) && lead.leadStatus?.name?.toLowerCase() !== 'won' ? () => markWon(lead._id) : undefined}
+                                                onReactivate={canEditLead(lead) && lead.leadStatus?.name?.toLowerCase().includes('lost') ? () => reactivate(lead._id) : undefined}
                                             />
                                         ))
                                     )}
@@ -500,7 +569,7 @@ export default function LeadsKanbanView({
                     <DataTable
                         data={lostLeads}
                         columns={lostLeadsColumns}
-                        loading={false}
+                        loading={loading}
                         pagination
                         searchValue={filters.search}
                         onSearch={onSearch}
@@ -536,7 +605,7 @@ export default function LeadsKanbanView({
                     <DataTable
                         data={wonLeads}
                         columns={wonLeadsColumns}
-                        loading={false}
+                        loading={loading}
                         pagination
                         searchValue={filters.search}
                         onSearch={onSearch}
@@ -552,14 +621,14 @@ export default function LeadsKanbanView({
                         canEdit={canEditLead}
                         extraActions={permissions?.update || permissions?.readOwn ? [
                             {
-                                label: 'Add Details',
+                                label: 'Add',
                                 icon: <Plus className="h-3.5 w-3.5" />,
                                 color: 'emerald',
                                 onClick: (row) => setProjectDetailLead(row),
                                 show: (row) => canEditLead(row),
                             },
                             {
-                                label: 'Payment',
+                                label: 'Pay',
                                 icon: <span className="text-xs font-bold">₹</span>,
                                 color: 'emerald',
                                 onClick: (row) => setPaymentLead(row),
