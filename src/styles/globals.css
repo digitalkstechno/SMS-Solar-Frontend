@@ -16,9 +16,11 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
-.bg-primary{
+
+.bg-primary {
   background-color: var(--primary) !important;
 }
+
 .bg-blue-600 {
   background-color: var(--primary) !important;
 }
@@ -248,6 +250,7 @@ button {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -320,15 +323,29 @@ button {
 .react-datepicker-wrapper input:focus {
   border-color: #000000 !important;
   box-shadow: 0 0 0 1px #000000 !important;
-}input[type="time"], input[type="date"], input[type="datetime-local"] {
+}
+
+input[type="time"],
+input[type="date"],
+input[type="datetime-local"] {
   accent-color: #A63C71;
 }
+
 input[type="time"]::-webkit-calendar-picker-indicator {
   filter: hue-rotate(320deg) saturate(200%);
 }
 
 .recharts-wrapper,
+.recharts-wrapper *,
 .recharts-surface {
+  outline: none !important;
+  border: none !important;
+}
+
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus,
+.recharts-surface:focus,
+.recharts-surface:focus-visible {
   outline: none !important;
   border: none !important;
 }

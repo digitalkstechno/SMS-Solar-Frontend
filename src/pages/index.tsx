@@ -23,38 +23,24 @@ import {
 } from "recharts";
 import {
   Users,
-  Calendar,
-  Award,
   Phone,
-  Mail,
   ChevronLeft,
   ChevronRight,
   Clock,
   AlertCircle,
-  User,
   Calendar as CalendarIcon,
   TrendingUp,
-  TrendingDown,
   Activity,
-  BarChart3,
-  Star,
   CheckCircle2,
-  XCircle,
-  MoreVertical,
-  Eye,
-  PhoneCall,
-  Mail as MailIcon,
-  MessageSquare,
-  PieChartIcon,
   RefreshCw,
+  XCircle,
+  Mail as MailIcon,
 } from "lucide-react";
 import axios from "axios";
 import { baseUrl, getAuthToken } from "@/config";
 import moment from "moment";
-import Link from 'next/link';
 import { useAppSelector } from '@/redux/hooks';
 import DashboardLeadUpdateDialog from "@/components/leads/DashboardLeadUpdateDialog";
-import DateRangePicker from "@/components/ui/DateRangePicker";
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -148,7 +134,7 @@ const YearSelect = ({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           <div
-            className="absolute right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 min-w-[110px] py-1.5 overflow-hidden origin-top-right"
+            className="absolute right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 min-w-[95px] py-1.5 overflow-hidden origin-top-right"
             style={{ animation: "fadeInScale 0.15s ease-out forwards" }}
           >
             {options.map((yr) => (
@@ -264,10 +250,12 @@ export default function Dashboard() {
   const [tasksLoading, setTasksLoading] = useState(false);
   const [chartType, setChartType] = useState<"pie" | "graph">("pie");
   const [revenueFilter, setRevenueFilter] = useState<number>(new Date().getFullYear());
+  const [isRevenueYearClicked, setIsRevenueYearClicked] = useState(false);
   const [totalRevenueChart, setTotalRevenueChart] = useState<number>(0);
   const [revenueGrowthData, setRevenueGrowthData] = useState<any[]>([]);
   const [revenueLoading, setRevenueLoading] = useState<boolean>(false);
   const [followupFilter, setFollowupFilter] = useState<number>(new Date().getFullYear());
+  const [isKwYearClicked, setIsKwYearClicked] = useState(false);
   const [followupChartData, setFollowupChartData] = useState<any[]>([]);
   const [leadSources, setLeadSources] = useState<any[]>([]);
   const [leadSourceChartData, setLeadSourceChartData] = useState<any[]>([]);
@@ -522,7 +510,7 @@ export default function Dashboard() {
       const url = isMyOnly ? baseUrl.myLeads : baseUrl.getAllLeads;
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { limit: 10000 }
+        params: { limit: 1000 }
       });
       setAllLeads(res.data.data || []);
     } catch (err) {
@@ -555,7 +543,10 @@ export default function Dashboard() {
     const isGlobalFilterActive = activeFilter === 'today' || activeFilter === 'month' || activeFilter === 'prev-month' || activeFilter === 'year';
 
     const leadsInRevenue = allLeads.filter((lead: any) => {
-      if (isGlobalFilterActive) {
+      if (isRevenueYearClicked) {
+        const year = new Date(lead.createdAt).getFullYear();
+        return year === revenueFilter;
+      } else if (isGlobalFilterActive) {
         if (!lead.createdAt) return false;
         const d = new Date(lead.createdAt);
         d.setHours(0, 0, 0, 0);
@@ -577,7 +568,7 @@ export default function Dashboard() {
     });
 
     let monthlyData = [];
-    if (activeFilter === 'today') {
+    if (!isRevenueYearClicked && activeFilter === 'today') {
       const currentHour = new Date().getHours();
       const todayIntervals = [
         { label: "12 AM - 4 AM", start: 0, end: 4 },
@@ -602,7 +593,7 @@ export default function Dashboard() {
           monthIndex: -1
         };
       });
-    } else if (activeFilter === 'month' || activeFilter === 'prev-month') {
+    } else if (!isRevenueYearClicked && (activeFilter === 'month' || activeFilter === 'prev-month')) {
       const filterDate = fromDate ? new Date(fromDate) : new Date();
       const yr = filterDate.getFullYear();
       const mIdx = filterDate.getMonth();
@@ -650,7 +641,7 @@ export default function Dashboard() {
         };
       });
 
-      if (isGlobalFilterActive) {
+      if (!isRevenueYearClicked && isGlobalFilterActive) {
         const startMonth = fromDate ? new Date(fromDate).getMonth() : 0;
         let endMonth = toDate ? new Date(toDate).getMonth() : 11;
 
@@ -675,7 +666,10 @@ export default function Dashboard() {
       const isWon = status === 'won' || status === 'sales won';
       if (!isWon) return false;
 
-      if (isGlobalFilterActive) {
+      if (isKwYearClicked) {
+        const year = new Date(lead.createdAt).getFullYear();
+        return year === kwFilter;
+      } else if (isGlobalFilterActive) {
         if (!lead.createdAt) return false;
         const d = new Date(lead.createdAt);
         d.setHours(0, 0, 0, 0);
@@ -697,7 +691,7 @@ export default function Dashboard() {
     });
 
     let monthlyKwData = [];
-    if (activeFilter === 'today') {
+    if (!isKwYearClicked && activeFilter === 'today') {
       const currentHour = new Date().getHours();
       const todayIntervals = [
         { label: "12 AM - 4 AM", start: 0, end: 4 },
@@ -724,7 +718,7 @@ export default function Dashboard() {
           monthIndex: -1
         };
       });
-    } else if (activeFilter === 'month' || activeFilter === 'prev-month') {
+    } else if (!isKwYearClicked && (activeFilter === 'month' || activeFilter === 'prev-month')) {
       const filterDate = fromDate ? new Date(fromDate) : new Date();
       const yr = filterDate.getFullYear();
       const mIdx = filterDate.getMonth();
@@ -776,7 +770,7 @@ export default function Dashboard() {
         };
       });
 
-      if (isGlobalFilterActive) {
+      if (!isKwYearClicked && isGlobalFilterActive) {
         const startMonth = fromDate ? new Date(fromDate).getMonth() : 0;
         let endMonth = toDate ? new Date(toDate).getMonth() : 11;
 
@@ -949,7 +943,7 @@ export default function Dashboard() {
 
     const processedAssignmentData = Object.values(assignmentMap).sort((a, b) => b.total - a.total);
     setLeadAssignmentChartData(processedAssignmentData);
-  }, [allLeads, revenueFilter, kwFilter, followupFilter, fromDate, toDate, leadSources]);
+  }, [allLeads, revenueFilter, kwFilter, followupFilter, fromDate, toDate, leadSources, isRevenueYearClicked, isKwYearClicked]);
 
   useEffect(() => {
     if (token) {
@@ -1075,6 +1069,12 @@ export default function Dashboard() {
   }));
 
   const handleQuickFilter = (range: 'today' | 'month' | 'prev-month' | 'year' | 'custom') => {
+    setIsRevenueYearClicked(false);
+    setIsKwYearClicked(false);
+    const currentYear = new Date().getFullYear();
+    setRevenueFilter(currentYear);
+    setKwFilter(currentYear);
+
     if (activeFilter === range) {
       setActiveFilter('');
       setFromDate('');
@@ -1300,7 +1300,14 @@ export default function Dashboard() {
                   <span className="absolute -top-2 left-3 px-1 bg-white text-[9px] font-bold text-[#a63c71] tracking-wider uppercase scale-90 origin-left z-10">From Date</span>
                   <DatePicker
                     selected={fromDate ? new Date(fromDate) : null}
-                    onChange={(date: Date | null) => setFromDate(date ? date.toISOString().split('T')[0] : '')}
+                    onChange={(date: Date | null) => {
+                      setFromDate(date ? date.toISOString().split('T')[0] : '');
+                      setIsRevenueYearClicked(false);
+                      setIsKwYearClicked(false);
+                      const currentYear = new Date().getFullYear();
+                      setRevenueFilter(currentYear);
+                      setKwFilter(currentYear);
+                    }}
                     placeholderText="mm/dd/yyyy"
                     dateFormat="MM/dd/yyyy"
                     maxDate={toDate ? new Date(toDate) : undefined}
@@ -1313,7 +1320,14 @@ export default function Dashboard() {
                   <span className="absolute -top-2 left-3 px-1 bg-white text-[9px] font-bold text-[#a63c71] tracking-wider uppercase scale-90 origin-left z-10">To Date</span>
                   <DatePicker
                     selected={toDate ? new Date(toDate) : null}
-                    onChange={(date: Date | null) => setToDate(date ? date.toISOString().split('T')[0] : '')}
+                    onChange={(date: Date | null) => {
+                      setToDate(date ? date.toISOString().split('T')[0] : '');
+                      setIsRevenueYearClicked(false);
+                      setIsKwYearClicked(false);
+                      const currentYear = new Date().getFullYear();
+                      setRevenueFilter(currentYear);
+                      setKwFilter(currentYear);
+                    }}
                     placeholderText="mm/dd/yyyy"
                     dateFormat="MM/dd/yyyy"
                     minDate={fromDate ? new Date(fromDate) : undefined}
@@ -1326,6 +1340,11 @@ export default function Dashboard() {
                   onClick={() => {
                     setFromDate('');
                     setToDate('');
+                    setIsRevenueYearClicked(false);
+                    setIsKwYearClicked(false);
+                    const currentYear = new Date().getFullYear();
+                    setRevenueFilter(currentYear);
+                    setKwFilter(currentYear);
                   }}
                   className="flex items-center justify-center px-1 py-1 hover:bg-gray-50 transition-colors cursor-pointer text-gray-500 hover:text-[#a63c71]"
                   title="Clear Dates"
@@ -1395,7 +1414,10 @@ export default function Dashboard() {
                   <h3 className="text-xl font-semibold text-gray-900">Total Revenue</h3>
                   <YearSelect
                     value={revenueFilter}
-                    onChange={setRevenueFilter}
+                    onChange={(val) => {
+                      setRevenueFilter(val);
+                      setIsRevenueYearClicked(true);
+                    }}
                     options={[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2]}
                   />
                 </div>
@@ -1582,7 +1604,10 @@ export default function Dashboard() {
                 </div>
                 <YearSelect
                   value={kwFilter}
-                  onChange={setKwFilter}
+                  onChange={(val) => {
+                    setKwFilter(val);
+                    setIsKwYearClicked(true);
+                  }}
                   options={[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2]}
                 />
               </div>
@@ -1848,7 +1873,10 @@ export default function Dashboard() {
                   <h3 className="text-xl font-semibold text-gray-900">Total Revenue</h3>
                   <YearSelect
                     value={revenueFilter}
-                    onChange={setRevenueFilter}
+                    onChange={(val) => {
+                      setRevenueFilter(val);
+                      setIsRevenueYearClicked(true);
+                    }}
                     options={[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2]}
                   />
                 </div>
@@ -1949,7 +1977,10 @@ export default function Dashboard() {
                 </div>
                 <YearSelect
                   value={kwFilter}
-                  onChange={setKwFilter}
+                  onChange={(val) => {
+                    setKwFilter(val);
+                    setIsKwYearClicked(true);
+                  }}
                   options={[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2]}
                 />
               </div>
