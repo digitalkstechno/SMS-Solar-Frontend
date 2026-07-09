@@ -326,3 +326,9 @@ button {
 input[type="time"]::-webkit-calendar-picker-indicator {
   filter: hue-rotate(320deg) saturate(200%);
 }
+
+.recharts-wrapper,
+.recharts-surface {
+  outline: none !important;
+  border: none !important;
+}
