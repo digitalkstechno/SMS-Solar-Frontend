@@ -55,6 +55,8 @@ import Link from 'next/link';
 import { useAppSelector } from '@/redux/hooks';
 import DashboardLeadUpdateDialog from "@/components/leads/DashboardLeadUpdateDialog";
 import DateRangePicker from "@/components/ui/DateRangePicker";
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
 
 
 interface StatusCount {
@@ -86,9 +88,25 @@ const CustomLightTooltip = ({ active, payload }: any) => {
     const value = entry.value;
     const name = entry.name;
     return (
-      <div className="bg-white p-2.5 rounded-xl shadow-md border border-gray-100 min-w-[120px] text-center">
+      <div className="bg-white p-2.5 rounded-xl shadow-md border border-gray-100 min-w-[90px] text-left">
         <p className="font-bold text-xs text-gray-800">{name}</p>
         <p className="font-bold text-xs mt-0.5" style={{ color: color }}>
+          {value} {value === 1 ? "Lead" : "Leads"}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const LeadSourceTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const entry = payload[0];
+    const color = entry.payload?.fill || entry.color || "#a63c71";
+    const value = entry.value;
+    return (
+      <div className="bg-white p-2.5 rounded-xl shadow-md border border-gray-100 min-w-[90px] text-left">
+        <p className="font-bold text-xs" style={{ color: color }}>
           {value} {value === 1 ? "Lead" : "Leads"}
         </p>
       </div>
@@ -202,7 +220,7 @@ const CustomSalesTooltip = ({ active, payload }: any) => {
                   <span className="text-gray-500 font-medium">{entry.name}</span>
                 </div>
                 <div className="flex items-center gap-2 pl-4">
-                  <span className="font-bold text-gray-800">{entry.value}</span>
+                  <span className="font-bold" style={{ color: entry.color }}>{entry.value}</span>
                 </div>
               </div>
             );
@@ -260,8 +278,8 @@ export default function Dashboard() {
 
   const [permissions, setPermissions] = useState<{ readAll: boolean; readOwn: boolean; viewStaff: boolean }>({ readAll: false, readOwn: false, viewStaff: false });
   const [user, setUser] = useState<any>(null);
-  const isTelecaller = 
-    user?.role?.roleName?.toUpperCase() === "TELECALLING" || 
+  const isTelecaller =
+    user?.role?.roleName?.toUpperCase() === "TELECALLING" ||
     user?.role?.roleName?.toUpperCase() === "CALLING" ||
     user?.role?.name?.toUpperCase() === "TELECALLING" ||
     user?.role?.name?.toUpperCase() === "CALLING";
@@ -426,7 +444,11 @@ export default function Dashboard() {
         },
       );
       const { data, pagination } = res.data;
-      setUpcomingFollowups(data || []);
+      // Exclude leads that are already marked as "Won" from the list
+      const filteredData = (data || []).filter(
+        (lead: any) => lead.leadStatus?.name?.toLowerCase() !== 'won'
+      );
+      setUpcomingFollowups(filteredData);
       setUpcomingTotalPages(pagination?.totalPages || 1);
       setUpcomingPage(pagination?.currentPage || 1);
     } catch (err) {
@@ -450,7 +472,10 @@ export default function Dashboard() {
         },
       );
       const { data, pagination } = res.data;
-      setDueFollowups(data || []);
+      const filteredData = (data || []).filter(
+        (lead: any) => lead.leadStatus?.name?.toLowerCase() !== 'won'
+      );
+      setDueFollowups(filteredData);
       setDueTotalPages(pagination?.totalPages || 1);
       setDuePage(pagination?.currentPage || 1);
     } catch (err) {
@@ -1013,14 +1038,14 @@ export default function Dashboard() {
         iconBg: "bg-orange-500/10",
         iconColor: "text-orange-500",
       },
-      {
+      ...(!isTelecaller ? [{
         key: "revenue",
         label: "Total Revenue",
         value: `₹${(summary.totalRevenue || 0).toLocaleString()}`,
         Icon: Activity,
         iconBg: "bg-amber-500/10",
         iconColor: "text-amber-500",
-      }
+      }] : [])
     ]
     : [];
 
@@ -1103,7 +1128,7 @@ export default function Dashboard() {
     setPage: (p: number) => void,
     dateHeader: string = "Follow up Date",
   ) => (
-    <div className="rounded-3xl bg-white border border-gray-200 overflow-hidden h-full flex flex-col transition-all hover:shadow-xl">
+    <div className="rounded-3xl bg-white border border-gray-200 overflow-hidden h-full flex flex-col transition-all hover:shadow-md">
       <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -1155,7 +1180,7 @@ export default function Dashboard() {
                   <tr
                     key={lead._id || lead.id || index}
                     className="hover:bg-blue-50/10 transition-colors group"
-                    onClick={() => router.push(`/leads/list`)}
+
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-bold text-gray-900 text-sm">
@@ -1238,7 +1263,7 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 bg-gray-50/50 border border-gray-200/60 rounded-3xl p-4 shadow-sm">
+          <div className="flex flex-wrap items-center gap-4 bg-gray-50/50 border border-gray-200/60 rounded-3xl p-2.5 shadow-sm">
             <div className="flex flex-wrap items-center gap-3">
               {[
                 { label: "Today", value: "today" },
@@ -1271,31 +1296,39 @@ export default function Dashboard() {
 
             {activeFilter === 'custom' && (
               <div className="flex items-center gap-3 border-t lg:border-t-0 lg:border-l border-gray-200 pt-3 lg:pt-0 lg:pl-4 transition-all duration-300">
-                <div className="relative">
-                  <span className="absolute -top-2 left-3 px-1 bg-white text-[9px] font-bold text-[#a63c71] tracking-wider uppercase scale-90 origin-left">From Date</span>
-                  <input
-                    type="date"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    className="border border-[#a63c71]/30 rounded-xl px-3 py-1.5 text-xs font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#a63c71] min-w-[130px]"
+                <div className="relative w-[140px]">
+                  <span className="absolute -top-2 left-3 px-1 bg-white text-[9px] font-bold text-[#a63c71] tracking-wider uppercase scale-90 origin-left z-10">From Date</span>
+                  <DatePicker
+                    selected={fromDate ? new Date(fromDate) : null}
+                    onChange={(date: Date | null) => setFromDate(date ? date.toISOString().split('T')[0] : '')}
+                    placeholderText="mm/dd/yyyy"
+                    dateFormat="MM/dd/yyyy"
+                    maxDate={toDate ? new Date(toDate) : undefined}
+                    className="w-full rounded-xl border border-[#a63c71]/30 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#a63c71] cursor-pointer"
+                    wrapperClassName="w-full block"
+                    popperProps={{ strategy: 'fixed' }}
                   />
                 </div>
-                <div className="relative">
-                  <span className="absolute -top-2 left-3 px-1 bg-white text-[9px] font-bold text-[#a63c71] tracking-wider uppercase scale-90 origin-left">To Date</span>
-                  <input
-                    type="date"
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                    className="border border-[#a63c71]/30 rounded-xl px-3 py-1.5 text-xs font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#a63c71] min-w-[130px]"
+                <div className="relative w-[140px]">
+                  <span className="absolute -top-2 left-3 px-1 bg-white text-[9px] font-bold text-[#a63c71] tracking-wider uppercase scale-90 origin-left z-10">To Date</span>
+                  <DatePicker
+                    selected={toDate ? new Date(toDate) : null}
+                    onChange={(date: Date | null) => setToDate(date ? date.toISOString().split('T')[0] : '')}
+                    placeholderText="mm/dd/yyyy"
+                    dateFormat="MM/dd/yyyy"
+                    minDate={fromDate ? new Date(fromDate) : undefined}
+                    className="w-full rounded-xl border border-[#a63c71]/30 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#a63c71] cursor-pointer"
+                    wrapperClassName="w-full block"
+                    popperProps={{ strategy: 'fixed' }}
                   />
                 </div>
                 <button
                   onClick={() => {
-                    fetchAllLeads();
-                    fetchLeadSummary();
+                    setFromDate('');
+                    setToDate('');
                   }}
-                  className="p-1.5 rounded-lg hover:bg-gray-200/60 transition-colors cursor-pointer text-gray-500 hover:text-gray-800"
-                  title="Refresh Data"
+                  className="flex items-center justify-center px-1 py-1 hover:bg-gray-50 transition-colors cursor-pointer text-gray-500 hover:text-[#a63c71]"
+                  title="Clear Dates"
                 >
                   <RefreshCw className="h-4 w-4" />
                 </button>
@@ -1305,11 +1338,11 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className={`grid grid-cols-2 md:grid-cols-3 ${isTelecaller ? 'xl:grid-cols-5' : 'xl:grid-cols-6'} gap-4`}>
           {summaryCards.map((card) => (
             <div
               key={card.key}
-              className="bg-white p-4 rounded-3xl border border-gray-200/80 flex items-center gap-4 transition-all duration-300"
+              className="bg-white p-4 rounded-3xl border border-gray-200/80 flex items-center gap-4 shadow-sm hover:shadow-md transition-all duration-300"
             >
               <div className={`p-3 rounded-2xl ${card.iconBg} ${card.iconColor} flex-shrink-0 flex items-center justify-center w-12 h-12`}>
                 <card.Icon className="h-6 w-6" />
@@ -1332,7 +1365,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
                   <h3 className="text-xl font-semibold text-gray-900">Sales Executive</h3>
-                  <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-semibold">
+                  <span className="bg-[#a63c71]/10 hover:bg-[#a63c71]/20 text-[#a63c71] border border-[#a63c71]/20 px-3 py-1 rounded-lg text-xs font-semibold">
                     {salesWinRateData.reduce((acc, curr) => acc + curr.total, 0)} Total Leads
                   </span>
                 </div>
@@ -1341,15 +1374,15 @@ export default function Dashboard() {
 
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={salesWinRateData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }} barSize={35}>
+                  <BarChart data={salesWinRateData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }} barSize={35}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "500" }} dy={10} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11 }} dx={-10} allowDecimals={false} />
                     <Tooltip content={<CustomSalesTooltip />} cursor={{ fill: '#F3F4F6' }} />
-                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-                    <Bar dataKey="won" name="Won" fill="#bd5087" stackId="a" radius={[0, 0, 0, 0]} />
-                    <Bar dataKey="lost" name="Lost" fill="#d1669c" stackId="a" radius={[0, 0, 0, 0]} />
-                    <Bar dataKey="inProgress" name="In Progress" fill="#a63c71" stackId="a" radius={[6, 6, 0, 0]} />
+                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '13px' }} />
+                    <Bar dataKey="won" name="Won" fill="#c1628dff" stackId="a" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="lost" name="Lost" fill="#e698bfff" stackId="a" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="inProgress" name="In Progress" fill="#64163dff" stackId="a" radius={[0, 0, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -1556,7 +1589,7 @@ export default function Dashboard() {
               <div className="mb-8" />
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={kwGrowthData.chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <AreaChart data={kwGrowthData.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorKwGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#a63c71" stopOpacity={0.3} />
@@ -1572,7 +1605,7 @@ export default function Dashboard() {
                           return (
                             <div className="bg-white border border-gray-100 p-3 rounded-xl shadow-xl text-xs">
                               <p className="font-bold text-gray-900">{payload[0].payload.date}</p>
-                              <p className="font-semibold text-[#a63c71]">
+                              <p className="font-semibold text-[#a63c71] m-0 mt-0.5">
                                 {Number(payload[0].payload.kw).toFixed(2)} KW
                               </p>
                             </div>
@@ -1650,7 +1683,7 @@ export default function Dashboard() {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "500" }} dy={10} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11 }} dx={-10} allowDecimals={false} />
-                    <Tooltip content={<CustomLightTooltip />} cursor={{ fill: '#F9FAFB' }} />
+                    <Tooltip content={<LeadSourceTooltip />} cursor={{ fill: '#F9FAFB' }} />
                     <Bar dataKey="value" name="Leads" fill="url(#colorSourceGrad)" radius={[6, 6, 0, 0]} maxBarSize={45} />
                   </BarChart>
                 </ResponsiveContainer>

@@ -159,8 +159,8 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
       <div className="space-y-6">
         {/* Action Type Radio Buttons */}
         <div className="flex flex-col gap-3 sm:flex-row sm:gap-6">
-          {lead?.leadStatus?.name?.toLowerCase() !== 'won' && (
-            <>
+          {/* {lead?.leadStatus?.name?.toLowerCase() !== 'won' && (
+            <> */}
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
@@ -183,8 +183,8 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
                 />
                 <span className="text-sm font-medium text-gray-700">Stage</span>
               </label>
-            </>
-          )}
+            {/* </>
+          )} */}
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
