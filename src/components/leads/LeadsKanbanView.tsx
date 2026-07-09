@@ -372,6 +372,12 @@ export default function LeadsKanbanView({
                 const newLeadStatusId = statuses.find(s => s.name.match(/^new lead$/i) || s.name.match(/^new$/i))?._id || statuses[0]?._id;
                 await axios.put(`${baseUrl.updateLead}/${id}`, { leadStatus: newLeadStatusId }, { headers: { Authorization: `Bearer ${token()}` } });
                 toast.success('Lead reactivated');
+                
+                removeLeadFromBoard(id);
+                if (newLeadStatusId) {
+                    fetchStatusLeads(newLeadStatusId, 1, false, true);
+                }
+                
                 onRefresh();
             } catch { toast.error('Failed to reactivate lead'); }
         }

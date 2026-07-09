@@ -91,10 +91,20 @@ export default function DataTable<T extends Record<string, any>>({
   extraActions,
 }: DataTableProps<T>) {
   const [searchValue, setSearchValue] = useState(externalSearchValue);
+  const [internalPage, setInternalPage] = useState(currentPage);
 
   useEffect(() => {
     setSearchValue(externalSearchValue);
   }, [externalSearchValue]);
+
+  useEffect(() => {
+    setInternalPage(currentPage);
+  }, [currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setInternalPage(page);
+    onPageChange(page);
+  };
 
   const [showFilters, setShowFilters] = useState(false);
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
@@ -121,27 +131,28 @@ export default function DataTable<T extends Record<string, any>>({
     onSearch(value);
   };
 
+
   // Calculate page numbers to show
   const getPageNumbers = () => {
     const pages = [];
     const maxVisible = 5;
 
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
+    if (calculatedTotalPages <= maxVisible) {
+      for (let i = 1; i <= calculatedTotalPages; i++) {
         pages.push(i);
       }
     } else {
       pages.push(1);
 
-      let start = Math.max(2, currentPage - 1);
-      let end = Math.min(totalPages - 1, currentPage + 1);
+      let start = Math.max(2, internalPage - 1);
+      let end = Math.min(calculatedTotalPages - 1, internalPage + 1);
 
-      if (currentPage <= 3) {
-        end = Math.min(totalPages - 1, 4);
+      if (internalPage <= 3) {
+        end = Math.min(calculatedTotalPages - 1, 4);
       }
 
-      if (currentPage >= totalPages - 2) {
-        start = Math.max(2, totalPages - 3);
+      if (internalPage >= calculatedTotalPages - 2) {
+        start = Math.max(2, calculatedTotalPages - 3);
       }
 
       if (start > 2) {
@@ -152,12 +163,12 @@ export default function DataTable<T extends Record<string, any>>({
         pages.push(i);
       }
 
-      if (end < totalPages - 1) {
+      if (end < calculatedTotalPages - 1) {
         pages.push('...');
       }
 
-      if (totalPages > 1) {
-        pages.push(totalPages);
+      if (calculatedTotalPages > 1) {
+        pages.push(calculatedTotalPages);
       }
     }
 
@@ -166,10 +177,10 @@ export default function DataTable<T extends Record<string, any>>({
 
   useEffect(() => {
     if (!pagination) return;
-    if (currentPage > 1 && data.length === 0 && totalRecords > 0) {
-      onPageChange(1);
+    if (internalPage > 1 && data.length === 0 && totalRecords > 0) {
+      handlePageChange(1);
     }
-  }, [pagination, currentPage, data.length, totalRecords, onPageChange]);
+  }, [pagination, internalPage, data.length, totalRecords]);
 
   const filteredData = data.filter(row => {
     if (!searchValue) return true;
@@ -179,6 +190,17 @@ export default function DataTable<T extends Record<string, any>>({
       return String(value).toLowerCase().includes(lowerSearch);
     });
   });
+
+  const safeTotalRecords = Number(totalRecords) || data.length;
+  // We use client-side pagination if the data length matches total records, or if the server returned more data than the page size (meaning it didn't paginate)
+  const isClientSidePagination = safeTotalRecords === data.length || data.length > pageSize;
+  const calculatedTotalPages = isClientSidePagination
+    ? Math.ceil(filteredData.length / pageSize)
+    : totalPages;
+
+  const displayedData = isClientSidePagination
+    ? filteredData.slice((internalPage - 1) * pageSize, internalPage * pageSize)
+    : filteredData;
 
   return (
     <div className="rounded-md bg-white border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-2xl">
@@ -325,7 +347,7 @@ export default function DataTable<T extends Record<string, any>>({
 </div>
                   </td>
               </tr>
-            ) : filteredData.length === 0 ? (
+            ) : displayedData.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + (actions ? 1 : 0)} className="px-3 py-16 text-center">
                   <div className="flex flex-col items-center justify-center gap-3">
@@ -346,7 +368,7 @@ export default function DataTable<T extends Record<string, any>>({
                 </td>
               </tr>
             ) : (
-              filteredData.map((row, index) => (
+              displayedData.map((row, index) => (
                 <tr
                   key={index}
                   onMouseEnter={() => setHoveredRow(index)}
@@ -436,7 +458,7 @@ export default function DataTable<T extends Record<string, any>>({
       </div>
 
       {/* Pagination - Modern Design */}
-      {pagination && totalPages > 0 && !loading && filteredData.length > 0 && (
+      {pagination && calculatedTotalPages > 0 && !loading && displayedData.length > 0 && (
         <div className="border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white px-4 md:px-6 py-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-4 text-sm">
@@ -476,9 +498,9 @@ export default function DataTable<T extends Record<string, any>>({
                 </div>
               </div>
               <span className="text-gray-500 text-xs md:text-sm">
-                Showing <span className="font-medium text-gray-700">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+                Showing <span className="font-medium text-gray-700">{(internalPage - 1) * pageSize + 1}</span> to{' '}
                 <span className="font-medium text-gray-700">
-                  {Math.min(currentPage * pageSize, totalRecords)}
+                  {Math.min(internalPage * pageSize, totalRecords)}
                 </span>{' '}
                 of <span className="font-medium text-gray-700">{totalRecords}</span>
               </span>
@@ -486,9 +508,9 @@ export default function DataTable<T extends Record<string, any>>({
 
             <div className="flex items-center justify-center gap-2 overflow-x-auto pb-2 md:pb-0">
               <button
-                onClick={() => onPageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-200 ${currentPage === 1
+                onClick={() => handlePageChange(internalPage - 1)}
+                disabled={internalPage === 1}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-200 ${internalPage === 1
                   ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
                   : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
                   }`}
@@ -505,8 +527,8 @@ export default function DataTable<T extends Record<string, any>>({
                   ) : (
                     <button
                       key={`page-${page}`}
-                      onClick={() => onPageChange(page as number)}
-                      className={`inline-flex min-w-[2.5rem] h-9 items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 ${currentPage === page
+                      onClick={() => handlePageChange(page as number)}
+                      className={`inline-flex min-w-[2.5rem] h-9 items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 ${internalPage === page
                         ? 'bg-secondary text-white shadow-md'
                         : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
                         }`}
@@ -518,9 +540,9 @@ export default function DataTable<T extends Record<string, any>>({
               </div>
 
               <button
-                onClick={() => onPageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-200 ${currentPage === totalPages
+                onClick={() => handlePageChange(internalPage + 1)}
+                disabled={internalPage === calculatedTotalPages}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-200 ${internalPage === calculatedTotalPages
                   ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
                   : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
                   }`}

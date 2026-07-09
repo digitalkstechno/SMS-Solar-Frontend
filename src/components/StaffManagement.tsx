@@ -80,7 +80,7 @@ export default function SalesExecutiveForm({
         .matches(/^[0-9]{10}$/, 'Mobile number must be exactly 10 digits'),
       email: Yup.string()
         .required('Email is required')
-        .matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Invalid email format'),
+        .matches(/^[a-zA-Z0-9._%+-]+@gmail\.com$/, 'Email must be a valid @gmail.com address'),
       password: isUpdate
         ? Yup.string().notRequired()
         : Yup.string().required('Password is required').min(6, 'Password must be at least 6 characters'),
@@ -384,7 +384,9 @@ export default function SalesExecutiveForm({
               { value: 'vyara', label: 'Vyara' },
               { value: 'mandvi', label: 'Mandvi' },
               { value: 'songadh', label: 'Songadh' },
-              { value: 'valsad', label: 'Valsad' },
+              { value: 'valsad', label: 'Valsad' },   
+              { value: 'bhavnagar', label: 'Bhavnagar' },
+              { value: 'botad', label: 'Botad' },
             ]}
             placeholder="— Select City —"
             error={formik.touched.city && formik.errors.city ? formik.errors.city : undefined}
