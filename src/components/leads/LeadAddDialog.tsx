@@ -79,7 +79,30 @@ export default function LeadAddDialog({
         .length(10, 'Mobile number must be exactly 10 digits'),
       email: Yup.string()
         .matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Invalid email format')
-        .max(100, 'Email must not exceed 100 characters'),
+        .max(100, 'Email must not exceed 100 characters')
+        .test('valid-domain', 'Invalid email domain. Please enter a valid domain (e.g., @gmail.com)', (value) => {
+          if (!value) return true;
+          const domain = value.split('@')[1]?.toLowerCase();
+          if (!domain) return false;
+          
+          // Reject invalid variations of gmail
+          if (domain !== 'gmail.com') {
+            const isGmailTypo = 
+              domain.includes('gmail') || 
+              domain.includes('gamil') || 
+              domain.includes('gmal') || 
+              domain.includes('gmai') ||
+              /^g[a-z]*m[a-z]*a[a-z]*i[a-z]*l[a-z]*\.[a-z]+$/.test(domain);
+              
+            // Allow legitimate non-gmail domains like protonmail.com, globalmail.com etc.
+            // The regex ^g...$ ensures it starts with g and ends with l before the dot.
+            if (isGmailTypo && domain.startsWith('g')) {
+               return false;
+            }
+          }
+          
+          return true;
+        }),
       kwRequirement: Yup.string().required('KW Requirement is required'),
       discomName: Yup.string(),
       leadrefrance: Yup.string(),

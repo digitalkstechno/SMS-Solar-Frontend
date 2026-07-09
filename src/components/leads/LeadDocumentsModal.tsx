@@ -99,12 +99,18 @@ export default function LeadDocumentsModal({ isOpen, onClose, lead }: LeadDocume
         return `${baseUrlWithoutApi}/${path.replace(/\\/g, '/')}`;
     };
 
-    const handleDownload = (e: React.MouseEvent, url: string, filename: string) => {
+    const handleDownload = async (e: React.MouseEvent, url: string, filename: string) => {
         e.preventDefault();
         try {
-            const proxyUrl = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename || 'document')}`;
-            // Use window.location.href to trigger the download directly from the browser
-            window.location.href = proxyUrl;
+            const tokenStr = typeof token === 'function' ? token() : token || '';
+            const proxyUrl = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename || 'document')}&token=${encodeURIComponent(tokenStr)}`;
+            
+            const link = document.createElement('a');
+            link.href = proxyUrl;
+            link.download = filename || 'document';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         } catch (error) {
             console.error('Failed to download file:', error);
             window.open(url, '_blank');
@@ -208,14 +214,14 @@ export default function LeadDocumentsModal({ isOpen, onClose, lead }: LeadDocume
                                                 href={fileUrl} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer"
-                                                className="flex-1 flex justify-center items-center gap-2 py-2 px-4 bg-gradient-to-r from-[#4b6cb7] via-[#7b558f] to-[#a63c71] text-white rounded-lg text-sm font-semibold hover:opacity-90 hover:shadow-md transition-all duration-200 cursor-pointer"
+                                                className="flex-1 flex justify-center items-center gap-2 py-2 px-4 bg-[#A43E73] text-white rounded-lg text-sm font-semibold hover:opacity-90 hover:shadow-md transition-all duration-200 cursor-pointer"
                                             >
                                                 <ExternalLink className="w-4 h-4" />
                                                 View
                                             </a>
                                             <button 
                                                 onClick={(e) => handleDownload(e, fileUrl, docName)}
-                                                className="flex-1 flex justify-center items-center gap-2 py-2 px-4 bg-gradient-to-r from-[#4b6cb7] via-[#7b558f] to-[#a63c71] text-white rounded-lg text-sm font-semibold hover:opacity-90 hover:shadow-md transition-all duration-200 cursor-pointer"
+                                                className="flex-1 flex justify-center items-center gap-2 py-2 px-4 bg-[#A43E73] text-white rounded-lg text-sm font-semibold hover:opacity-90 hover:shadow-md transition-all duration-200 cursor-pointer"
                                             >
                                                 <Download className="w-4 h-4" />
                                                 Download

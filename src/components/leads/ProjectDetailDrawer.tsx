@@ -48,6 +48,7 @@ interface FormState {
   paymentMode: string;
   projectAmount: string;
   subsidyLessProject: string;
+  isLoanRequired: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -57,7 +58,7 @@ const EMPTY_FORM: FormState = {
   wiringType: '', homeFloor: '', walkway: '', walkwayLengthFeet: '',
   ladder: '', ladderLengthFeet: '', hdgiPipeMake: '',
   hdgiPipe80x40: '0', hdgiPipe60x40: '0', hdgiPipe40x40: '0', hdgiPipe20x40PatiPipe: '0',
-  paymentMode: '', projectAmount: '', subsidyLessProject: '',
+  paymentMode: '', projectAmount: '', subsidyLessProject: '', isLoanRequired: 'no',
 };
 
 const PHOTO_FIELDS = [
@@ -227,6 +228,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
             paymentMode: d.paymentMode || '',
             projectAmount: d.projectAmount?.toString() || '',
             subsidyLessProject: d.subsidyLessProject || '',
+            isLoanRequired: d.isLoanRequired || 'no',
           });
           const ef: Record<string, any> = {};
           [...PHOTO_FIELDS, ...REG_DOC_FIELDS, ...LOAN_DOC_FIELDS].forEach(({ key }) => {
@@ -361,7 +363,9 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
   };
 
   const handleNext = () => {
-    const sectionOrder: SectionKey[] = ['project', 'photos', 'regDocs', 'payment', 'loanDocs'];
+    const sectionOrder: SectionKey[] = form.isLoanRequired === 'yes' 
+      ? ['project', 'photos', 'regDocs', 'payment', 'loanDocs']
+      : ['project', 'photos', 'regDocs', 'payment'];
     const currentIdx = sectionOrder.indexOf(activeSection);
     if (validateStep(activeSection)) {
       if (currentIdx < sectionOrder.length - 1) {
@@ -373,7 +377,9 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
   };
 
   const handleBack = () => {
-    const sectionOrder: SectionKey[] = ['project', 'photos', 'regDocs', 'payment', 'loanDocs'];
+    const sectionOrder: SectionKey[] = form.isLoanRequired === 'yes' 
+      ? ['project', 'photos', 'regDocs', 'payment', 'loanDocs']
+      : ['project', 'photos', 'regDocs', 'payment'];
     const currentIdx = sectionOrder.indexOf(activeSection);
     if (currentIdx > 0) {
       setActiveSection(sectionOrder[currentIdx - 1]);
@@ -381,7 +387,9 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
   };
 
   const handleTabClick = (targetSection: SectionKey) => {
-    const sectionOrder: SectionKey[] = ['project', 'photos', 'regDocs', 'payment', 'loanDocs'];
+    const sectionOrder: SectionKey[] = form.isLoanRequired === 'yes' 
+      ? ['project', 'photos', 'regDocs', 'payment', 'loanDocs']
+      : ['project', 'photos', 'regDocs', 'payment'];
     const currentIdx = sectionOrder.indexOf(activeSection);
     const targetIdx = sectionOrder.indexOf(targetSection);
 
@@ -406,7 +414,9 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
     if (!lead) return;
 
     // Validate all steps before submitting
-    const sectionOrder: SectionKey[] = ['project', 'photos', 'regDocs', 'payment', 'loanDocs'];
+    const sectionOrder: SectionKey[] = form.isLoanRequired === 'yes' 
+      ? ['project', 'photos', 'regDocs', 'payment', 'loanDocs']
+      : ['project', 'photos', 'regDocs', 'payment'];
     for (const step of sectionOrder) {
       if (!validateStep(step)) {
         toast.error(`Please complete the required fields in ${sections.find(s => s.key === step)?.label || step}`);
@@ -436,13 +446,17 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
     }
   };
 
-  const sections: { key: SectionKey; label: string; icon: React.ReactNode }[] = [
+  const allSections: { key: SectionKey; label: string; icon: React.ReactNode }[] = [
     { key: 'project', label: 'Project Info', icon: <Settings className="h-4 w-4" /> },
     { key: 'photos', label: 'Site Photos', icon: <Image className="h-4 w-4" /> },
     { key: 'regDocs', label: 'Reg. Docs', icon: <FileCheck className="h-4 w-4" /> },
     { key: 'payment', label: 'Payment', icon: <CreditCard className="h-4 w-4" /> },
     { key: 'loanDocs', label: 'Loan Docs', icon: <FileText className="h-4 w-4" /> },
   ];
+  
+  const sections = form.isLoanRequired === 'yes' 
+    ? allSections 
+    : allSections.filter(s => s.key !== 'loanDocs');
 
   return (
     <>
@@ -874,6 +888,22 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
                         options={YES_NO_OPTS}
                         placeholder="Select..."
                         error={errors.subsidyLessProject}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <FormSelect
+                        label="Requires Loan?"
+                        name="isLoanRequired"
+                        value={form.isLoanRequired}
+                        onChange={(val) => {
+                           handleFormChange('isLoanRequired', val);
+                           if (val === 'no' && activeSection === 'loanDocs') {
+                             setActiveSection('payment');
+                           }
+                        }}
+                        options={YES_NO_OPTS}
+                        placeholder="Select..."
                         required
                       />
                     </div>

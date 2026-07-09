@@ -81,7 +81,7 @@ interface Props {
   currentUser?: any;
 }
 
-function mapLead(item: any): TableLead {
+function mapLead(item: any, staffMembers?: any[]): TableLead {
   // Extract quotation amount if available, else use paymentAmount
   let displayAmount = item.paymentAmount;
   if (item.quotations && Array.isArray(item.quotations) && item.quotations.length > 0) {
@@ -97,6 +97,13 @@ function mapLead(item: any): TableLead {
     }
   }
 
+  let staffName = item.createdBy?.fullName || item.createdBy?.name || '-';
+  if (staffName === '-' && (typeof item.createdBy === 'string' || !item.createdBy) && staffMembers) {
+    const createdById = typeof item.createdBy === 'string' ? item.createdBy : item.createdBy?._id;
+    const found = staffMembers.find((s: any) => s._id === createdById || s._id === item.createdBy);
+    if (found) staffName = found.fullName || found.name || '-';
+  }
+
   return {
     id: item._id,
     name: item.fullName,
@@ -107,7 +114,7 @@ function mapLead(item: any): TableLead {
     address: item.address,
     locationLink: item.locationLink,
     status: item.leadStatus?.name || item.status?.name || '-',
-    staff: item.createdBy?.fullName || item.createdBy?.name || '-',
+    staff: staffName,
     lastFollowUp: item.updatedAt
       ? new Date(item.updatedAt).toLocaleDateString()
       : '-',
@@ -148,12 +155,10 @@ export default function LeadsListView({
 
   // Map external leads to table format when they change
   useEffect(() => {
-    if (externalLeads && externalLeads.length > 0) {
-      setLeads(externalLeads.map(mapLead));
-    } else if (externalLeads && externalLeads.length === 0) {
-      setLeads([]);
+    if (externalLeads) {
+      setLeads(externalLeads.map((l) => mapLead(l, staffMembers)));
     }
-  }, [externalLeads]);
+  }, [externalLeads, staffMembers]);
 
   // ── Columns ──────────────────────────────────────────────────────────────
   const columns: Column<TableLead>[] = [
@@ -334,6 +339,7 @@ export default function LeadsListView({
             label: 'Add',
             icon: <Plus className="h-3.5 w-3.5" />,
             color: 'emerald',
+            show: (row) => row.status?.toLowerCase() === 'won' || row.status?.toLowerCase() === 'won leads',
             onClick: (row) => {
               const rawLead: ApiLead = row._raw || row;
               setProjectDetailLead(rawLead);

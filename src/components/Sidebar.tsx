@@ -147,22 +147,33 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
 
   const handleLogout = () => {
     Swal.fire({
-      title: 'Are you sure?',
-      text: "You will be logged out of your account",
-      icon: 'warning',
+      html: `
+        <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-[#A63C71]/10 text-[#A63C71] mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+            </div>
+            <h2 class="text-lg font-bold text-[#1f2937] mb-1">Ready to leave?</h2>
+            <p class="text-[14px] text-gray-500 leading-relaxed">You will be securely logged out<br/>of your account.</p>
+        </div>
+      `,
       showCancelButton: true,
-      confirmButtonColor: '#A63C71',
-      cancelButtonColor: '#6D7A86',
-      confirmButtonText: 'Yes, logout',
+      confirmButtonText: 'Logout',
       cancelButtonText: 'Cancel',
-      background: '#fff',
-      width: '360px',
-      padding: '0.5em 1em 1em',
-      backdrop: true,
-      allowOutsideClick: false,
-      allowEscapeKey: true,
+      buttonsStyling: false,
+      background: '#ffffff',
+      width: '340px',
+      padding: '24px',
+      backdrop: 'rgba(0,0,0,0.5)',
       customClass: {
-        popup: 'rounded-[20px]',
+        popup: 'rounded-[24px] shadow-2xl border border-gray-100',
+        htmlContainer: 'm-0 p-0',
+        actions: 'flex w-full gap-3 mt-6 mb-0 p-0',
+        confirmButton: 'flex-1 bg-[#A63C71] text-white font-semibold rounded-xl px-4 py-2.5 hover:bg-[#8f325f] transition-all m-0 outline-none focus:ring-2 focus:ring-[#A63C71]/50 focus:ring-offset-1 border-0',
+        cancelButton: 'flex-1 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl px-4 py-2.5 hover:bg-gray-50 transition-all m-0 outline-none focus:ring-2 focus:ring-gray-200'
       }
     }).then((result) => {
       if (result.isConfirmed) {
