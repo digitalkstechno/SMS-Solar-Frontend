@@ -323,6 +323,13 @@ export function useLeadsData(
   // EFFECTS
   // ─────────────────────────────────────────────────────────────────────────
 
+  useEffect(() => {
+    stateRef.current = {
+      activeTab, filters, viewMode, kanbanSubView,
+      listPage, lostPage, wonPage, limit
+    };
+  });
+
   // 1. Meta — once
   useEffect(() => { fetchMeta(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -382,14 +389,14 @@ export function useLeadsData(
           if (kanbanSubView === 'board') {
             calls.push(fetchKanbanLeads(activeTab, filters));
           } else if (kanbanSubView === 'lost') {
-            calls.push(fetchLostLeads(activeTab, filters, currentLostPage));
+            calls.push(fetchLostLeads(activeTab, filters, currentLostPage, limit));
           } else if (kanbanSubView === 'won') {
-            calls.push(fetchWonLeads(activeTab, filters, currentWonPage));
+            calls.push(fetchWonLeads(activeTab, filters, currentWonPage, limit));
           }
         } else {
           // Pagination changes for lost/won while staying on the same subview
-          if (kanbanSubView === 'lost' && lostPageChanged) calls.push(fetchLostLeads(activeTab, filters, currentLostPage));
-          if (kanbanSubView === 'won' && wonPageChanged) calls.push(fetchWonLeads(activeTab, filters, currentWonPage));
+          if (kanbanSubView === 'lost' && lostPageChanged) calls.push(fetchLostLeads(activeTab, filters, currentLostPage, limit));
+          if (kanbanSubView === 'won' && wonPageChanged) calls.push(fetchWonLeads(activeTab, filters, currentWonPage, limit));
         }
       }
       
@@ -401,7 +408,7 @@ export function useLeadsData(
     };
     
     load();
-  }, [viewMode, activeTab, filters, kanbanSubView, listPage, lostPage, wonPage]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [viewMode, activeTab, filters, kanbanSubView, listPage, lostPage, wonPage, limit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─────────────────────────────────────────────────────────────────────────
 

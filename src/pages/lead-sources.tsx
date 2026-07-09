@@ -9,7 +9,7 @@ import axios from 'axios';
 import { baseUrl, getAuthToken } from '@/config';
 import DeleteDialog from '@/components/DeleteDialog';
 import FormInput from '@/components/ui/Input';
-import toast from 'react-hot-toast';
+import { toast } from 'react-toastify';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);

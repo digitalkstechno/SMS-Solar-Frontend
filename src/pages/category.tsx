@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Dialog from '@/components/Dialog';
+import { toast } from 'react-toastify';
 import DataTable, { Column } from '@/components/DataTable';
 import axios from 'axios';
 import { baseUrl, getAuthToken } from '@/config';
@@ -129,18 +130,31 @@ export function CategoryContent() {
     const payload = { name: values.name.trim() };
 
     try {
+      let res;
       if (values._id) {
-        await axios.patch(`${baseUrl.category}/${values._id}`, payload, { headers });
+        res = await axios.patch(`${baseUrl.category}/${values._id}`, payload, { headers, validateStatus: (s) => s < 500 });
       } else {
-        await axios.post(baseUrl.category, payload, { headers });
+        res = await axios.post(baseUrl.category, payload, { headers, validateStatus: (s) => s < 500 });
+      }
+
+      if (res.status >= 400) {
+        toast.error(res.data?.message || 'Operation failed');
+        return;
+      }
+
+      if (values._id) {
+        toast.success('Category updated successfully');
+      } else {
+        toast.success('Category created successfully');
       }
       await dispatch(fetchCategories());
+      await fetchData(); // Refresh table data
       
       setIsDialogOpen(false);
       formik.resetForm();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save category', err);
-      alert('Operation failed');
+      toast.error(err?.response?.data?.message || err?.message || 'Operation failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -155,15 +169,23 @@ export function CategoryContent() {
     if (!categoryToDelete) return;
 
     try {
-      await axios.delete(`${baseUrl.category}/${categoryToDelete._id}`, { headers });
+      const res = await axios.delete(`${baseUrl.category}/${categoryToDelete._id}`, { headers, validateStatus: (s) => s < 500 });
+      if (res.status >= 400) {
+        toast.error(res.data?.message || 'Delete failed');
+        return;
+      }
+      
+      toast.success('Category deleted successfully');
       await dispatch(fetchCategories());
+      await fetchData(); // Refresh table data
       setShowDeleteDialog(false);
       setCategoryToDelete(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete', err);
-      alert('Delete failed');
+      toast.error(err?.response?.data?.message || err?.message || 'Delete failed');
     }
   };
+
 
   const columns: Column<CategoryItem>[] = [
     { key: 'name', label: 'CATEGORY NAME' },

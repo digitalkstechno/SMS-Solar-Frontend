@@ -34,6 +34,7 @@ type TableLead = {
   locationLink?: string;
   status: string;
   staff: string;
+  assignedTo?: string;
   lastFollowUp: string;
   isActive?: boolean;
   paymentAmount?: number;
@@ -104,6 +105,13 @@ function mapLead(item: any, staffMembers?: any[]): TableLead {
     if (found) staffName = found.fullName || found.name || '-';
   }
 
+  let assignedToName = item.assignedTo?.fullName || item.assignedTo?.name || '-';
+  if (assignedToName === '-' && (typeof item.assignedTo === 'string' || !item.assignedTo) && staffMembers) {
+    const assignedId = typeof item.assignedTo === 'string' ? item.assignedTo : item.assignedTo?._id;
+    const found = staffMembers.find((s: any) => s._id === assignedId || s._id === item.assignedTo);
+    if (found) assignedToName = found.fullName || found.name || '-';
+  }
+
   return {
     id: item._id,
     name: item.fullName,
@@ -115,6 +123,7 @@ function mapLead(item: any, staffMembers?: any[]): TableLead {
     locationLink: item.locationLink,
     status: item.leadStatus?.name || item.status?.name || '-',
     staff: staffName,
+    assignedTo: assignedToName,
     lastFollowUp: item.updatedAt
       ? new Date(item.updatedAt).toLocaleDateString()
       : '-',
@@ -209,6 +218,7 @@ export default function LeadsListView({
     },
     { key: 'status', label: 'STATUS' },
     { key: 'staff', label: 'CREATED BY' },
+    { key: 'assignedTo', label: 'ASSIGNED TO' },
     { key: 'lastFollowUp', label: 'LAST FOLLOW-UP' },
     /* { 
       key: 'paymentAmount', 

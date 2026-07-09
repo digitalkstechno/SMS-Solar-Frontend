@@ -400,7 +400,6 @@ export default function LeadAddDialog({
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
                 error={getFieldError('email')}
-                required={requiredFields.includes('email')}
               />
               <FormInput
                 label="KW Requirement"
@@ -481,6 +480,8 @@ export default function LeadAddDialog({
                     { value: 'mandvi', label: 'Mandvi' },
                     { value: 'songadh', label: 'Songadh' },
                     { value: 'valsad', label: 'Valsad' },
+                    { value: 'bhavnagar', label: 'Bhavnagar' },
+              { value: 'botad', label: 'Botad' },
                   ]}
                   error={getFieldError('city')}
                   placeholder="Select City"
