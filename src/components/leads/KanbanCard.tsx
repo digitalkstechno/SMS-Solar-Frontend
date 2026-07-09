@@ -25,7 +25,7 @@ interface Props {
 type SubView = 'board' | 'lost' | 'won';
 
 export default function KanbanCard({
-    lead, onDragStart, onView, onEdit, onMarkLost, onMarkWon, isUpdating
+    lead, onDragStart, onView, onEdit, onMarkLost, onMarkWon, onReactivate, isUpdating
 }: {
     lead: ApiLead;
     onDragStart?: () => void;
@@ -33,6 +33,7 @@ export default function KanbanCard({
     onEdit?: () => void;
     onMarkLost?: () => void;
     onMarkWon?: () => void;
+    onReactivate?: () => void;
     isUpdating?: boolean;
 }) {
     return (
@@ -77,6 +78,15 @@ export default function KanbanCard({
                             className="h-7 w-7 cursor-pointer rounded-full bg-red-100 text-red-600 flex items-center justify-center hover:-translate-y-0.5 hover:shadow transition-all"
                         >
                             <FiThumbsDown className="h-3.5 w-3.5" />
+                        </button>
+                    )}
+                    {onReactivate && (
+                        <button
+                            onClick={onReactivate}
+                            title="Reactivate Lead"
+                            className="h-7 w-7 cursor-pointer rounded-full bg-orange-100 text-orange-600 flex items-center justify-center hover:-translate-y-0.5 hover:shadow transition-all"
+                        >
+                            <RefreshCw className="h-3.5 w-3.5" />
                         </button>
                     )}
                 </div>
