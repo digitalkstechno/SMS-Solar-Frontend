@@ -15,7 +15,6 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { fetchCurrentStaff } from "@/redux/slices/authSlice";
 import { fetchLeadStatuses } from "@/redux/slices/leadStatusSlice";
-import { fetchLeadLabels } from "@/redux/slices/leadLabelSlice";
 import PremiumLoader from "@/components/ui/PremiumLoader";
 
 const poppins = Poppins({
@@ -33,8 +32,6 @@ function AppContent({ Component, pageProps }: AppProps) {
   const isLoginPage = pathName === "/login";
   const authStatus = useAppSelector((state) => state.auth.status);
   const leadStatusStatus = useAppSelector((state) => state.leadStatus.status);
-  const leadLabelStatus = useAppSelector((state) => state.leadLabel.status);
-  
   const hasDispatched = useRef(false);
 
   useEffect(() => {
@@ -42,9 +39,8 @@ function AppContent({ Component, pageProps }: AppProps) {
       hasDispatched.current = true;
       if (authStatus === 'idle') dispatch(fetchCurrentStaff());
       if (leadStatusStatus === 'idle') dispatch(fetchLeadStatuses());
-      if (leadLabelStatus === 'idle') dispatch(fetchLeadLabels());
     }
-  }, [authStatus, leadStatusStatus, leadLabelStatus, dispatch, isLoginPage]);
+  }, [authStatus, leadStatusStatus, dispatch, isLoginPage]);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
