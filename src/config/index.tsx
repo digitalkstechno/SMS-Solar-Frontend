@@ -65,6 +65,7 @@ export const baseUrl = {
   category: `${API}category`,
   product: `${API}product`,
   stock: `${API}stock`,
+  city: `${API}city`,
   getBaseUrl: API,
   projectDetail: `${API}project-detail`,
   leadPayments: `${API}lead`,

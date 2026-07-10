@@ -27,8 +27,8 @@ export default function RoleForm({
   onSubmit,
   initialData,
 }: RoleFormProps) {
-  type Feature = 'lead' | 'staff' | 'role' | 'leadStatus' | 'leadSource' | 'category' | 'product' | 'stock';
-  const features: Feature[] = ['lead', 'staff', 'role', 'leadStatus', 'leadSource', 'category', 'product', 'stock'];
+  type Feature = 'lead' | 'staff' | 'role' | 'leadStatus' | 'leadSource' | 'category' | 'product' | 'stock' | 'city';
+  const features: Feature[] = ['lead', 'staff', 'role', 'leadStatus', 'leadSource', 'category', 'product', 'stock', 'city'];
 
   const featureLabels: Record<Feature, string> = {
     lead: 'Leads',
@@ -39,6 +39,7 @@ export default function RoleForm({
     category: 'Category',
     product: 'Product',
     stock: 'Stock',
+    city: 'City Master',
   };
 
   const defaultCaps: CapabilitySet = {
@@ -159,9 +160,16 @@ export default function RoleForm({
       }
       // If we are toggling create/update/delete to true:
       else if ((capability === 'create' || capability === 'update' || capability === 'delete') && nextValue) {
-        // Ensure at least one view capability is selected, default to readOwn
+        // Ensure at least one view capability is selected, default to readOwn (or readAll if readOwn is disabled)
         if (!nextCaps.readOwn && !nextCaps.readAll) {
-          nextCaps.readOwn = true;
+          const isReadOwnDisabled = formik.values.roleName.toLowerCase() !== 'admin' 
+                            && feature !== 'lead' 
+                            && feature !== 'leadStatus';
+          if (isReadOwnDisabled) {
+             nextCaps.readAll = true;
+          } else {
+             nextCaps.readOwn = true;
+          }
         }
       }
     }

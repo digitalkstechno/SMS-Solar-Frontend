@@ -57,6 +57,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   const [canViewCategory, setCanViewCategory] = useState(false);
   const [canViewProduct, setCanViewProduct] = useState(false);
   const [canViewStock, setCanViewStock] = useState(false);
+  const [canViewCity, setCanViewCity] = useState(false);
 
   const currentStaff = useAppSelector((state) => state.auth.currentStaff);
 
@@ -79,6 +80,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
     const categoryPerms = rawPerms.category || {};
     const productPerms = rawPerms.product || {};
     const stockPerms = rawPerms.stock || {};
+    const cityPerms = rawPerms.city || {};
 
     const isAdmin = role.roleName?.toLowerCase() === "admin";
 
@@ -86,12 +88,13 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
         setCanViewTask(isAdmin || !!(taskPerms.readOwn || taskPerms.readAll));
         setCanViewStaff(isAdmin || !!(staffPerms.readAll || setupPerms.readAll));
         setCanViewRole(isAdmin || !!(rolePerms.readAll || setupPerms.readAll));
-        setCanViewLeadStatus(isAdmin || !!(leadStatusPerms.readAll || setupPerms.readAll));
-        setCanViewLeadSource(isAdmin || !!(leadSourcePerms.readAll || setupPerms.readAll));
-        setCanViewLeadLabel(isAdmin || !!(leadLabelPerms.readAll || setupPerms.readAll));
+        setCanViewLeadStatus(isAdmin || !!(leadStatusPerms.readAll || leadStatusPerms.readOwn || setupPerms.readAll));
+        setCanViewLeadSource(isAdmin || !!(leadSourcePerms.readAll || leadSourcePerms.readOwn || setupPerms.readAll));
+        setCanViewLeadLabel(isAdmin || !!(leadLabelPerms.readAll || leadLabelPerms.readOwn || setupPerms.readAll));
         setCanViewCategory(isAdmin || !!(categoryPerms.readAll || categoryPerms.readOwn || setupPerms.readAll));
         setCanViewProduct(isAdmin || !!(productPerms.readAll || productPerms.readOwn || setupPerms.readAll));
         setCanViewStock(isAdmin || !!(stockPerms.readAll || stockPerms.readOwn || setupPerms.readAll));
+        setCanViewCity(isAdmin || !!(cityPerms.readAll || cityPerms.readOwn || setupPerms.readAll));
   }, [currentStaff]);
 
   const menuItems: MenuItem[] = [
@@ -115,6 +118,9 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   if (canViewStock) {
     menuItems.push({ icon: PackagePlus, label: "Stock In", path: "/stock-in" });
     menuItems.push({ icon: PackageMinus, label: "Stock Out", path: "/stock-out" });
+  }
+  if (canViewCity) {
+    menuItems.push({ icon: Building2, label: "City", path: "/city" });
   }
 
   const hasAnySetupPerm = true; // Still show Setup if needed for remaining items like Kanban Status
