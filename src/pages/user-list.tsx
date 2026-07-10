@@ -19,7 +19,8 @@ interface StaffManagement {
   password: string;
   status: string;
   department: string;
-  city?: string;
+  city?: any;
+  cityDisplay?: string;
 }
 
 // ──────────────────────────────────────────────── Debounce hook
@@ -107,6 +108,8 @@ export function UserContent() {
         password?: string;
         status?: string;
         department?: string | { roleName?: string, name?: string };
+        cityNames?: string;
+        city?: any;
       }[]) || [];
       const pagination = res.data?.pagination || {};
 
@@ -123,7 +126,8 @@ export function UserContent() {
           password: item.password ? '******' : '',
           status: item.status || 'Active',
           department: deptName || '-',
-          city: item.city || '-',
+          cityDisplay: item.cityNames || (Array.isArray(item.city) ? item.city.join(', ') : item.city) || '-',
+          city: item.city || [],
         };
       });
 
@@ -239,7 +243,7 @@ export function UserContent() {
       label: 'DEPARTMENT',
     },
     {
-      key: 'city',
+      key: 'cityDisplay',
       label: 'CITY',
       render: (value) => <span className="capitalize">{value}</span>,
     },
@@ -284,7 +288,7 @@ export function UserContent() {
         password: '',
         status: item.status || 'Active',
         department: item.department || '',
-        city: item.city || '',
+        city: item.city || [],
       };
 
       setEditingExecutive(formatted);

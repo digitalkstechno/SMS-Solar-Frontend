@@ -19,7 +19,7 @@ interface SalesExecutive {
   password: string;
   teams?: string[];
   id?: string;
-  city?: string;
+  city?: string[];
   status?: string;
 }
 
@@ -44,6 +44,7 @@ export default function SalesExecutiveForm({
   const [error, setError] = useState<string | null>(null);
   const [roles, setRoles] = useState<{ _id: string; roleName: string }[]>([]);
   const [department, setDepartment] = useState<{ _id: string; name: string }[]>([]);
+  const [cities, setCities] = useState<{ _id: string; cityName: string }[]>([]);
   const [token, setToken] = useState<string | null>(null);
 
   const isUpdate = !!initialData?.id;
@@ -64,7 +65,7 @@ export default function SalesExecutiveForm({
       email: '',
       password: '',
       department: '' as string,
-      city: '' as string,
+      city: [] as string[],
       status: 'active' as string,
       id: undefined as string | number | undefined,
       image: undefined as string | undefined,
@@ -84,8 +85,7 @@ export default function SalesExecutiveForm({
       password: isUpdate
         ? Yup.string().notRequired()
         : Yup.string().required('Password is required').min(6, 'Password must be at least 6 characters'),
-      city: Yup.string()
-        .required('City is required'),
+      city: Yup.array().min(1, 'At least one city is required').required('City is required'),
     }),
     validateOnChange: true,
     validateOnBlur: true,
@@ -114,7 +114,7 @@ export default function SalesExecutiveForm({
         email: initialData.email || '',
         password: '',
         department: (initialData as any).department || [],
-        city: (initialData as any).city || '',
+        city: Array.isArray(initialData.city) ? initialData.city : (initialData.city ? [initialData.city] : []),
         status: (initialData as any).status?.toLowerCase() || 'active',
       });
 
@@ -142,6 +142,10 @@ export default function SalesExecutiveForm({
     axios.get(baseUrl.department, { headers })
       .then((res) => setDepartment(res.data?.data ?? []))
       .catch(() => setDepartment([]));
+
+    axios.get(`${baseUrl.city}/all?all=true`, { headers })
+      .then((res) => setCities(res.data?.data ?? []))
+      .catch(() => setCities([]));
 
   }, [isOpen]);
 
@@ -182,7 +186,9 @@ export default function SalesExecutiveForm({
       payload.append('email', values.email);
 
       payload.append('department', values.department || '');
-      payload.append('city', values.city || '');
+      if (values.city && values.city.length > 0) {
+        values.city.forEach((c: string) => payload.append('city[]', c));
+      }
       payload.append('status', values.status || 'active');
 
       // Only send password when creating or when it's changed (not empty)
@@ -367,29 +373,15 @@ export default function SalesExecutiveForm({
             placeholder="— Select Department —"
             error={formik.touched.department && formik.errors.department ? formik.errors.department : undefined}
           />
-          <FormSelect
+          <FormMultiSelect
             label="City"
             name="city"
             value={formik.values.city}
-            onChange={(e) => { formik.setFieldValue('city', e); formik.setFieldTouched('city', true, false); }}
+            onChange={(val) => { formik.setFieldValue('city', val); formik.setFieldTouched('city', true, false); }}
             onBlur={formik.handleBlur}
-            options={[
-              { value: 'surat', label: 'Surat' },
-              { value: 'vapi', label: 'Vapi' },
-              { value: 'navsari', label: 'Navsari' },
-              { value: 'vadodra', label: 'Vadodara' },
-              { value: 'bharuch', label: 'Bharuch' },
-              { value: 'ankleshwar', label: 'Ankleshwar' },
-              { value: 'bardoli', label: 'Bardoli' },
-              { value: 'vyara', label: 'Vyara' },
-              { value: 'mandvi', label: 'Mandvi' },
-              { value: 'songadh', label: 'Songadh' },
-              { value: 'valsad', label: 'Valsad' },   
-              { value: 'bhavnagar', label: 'Bhavnagar' },
-              { value: 'botad', label: 'Botad' },
-            ]}
-            placeholder="— Select City —"
-            error={formik.touched.city && formik.errors.city ? formik.errors.city : undefined}
+            options={cities.map((c: any) => ({ value: c._id, label: c.cityName }))}
+            placeholder="— Select Cities —"
+            error={formik.touched.city && formik.errors.city ? formik.errors.city as string : undefined}
             required
           />
           <FormSelect

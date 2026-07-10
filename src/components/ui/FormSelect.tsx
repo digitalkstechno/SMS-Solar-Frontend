@@ -423,7 +423,7 @@ export const FormMultiSelect: React.FC<FormMultiSelectProps> = ({
                 {options.length === 0 ? (
                   <li className="px-4 py-6 text-sm text-gray-400 text-center">No options available</li>
                 ) : (
-                  options.filter(o => o.label.toLowerCase().includes(searchQuery.toLowerCase())).map((option) => {
+                  options.filter(o => (o.label || "").toLowerCase().includes(searchQuery.toLowerCase())).map((option) => {
                     const isSelected = value.includes(option.value);
                     const isMaxReached = !!maxSelected && value.length >= maxSelected && !isSelected;
                     return (
