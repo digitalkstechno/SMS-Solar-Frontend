@@ -207,36 +207,25 @@ export default function LeadAddDialog({
 
         let leadData = null;
         if (mode === 'edit' && initialData?._id) {
-          const [staffRes, deptRes, leadRes, sourcesRes, cityRes] = await Promise.all([
-            axios.get(baseUrl.getSalesExecutives, { headers }),
+          const [deptRes, leadRes, sourcesRes, cityRes] = await Promise.all([
             axios.get(baseUrl.department, { headers }),
             axios.get(`${baseUrl.findLeadById}/${initialData._id}`, { headers }),
             axios.get(baseUrl.leadSources, { headers }),
             axios.get(`${baseUrl.city}/all?all=true`, { headers })
           ]);
           const depts = deptRes.data?.data || [];
-          const users = staffRes.data?.data || [];
           setLeadSources(sourcesRes.data?.data || []);
           setCities(cityRes.data?.data || []);
-          const usersWithDepts = users.map((u: any) => {
-            const d = depts.find((dept: any) => dept._id === u.department);
-            return { ...u, departmentName: d ? (d.roleName || d.name) : '' };
-          });
-         
-          const salesUsers = usersWithDepts.filter((u: any) => 
-                u.departmentName && u.departmentName.toLowerCase().includes('sales')
-              );
-          setStaff(salesUsers);
+          leadData = leadRes.data?.data;
           leadData = leadRes.data?.data;
         } else {
-          const [staffRes, sourceRes, cityRes] = await Promise.all([
-            axios.get(baseUrl.getSalesExecutives, { headers }),
+          const [sourceRes, cityRes] = await Promise.all([
             axios.get(baseUrl.leadSources, { headers }),
             axios.get(`${baseUrl.city}/all?all=true`, { headers })
           ]);
           setLeadSources(sourceRes.data?.data || sourceRes.data || []);
           setCities(cityRes.data?.data || []);
-          setStaff(staffRes.data?.data || []);
+          setStaff([]);
         }
 
         if (mode === 'edit') {
@@ -272,29 +261,35 @@ export default function LeadAddDialog({
   }, [isOpen, mode, initialData]);
 
 
-  const filteredStaff = useMemo(() => {
-    if (!formik.values.city) return staff;
-    const formCityIdOrName = typeof formik.values.city === 'string' ? formik.values.city.toLowerCase() : '';
-    if (!formCityIdOrName) return staff;
-    
-    // Find the actual city name from the cities array if it's an ID
-    const cityObj = cities.find((c: any) => c._id.toLowerCase() === formCityIdOrName || c.cityName.toLowerCase() === formCityIdOrName);
-    const formCityName = cityObj ? cityObj.cityName.toLowerCase() : formCityIdOrName;
-
-    return staff.filter((u: any) => {
-      const matchExact = (c: string) => c.toLowerCase() === formCityIdOrName || c.toLowerCase() === formCityName;
-      
-      if (u.cityNames) {
-        if (u.cityNames.toLowerCase().includes(formCityName)) return true;
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchStaffForCity = async () => {
+      if (!formik.values.city) {
+        setStaff([]);
+        return;
       }
-      if (Array.isArray(u.city)) {
-        return u.city.some((c: string) => matchExact(c));
-      } else if (typeof u.city === 'string') {
-        return matchExact(u.city);
+      try {
+        const headers = { Authorization: `Bearer ${getAuthToken()}` };
+        const [staffRes, deptRes] = await Promise.all([
+          axios.get(`${baseUrl.getSalesExecutives}?city=${formik.values.city}`, { headers }),
+          axios.get(baseUrl.department, { headers })
+        ]);
+        const depts = deptRes.data?.data || [];
+        let users = staffRes.data?.data || [];
+        users = users.map((u: any) => {
+          const d = depts.find((dept: any) => dept._id === u.department);
+          return { ...u, departmentName: d ? (d.roleName || d.name) : '' };
+        });
+        const salesUsers = users.filter((u: any) => 
+          u.departmentName && u.departmentName.toLowerCase().includes('sales')
+        );
+        setStaff(salesUsers);
+      } catch (err) {
+        console.error('Failed to fetch staff for city', err);
       }
-      return false;
-    });
-  }, [staff, formik.values.city, cities]);
+    };
+    fetchStaffForCity();
+  }, [formik.values.city, isOpen]);
 
   const getFieldError = (fieldName: string) => {
     const isTouched = formik.touched[fieldName as keyof typeof formik.touched];
@@ -505,7 +500,7 @@ export default function LeadAddDialog({
                   value={formik.values.assignedTo}
                   onChange={(val) => { formik.setFieldValue('assignedTo', val); }}
                   onBlur={() => formik.setFieldTouched('assignedTo')}
-                  options={filteredStaff.map((s) => ({ value: s._id, label: `${s.fullName || s.name!}${s.departmentName ? ` (${s.departmentName})` : ''}` }))}
+                  options={staff.map((s) => ({ value: s._id, label: `${s.fullName || s.name!}${s.departmentName ? ` (${s.departmentName})` : ''}` }))}
                   error={getFieldError('assignedTo')}
                   placeholder="Select User"
                   required={requiredFields.includes('assignedTo')}
