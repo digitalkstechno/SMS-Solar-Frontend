@@ -570,7 +570,7 @@ export default function Dashboard() {
       ...(!isTelecaller ? [{
         key: "revenue",
         label: "Total Revenue",
-        value: `₹${(summary.totals?.revenue || 0).toLocaleString()}`,
+        value: `₹${(summary.counts?.revenue || 0).toLocaleString()}`,
         Icon: Activity,
         iconBg: "bg-amber-500/10",
         iconColor: "text-amber-500",
@@ -586,8 +586,8 @@ export default function Dashboard() {
     return 4;
   };
 
-  const sortedStatusCounts = summary?.statusWiseCounts
-    ? [...summary.statusWiseCounts].sort((a, b) => {
+  const sortedStatusCounts = summary?.charts?.statusWiseCounts
+    ? [...summary.charts.statusWiseCounts].sort((a: any, b: any) => {
       const orderA = getStatusOrderValue(a.statusName);
       const orderB = getStatusOrderValue(b.statusName);
       if (orderA !== orderB) {
