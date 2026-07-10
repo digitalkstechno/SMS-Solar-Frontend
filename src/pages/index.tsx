@@ -257,9 +257,7 @@ export default function Dashboard() {
   const [followupFilter, setFollowupFilter] = useState<number>(new Date().getFullYear());
   const [isKwYearClicked, setIsKwYearClicked] = useState(false);
   const [followupChartData, setFollowupChartData] = useState<any[]>([]);
-  const [leadSources, setLeadSources] = useState<any[]>([]);
   const [leadSourceChartData, setLeadSourceChartData] = useState<any[]>([]);
-  const [leadAssignmentChartData, setLeadAssignmentChartData] = useState<any[]>([]);
 
   const [isUpdateLeadDialogOpen, setIsUpdateLeadDialogOpen] = useState(false);
   const [selectedLeadForUpdate, setSelectedLeadForUpdate] = useState<any>(null);
@@ -361,7 +359,11 @@ export default function Dashboard() {
           kwYear: isKwYearClicked ? kwFilter : undefined,
         }
       });
-      setSummary(res.data.data);
+      const data = res.data.data;
+      setSummary(data);
+      if (data?.charts?.salesWinRate) {
+        setSalesWinRateData(data.charts.salesWinRate);
+      }
     } catch (err) {
       console.error("Dashboard stats error:", err);
     }
@@ -412,19 +414,6 @@ export default function Dashboard() {
     }
   };
 
-  const fetchSalesWinRate = async () => {
-    if (!token) return;
-    try {
-      const res = await axios.get(baseUrl.salesWinRate, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { timeframe: salesTimeframe }
-      });
-      setSalesWinRateData(res.data.data);
-    } catch (err) {
-      console.error("Sales win rate error:", err);
-    }
-  };
-
   useEffect(() => {
     fetchKwGrowth();
   }, [kwFilter, isKwYearClicked, token]);
@@ -432,10 +421,6 @@ export default function Dashboard() {
   useEffect(() => {
     fetchRevenueGrowth();
   }, [revenueFilter, isRevenueYearClicked, token]);
-
-  useEffect(() => {
-    fetchSalesWinRate();
-  }, [salesTimeframe, token]);
 
   const fetchUpcomingFollowups = async (page: number) => {
     if (!token) return;
@@ -492,470 +477,6 @@ export default function Dashboard() {
     }
   };
 
-  const fetchTodayTasks = async () => {
-    if (!token) return;
-    setTasksLoading(true);
-    try {
-      const res = await axios.get(baseUrl.todayTasks, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setTodayTasks(res.data.data || []);
-    } catch (err) {
-      console.error("Today tasks error:", err);
-      setTodayTasks([]);
-    } finally {
-      setTasksLoading(false);
-    }
-  };
-
-  const fetchLeadSources = async () => {
-    if (!token) return;
-    try {
-      const res = await axios.get(baseUrl.leadSources, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setLeadSources(res.data.data || []);
-    } catch (err) {
-      console.error("Failed to fetch lead sources:", err);
-    }
-  };
-
-  const fetchAllLeads = async () => {
-    if (!token) return;
-    setRevenueLoading(true);
-    try {
-      const isMyOnly = !permissions.readAll && permissions.readOwn;
-      const url = isMyOnly ? baseUrl.myLeads : baseUrl.getAllLeads;
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { limit: 1000 }
-      });
-      setAllLeads(res.data.data || []);
-    } catch (err) {
-      console.error("Failed to fetch all leads:", err);
-    } finally {
-      setRevenueLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (token) {
-      fetchAllLeads();
-    }
-  }, [token, permissions]);
-
-  useEffect(() => {
-    if (allLeads.length === 0) {
-      setRevenueGrowthData([]);
-      setTotalRevenueChart(0);
-      setKwGrowthData({ total: 0, chartData: [] });
-      setSalesWinRateData([]);
-      return;
-    }
-
-    // Since we are moving chart data to the new dashboard API, 
-    // we bypass the local calculation of revenue and KW growth when the API successfully overrides them.
-    // However, to prevent flashing or breaking old data, we let it run, 
-    // but our new API overrides it anyway (see fetchLeadSummary).
-
-    // 1. Process Revenue Growth
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const currentYear = new Date().getFullYear();
-    const currentMonthIndex = new Date().getMonth();
-
-    const isGlobalFilterActive = activeFilter === 'today' || activeFilter === 'month' || activeFilter === 'prev-month' || activeFilter === 'year';
-
-    const leadsInRevenue = allLeads.filter((lead: any) => {
-      if (isRevenueYearClicked) {
-        const year = new Date(lead.createdAt).getFullYear();
-        return year === revenueFilter;
-      } else if (isGlobalFilterActive) {
-        if (!lead.createdAt) return false;
-        const d = new Date(lead.createdAt);
-        d.setHours(0, 0, 0, 0);
-        if (fromDate) {
-          const fromD = new Date(fromDate);
-          fromD.setHours(0, 0, 0, 0);
-          if (d < fromD) return false;
-        }
-        if (toDate) {
-          const toD = new Date(toDate);
-          toD.setHours(0, 0, 0, 0);
-          if (d > toD) return false;
-        }
-        return true;
-      } else {
-        const year = new Date(lead.createdAt).getFullYear();
-        return year === revenueFilter;
-      }
-    });
-
-    let monthlyData = [];
-    if (!isRevenueYearClicked && activeFilter === 'today') {
-      const currentHour = new Date().getHours();
-      const todayIntervals = [
-        { label: "12 AM - 4 AM", start: 0, end: 4 },
-        { label: "4 AM - 8 AM", start: 4, end: 8 },
-        { label: "8 AM - 12 PM", start: 8, end: 12 },
-        { label: "12 PM - 4 PM", start: 12, end: 16 },
-        { label: "4 PM - 8 PM", start: 16, end: 20 },
-        { label: "8 PM - 12 AM", start: 20, end: 24 },
-      ];
-      const visibleIntervals = todayIntervals.filter(interval => interval.start <= currentHour);
-
-      monthlyData = visibleIntervals.map((interval) => {
-        const intervalLeads = leadsInRevenue.filter((lead: any) => {
-          const hour = new Date(lead.createdAt).getHours();
-          return hour >= interval.start && hour < interval.end;
-        });
-        const sum = intervalLeads.reduce((acc: number, lead: any) => acc + (lead.paymentAmount || 0), 0);
-        return {
-          name: interval.label,
-          amt: sum,
-          lineAmt: sum > 0 ? sum * 1.08 : 0,
-          monthIndex: -1
-        };
-      });
-    } else if (!isRevenueYearClicked && (activeFilter === 'month' || activeFilter === 'prev-month')) {
-      const filterDate = fromDate ? new Date(fromDate) : new Date();
-      const yr = filterDate.getFullYear();
-      const mIdx = filterDate.getMonth();
-      const totalDays = new Date(yr, mIdx + 1, 0).getDate();
-
-      const weeks = [
-        { label: "Week 1 (1-7)", start: 1, end: 7 },
-        { label: "Week 2 (8-14)", start: 8, end: 14 },
-        { label: "Week 3 (15-21)", start: 15, end: 21 },
-        { label: "Week 4 (22-28)", start: 22, end: 28 },
-        { label: `Week 5 (29-${totalDays})`, start: 29, end: totalDays },
-      ];
-
-      const now = new Date();
-      const isCurrentMonthYear = yr === now.getFullYear() && mIdx === now.getMonth();
-      const visibleWeeks = isCurrentMonthYear
-        ? weeks.filter(w => w.start <= now.getDate())
-        : weeks;
-
-      monthlyData = visibleWeeks.map((w) => {
-        const weekLeads = leadsInRevenue.filter((lead: any) => {
-          const leadDate = new Date(lead.createdAt);
-          return leadDate.getDate() >= w.start && leadDate.getDate() <= w.end;
-        });
-        const sum = weekLeads.reduce((acc: number, lead: any) => acc + (lead.paymentAmount || 0), 0);
-        return {
-          name: w.label,
-          amt: sum,
-          lineAmt: sum > 0 ? sum * 1.08 : 0,
-          monthIndex: -1
-        };
-      });
-    } else {
-      monthlyData = months.map((month, index) => {
-        const monthLeads = leadsInRevenue.filter((lead: any) => {
-          const m = new Date(lead.createdAt).getMonth();
-          return m === index;
-        });
-        const sum = monthLeads.reduce((acc: number, lead: any) => acc + (lead.paymentAmount || 0), 0);
-        return {
-          name: month,
-          amt: sum,
-          lineAmt: sum > 0 ? sum * 1.08 : 0,
-          monthIndex: index
-        };
-      });
-
-      if (!isRevenueYearClicked && isGlobalFilterActive) {
-        const startMonth = fromDate ? new Date(fromDate).getMonth() : 0;
-        let endMonth = toDate ? new Date(toDate).getMonth() : 11;
-
-        const toYear = toDate ? new Date(toDate).getFullYear() : currentYear;
-        if (toYear === currentYear) {
-          if (endMonth > currentMonthIndex) {
-            endMonth = currentMonthIndex;
-          }
-        }
-        monthlyData = monthlyData.filter(d => d.monthIndex >= startMonth && d.monthIndex <= endMonth);
-      } else if (revenueFilter === currentYear) {
-        monthlyData = monthlyData.filter(d => d.monthIndex <= currentMonthIndex);
-      }
-    }
-
-    // Temporarily disabled since our API sets this now, but kept as a fallback.
-    // setRevenueGrowthData(monthlyData);
-    // setTotalRevenueChart(monthlyData.reduce((sum, d) => sum + d.amt, 0));
-
-    // 2. Process KW Growth
-    const leadsInKw = allLeads.filter((lead: any) => {
-      const status = lead.leadStatus?.name?.toLowerCase() || '';
-      const isWon = status === 'won' || status === 'sales won';
-      if (!isWon) return false;
-
-      if (isKwYearClicked) {
-        const year = new Date(lead.createdAt).getFullYear();
-        return year === kwFilter;
-      } else if (isGlobalFilterActive) {
-        if (!lead.createdAt) return false;
-        const d = new Date(lead.createdAt);
-        d.setHours(0, 0, 0, 0);
-        if (fromDate) {
-          const fromD = new Date(fromDate);
-          fromD.setHours(0, 0, 0, 0);
-          if (d < fromD) return false;
-        }
-        if (toDate) {
-          const toD = new Date(toDate);
-          toD.setHours(0, 0, 0, 0);
-          if (d > toD) return false;
-        }
-        return true;
-      } else {
-        const year = new Date(lead.createdAt).getFullYear();
-        return year === kwFilter;
-      }
-    });
-
-    let monthlyKwData = [];
-    if (!isKwYearClicked && activeFilter === 'today') {
-      const currentHour = new Date().getHours();
-      const todayIntervals = [
-        { label: "12 AM - 4 AM", start: 0, end: 4 },
-        { label: "4 AM - 8 AM", start: 4, end: 8 },
-        { label: "8 AM - 12 PM", start: 8, end: 12 },
-        { label: "12 PM - 4 PM", start: 12, end: 16 },
-        { label: "4 PM - 8 PM", start: 16, end: 20 },
-        { label: "8 PM - 12 AM", start: 20, end: 24 },
-      ];
-      const visibleIntervals = todayIntervals.filter(interval => interval.start <= currentHour);
-
-      monthlyKwData = visibleIntervals.map((interval) => {
-        const intervalLeads = leadsInKw.filter((lead: any) => {
-          const hour = new Date(lead.createdAt).getHours();
-          return hour >= interval.start && hour < interval.end;
-        });
-        const sum = intervalLeads.reduce((acc: number, lead: any) => {
-          const kw = parseFloat(lead.kwRequirement || "0");
-          return acc + (isNaN(kw) ? 0 : kw);
-        }, 0);
-        return {
-          date: interval.label,
-          kw: sum,
-          monthIndex: -1
-        };
-      });
-    } else if (!isKwYearClicked && (activeFilter === 'month' || activeFilter === 'prev-month')) {
-      const filterDate = fromDate ? new Date(fromDate) : new Date();
-      const yr = filterDate.getFullYear();
-      const mIdx = filterDate.getMonth();
-      const totalDays = new Date(yr, mIdx + 1, 0).getDate();
-
-      const weeks = [
-        { label: "Week 1 (1-7)", start: 1, end: 7 },
-        { label: "Week 2 (8-14)", start: 8, end: 14 },
-        { label: "Week 3 (15-21)", start: 15, end: 21 },
-        { label: "Week 4 (22-28)", start: 22, end: 28 },
-        { label: `Week 5 (29-${totalDays})`, start: 29, end: totalDays },
-      ];
-
-      const now = new Date();
-      const isCurrentMonthYear = yr === now.getFullYear() && mIdx === now.getMonth();
-      const visibleWeeks = isCurrentMonthYear
-        ? weeks.filter(w => w.start <= now.getDate())
-        : weeks;
-
-      monthlyKwData = visibleWeeks.map((w) => {
-        const weekLeads = leadsInKw.filter((lead: any) => {
-          const leadDate = new Date(lead.createdAt);
-          return leadDate.getDate() >= w.start && leadDate.getDate() <= w.end;
-        });
-        const sum = weekLeads.reduce((acc: number, lead: any) => {
-          const kw = parseFloat(lead.kwRequirement || "0");
-          return acc + (isNaN(kw) ? 0 : kw);
-        }, 0);
-        return {
-          date: w.label,
-          kw: sum,
-          monthIndex: -1
-        };
-      });
-    } else {
-      monthlyKwData = months.map((month, index) => {
-        const monthLeads = leadsInKw.filter((lead: any) => {
-          const m = new Date(lead.createdAt).getMonth();
-          return m === index;
-        });
-        const sum = monthLeads.reduce((acc: number, lead: any) => {
-          const kw = parseFloat(lead.kwRequirement || "0");
-          return acc + (isNaN(kw) ? 0 : kw);
-        }, 0);
-        return {
-          date: month,
-          kw: sum,
-          monthIndex: index
-        };
-      });
-
-      if (!isKwYearClicked && isGlobalFilterActive) {
-        const startMonth = fromDate ? new Date(fromDate).getMonth() : 0;
-        let endMonth = toDate ? new Date(toDate).getMonth() : 11;
-
-        const toYear = toDate ? new Date(toDate).getFullYear() : currentYear;
-        if (toYear === currentYear) {
-          if (endMonth > currentMonthIndex) {
-            endMonth = currentMonthIndex;
-          }
-        }
-        monthlyKwData = monthlyKwData.filter(d => d.monthIndex >= startMonth && d.monthIndex <= endMonth);
-      } else if (kwFilter === currentYear) {
-        monthlyKwData = monthlyKwData.filter(d => d.monthIndex <= currentMonthIndex);
-      }
-    }
-
-    const totalKwSum = monthlyKwData.reduce((sum, d) => sum + d.kw, 0);
-    // Temporarily disabled since our API sets this now, but kept as a fallback.
-    // setKwGrowthData({
-    //   total: totalKwSum,
-    //   chartData: monthlyKwData
-    // });
-
-    // 3. Process Sales Win Rate (filtered by Welcome Banner dates fromDate & toDate)
-    const filteredLeads = allLeads.filter((lead: any) => {
-      if (!lead.createdAt) return false;
-      const d = new Date(lead.createdAt);
-      d.setHours(0, 0, 0, 0);
-      if (fromDate) {
-        const fromD = new Date(fromDate);
-        fromD.setHours(0, 0, 0, 0);
-        if (d < fromD) return false;
-      }
-      if (toDate) {
-        const toD = new Date(toDate);
-        toD.setHours(0, 0, 0, 0);
-        if (d > toD) return false;
-      }
-      return true;
-    });
-
-    const executiveMap: Record<string, { staffId: string; name: string; won: number; lost: number; inProgress: number; total: number }> = {};
-
-    filteredLeads.forEach((lead: any) => {
-      const staffName = lead.assignedTo?.fullName || "Unassigned";
-      const staffId = lead.assignedTo?._id || "unassigned";
-
-      if (!executiveMap[staffId]) {
-        executiveMap[staffId] = {
-          staffId,
-          name: staffName,
-          won: 0,
-          lost: 0,
-          inProgress: 0,
-          total: 0
-        };
-      }
-
-      const statusName = lead.leadStatus?.name?.toLowerCase() || "";
-      if (statusName.includes("won")) {
-        executiveMap[staffId].won += 1;
-      } else if (statusName.includes("lost")) {
-        executiveMap[staffId].lost += 1;
-      } else {
-        executiveMap[staffId].inProgress += 1;
-      }
-      executiveMap[staffId].total += 1;
-    });
-
-    const processedSalesData = Object.values(executiveMap).sort((a, b) => b.total - a.total);
-    setSalesWinRateData(processedSalesData);
-
-    // 4. Process Follow-up Analysis
-    const followupMonthlyData = months.map((month, index) => {
-      let completedCount = 0;
-      let upcomingCount = 0;
-
-      allLeads.forEach((lead: any) => {
-        // Completed followups
-        if (lead.followUps && Array.isArray(lead.followUps)) {
-          lead.followUps.forEach((f: any) => {
-            const dateStr = f.date || f.createdAt;
-            if (dateStr) {
-              const d = new Date(dateStr);
-              if (d.getFullYear() === followupFilter && d.getMonth() === index) {
-                completedCount++;
-              }
-            }
-          });
-        }
-
-        // Upcoming followups
-        if (lead.nextFollowupDate) {
-          const d = new Date(lead.nextFollowupDate);
-          if (d.getFullYear() === followupFilter && d.getMonth() === index) {
-            upcomingCount++;
-          }
-        }
-      });
-
-      return {
-        name: month,
-        completed: completedCount,
-        upcoming: upcomingCount,
-        monthIndex: index
-      };
-    });
-
-    let filteredFollowupData = followupMonthlyData;
-    if (followupFilter === currentYear) {
-      filteredFollowupData = followupMonthlyData.filter(d => d.monthIndex <= currentMonthIndex);
-    }
-    setFollowupChartData(filteredFollowupData);
-
-    // 5. Process Lead Source Overview
-    const sourceCountMap: Record<string, number> = {};
-    leadSources.forEach((s: any) => {
-      if (s.name) sourceCountMap[s.name] = 0;
-    });
-    if (!sourceCountMap["Others"]) {
-      sourceCountMap["Others"] = 0;
-    }
-
-    filteredLeads.forEach((lead: any) => {
-      const ref = lead.leadrefrance;
-      if (!ref) {
-        sourceCountMap["Others"]++;
-        return;
-      }
-      const refName = ref.name || "Others";
-      if (sourceCountMap[refName] !== undefined) {
-        sourceCountMap[refName]++;
-      } else {
-        sourceCountMap["Others"]++;
-      }
-    });
-
-    const processedSourceData = Object.entries(sourceCountMap)
-      .map(([name, value]) => ({ name, value }))
-      .filter(item => item.value > 0);
-
-    setLeadSourceChartData(processedSourceData);
-
-    // 6. Process Lead Assignment Distribution
-    const assignCountMap: Record<string, number> = {};
-    filteredLeads.forEach((lead: any) => {
-      const staffName = lead.assignedTo?.fullName || "Unassigned";
-      if (assignCountMap[staffName]) {
-        assignCountMap[staffName]++;
-      } else {
-        assignCountMap[staffName] = 1;
-      }
-    });
-
-    const processedAssignData = Object.entries(assignCountMap)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-
-    setLeadAssignmentChartData(processedAssignData);
-
-  }, [allLeads, activeFilter, fromDate, toDate, revenueFilter, isRevenueYearClicked, kwFilter, isKwYearClicked, leadSources, followupFilter]);
-
   // Only fetch summary stats when date range changes
   useEffect(() => {
     if (token && user) {
@@ -968,8 +489,6 @@ export default function Dashboard() {
     if (token && user) {
       fetchUpcomingFollowups(1);
       fetchDueFollowups(1);
-      fetchTodayTasks();
-      fetchLeadSources();
 
       if (permissions.viewStaff) {
         fetchStaffPerformance();
@@ -1703,34 +1222,6 @@ export default function Dashboard() {
         ) : isTelecaller ? (
           /* ================= TELECALLING VIEW GRID ================= */
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Lead Source Overview - Column Chart */}
-            <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900">Lead Source Overview</h3>
-                  <p className="text-sm text-gray-500 mt-1">Leads distribution by acquisition source</p>
-                </div>
-              </div>
-
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={leadSourceChartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
-                    <defs>
-                      <linearGradient id="colorSourceGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f395c7" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#a63c71" stopOpacity={0.9} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "500" }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11 }} dx={-10} allowDecimals={false} />
-                    <Tooltip content={<LeadSourceTooltip />} cursor={{ fill: '#F9FAFB' }} />
-                    <Bar dataKey="value" name="Leads" fill="url(#colorSourceGrad)" radius={[6, 6, 0, 0]} maxBarSize={45} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
             {/* Lead Assignment Overview - Stacked Bar Chart */}
             <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-2">
@@ -1742,13 +1233,13 @@ export default function Dashboard() {
 
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={leadAssignmentChartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }} barSize={35}>
+                  <BarChart data={salesWinRateData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }} barSize={35}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "500" }} dy={10} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11 }} dx={-10} allowDecimals={false} />
                     <Tooltip content={<CustomSalesTooltip />} cursor={{ fill: '#F3F4F6' }} />
                     <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '13px' }} />
-                    <Bar dataKey="newLead" name="New Lead" fill="#f395c7" stackId="a" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="inProgress" name="In Progress" fill="#f395c7" stackId="a" radius={[0, 0, 0, 0]} />
                     <Bar dataKey="won" name="Won" fill="#a63c71" stackId="a" radius={[0, 0, 0, 0]} />
                     <Bar dataKey="lost" name="Lost" fill="#bd5087" stackId="a" radius={[6, 6, 0, 0]} />
                   </BarChart>
