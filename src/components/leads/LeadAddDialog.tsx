@@ -280,10 +280,7 @@ export default function LeadAddDialog({
           const d = depts.find((dept: any) => dept._id === u.department);
           return { ...u, departmentName: d ? (d.roleName || d.name) : '' };
         });
-        const salesUsers = users.filter((u: any) => 
-          u.departmentName && u.departmentName.toLowerCase().includes('sales')
-        );
-        setStaff(salesUsers);
+        setStaff(users);
       } catch (err) {
         console.error('Failed to fetch staff for city', err);
       }
