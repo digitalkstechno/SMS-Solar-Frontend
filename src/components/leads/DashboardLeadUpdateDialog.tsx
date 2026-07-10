@@ -28,9 +28,10 @@ interface Props {
   onClose: () => void;
   lead: ApiLead | null;
   onSuccess: () => void;
+  fetchApi: () => void;
 }
 
-export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuccess }: Props) {
+export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuccess, fetchApi }: Props) {
   const [actionType, setActionType] = useState<'done' | 'stage' | 'followup'>('stage');
   const [statuses, setStatuses] = useState<ApiStatus[]>([]);
   const [selectedStage, setSelectedStage] = useState('');
@@ -122,8 +123,15 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
       );
 
       toast.success('Lead updated successfully!');
-      onSuccess();
-      onClose();
+      setLoading(false);
+
+      try {
+        fetchApi();
+        onClose();
+      } catch (uiError) {
+        console.error('Post-update UI error:', uiError);
+      }
+
     } catch (error: any) {
       toast.error(error?.response?.data?.message || 'Failed to update lead');
     } finally {
@@ -161,29 +169,29 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
         <div className="flex flex-col gap-3 sm:flex-row sm:gap-6">
           {/* {lead?.leadStatus?.name?.toLowerCase() !== 'won' && (
             <> */}
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="actionType"
-                  value="done"
-                  checked={actionType === 'done'}
-                  onChange={() => setActionType('done')}
-                  className="w-4 h-4 text-[#A63C71] border-gray-300 focus:ring-[#A63C71]"
-                />
-                <span className="text-sm font-medium text-gray-700">Follow Up Done</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="actionType"
-                  value="stage"
-                  checked={actionType === 'stage'}
-                  onChange={() => setActionType('stage')}
-                  className="w-4 h-4 text-[#A63C71] border-gray-300 focus:ring-[#A63C71]"
-                />
-                <span className="text-sm font-medium text-gray-700">Stage</span>
-              </label>
-            {/* </>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="actionType"
+              value="done"
+              checked={actionType === 'done'}
+              onChange={() => setActionType('done')}
+              className="w-4 h-4 text-[#A63C71] border-gray-300 focus:ring-[#A63C71]"
+            />
+            <span className="text-sm font-medium text-gray-700">Follow Up Done</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="actionType"
+              value="stage"
+              checked={actionType === 'stage'}
+              onChange={() => setActionType('stage')}
+              className="w-4 h-4 text-[#A63C71] border-gray-300 focus:ring-[#A63C71]"
+            />
+            <span className="text-sm font-medium text-gray-700">Stage</span>
+          </label>
+          {/* </>
           )} */}
           <label className="flex items-center gap-2 cursor-pointer">
             <input
