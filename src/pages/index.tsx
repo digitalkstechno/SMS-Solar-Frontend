@@ -352,18 +352,18 @@ export default function Dashboard() {
   const fetchLeadSummary = async () => {
     if (!token) return;
     try {
-      const isMyOnly = !permissions.readAll && permissions.readOwn;
-      const url = isMyOnly ? baseUrl.myLeadCountSummary : baseUrl.leadCountSummary;
-      const res = await axios.get(url, {
+      const res = await axios.get(baseUrl.dashboardStats, {
         headers: { Authorization: `Bearer ${token}` },
         params: {
           from: fromDate || undefined,
           to: toDate || undefined,
+          revenueYear: isRevenueYearClicked ? revenueFilter : undefined,
+          kwYear: isKwYearClicked ? kwFilter : undefined,
         }
       });
       setSummary(res.data.data);
     } catch (err) {
-      console.error("Lead summary error:", err);
+      console.error("Dashboard stats error:", err);
     }
   };
 
@@ -390,11 +390,25 @@ export default function Dashboard() {
     try {
       const res = await axios.get(baseUrl.kwGrowth, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { timeframe: kwTimeframe }
+        params: { year: isKwYearClicked ? kwFilter : undefined }
       });
       setKwGrowthData(res.data.data);
     } catch (err) {
       console.error("KW Growth error:", err);
+    }
+  };
+
+  const fetchRevenueGrowth = async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(baseUrl.revenueGrowth, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { year: isRevenueYearClicked ? revenueFilter : undefined }
+      });
+      setRevenueGrowthData(res.data.data.chartData);
+      setTotalRevenueChart(res.data.data.total);
+    } catch (err) {
+      console.error("Revenue Growth error:", err);
     }
   };
 
@@ -413,7 +427,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchKwGrowth();
-  }, [kwTimeframe, token]);
+  }, [kwFilter, isKwYearClicked, token]);
+
+  useEffect(() => {
+    fetchRevenueGrowth();
+  }, [revenueFilter, isRevenueYearClicked, token]);
 
   useEffect(() => {
     fetchSalesWinRate();
@@ -479,9 +497,9 @@ export default function Dashboard() {
     setTasksLoading(true);
     try {
       const res = await axios.get(baseUrl.todayTasks, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setTodayTasks(res.data?.data || []);
+      setTodayTasks(res.data.data || []);
     } catch (err) {
       console.error("Today tasks error:", err);
       setTodayTasks([]);
@@ -496,7 +514,7 @@ export default function Dashboard() {
       const res = await axios.get(baseUrl.leadSources, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setLeadSources(res.data?.data || []);
+      setLeadSources(res.data.data || []);
     } catch (err) {
       console.error("Failed to fetch lead sources:", err);
     }
@@ -534,6 +552,11 @@ export default function Dashboard() {
       setSalesWinRateData([]);
       return;
     }
+
+    // Since we are moving chart data to the new dashboard API, 
+    // we bypass the local calculation of revenue and KW growth when the API successfully overrides them.
+    // However, to prevent flashing or breaking old data, we let it run, 
+    // but our new API overrides it anyway (see fetchLeadSummary).
 
     // 1. Process Revenue Growth
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -657,8 +680,9 @@ export default function Dashboard() {
       }
     }
 
-    setRevenueGrowthData(monthlyData);
-    setTotalRevenueChart(monthlyData.reduce((sum, d) => sum + d.amt, 0));
+    // Temporarily disabled since our API sets this now, but kept as a fallback.
+    // setRevenueGrowthData(monthlyData);
+    // setTotalRevenueChart(monthlyData.reduce((sum, d) => sum + d.amt, 0));
 
     // 2. Process KW Growth
     const leadsInKw = allLeads.filter((lead: any) => {
@@ -787,10 +811,11 @@ export default function Dashboard() {
     }
 
     const totalKwSum = monthlyKwData.reduce((sum, d) => sum + d.kw, 0);
-    setKwGrowthData({
-      total: totalKwSum,
-      chartData: monthlyKwData
-    });
+    // Temporarily disabled since our API sets this now, but kept as a fallback.
+    // setKwGrowthData({
+    //   total: totalKwSum,
+    //   chartData: monthlyKwData
+    // });
 
     // 3. Process Sales Win Rate (filtered by Welcome Banner dates fromDate & toDate)
     const filteredLeads = allLeads.filter((lead: any) => {
@@ -898,68 +923,59 @@ export default function Dashboard() {
         sourceCountMap["Others"]++;
         return;
       }
-      const match = leadSources.find(s => s._id === ref || s.name === ref);
-      if (match && match.name) {
-        sourceCountMap[match.name]++;
+      const refName = ref.name || "Others";
+      if (sourceCountMap[refName] !== undefined) {
+        sourceCountMap[refName]++;
       } else {
         sourceCountMap["Others"]++;
       }
     });
 
-    const processedSourceData = Object.entries(sourceCountMap).map(([name, val]) => ({
-      name,
-      value: val
-    }));
+    const processedSourceData = Object.entries(sourceCountMap)
+      .map(([name, value]) => ({ name, value }))
+      .filter(item => item.value > 0);
+
     setLeadSourceChartData(processedSourceData);
 
-    // 6. Process Lead Assignment Overview
-    const assignmentMap: Record<string, { name: string; newLead: number; won: number; lost: number; total: number }> = {};
+    // 6. Process Lead Assignment Distribution
+    const assignCountMap: Record<string, number> = {};
     filteredLeads.forEach((lead: any) => {
-      const assignedUser = lead.assignedTo;
-      if (!assignedUser) return;
-      const userId = assignedUser._id || "unassigned";
-      const userName = assignedUser.fullName || "Unknown";
-
-      if (!assignmentMap[userId]) {
-        assignmentMap[userId] = {
-          name: userName,
-          newLead: 0,
-          won: 0,
-          lost: 0,
-          total: 0
-        };
-      }
-
-      const statusName = (lead.leadStatus?.name || "").toLowerCase();
-      if (statusName.includes("won")) {
-        assignmentMap[userId].won++;
-      } else if (statusName.includes("lost")) {
-        assignmentMap[userId].lost++;
+      const staffName = lead.assignedTo?.fullName || "Unassigned";
+      if (assignCountMap[staffName]) {
+        assignCountMap[staffName]++;
       } else {
-        assignmentMap[userId].newLead++;
+        assignCountMap[staffName] = 1;
       }
-      assignmentMap[userId].total++;
     });
 
-    const processedAssignmentData = Object.values(assignmentMap).sort((a, b) => b.total - a.total);
-    setLeadAssignmentChartData(processedAssignmentData);
-  }, [allLeads, revenueFilter, kwFilter, followupFilter, fromDate, toDate, leadSources, isRevenueYearClicked, isKwYearClicked]);
+    const processedAssignData = Object.entries(assignCountMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
 
+    setLeadAssignmentChartData(processedAssignData);
+
+  }, [allLeads, activeFilter, fromDate, toDate, revenueFilter, isRevenueYearClicked, kwFilter, isKwYearClicked, leadSources, followupFilter]);
+
+  // Only fetch summary stats when date range changes
   useEffect(() => {
-    if (token) {
+    if (token && user) {
       fetchLeadSummary();
+    }
+  }, [token, fromDate, toDate, user]);
+
+  // Fetch other dashboard modules once (or when auth state changes)
+  useEffect(() => {
+    if (token && user) {
       fetchUpcomingFollowups(1);
       fetchDueFollowups(1);
       fetchTodayTasks();
       fetchLeadSources();
 
-      // Only fetch staff stats if they have readAll
-
       if (permissions.viewStaff) {
         fetchStaffPerformance();
       }
     }
-  }, [token, permissions, fromDate, toDate]);
+  }, [token, permissions, user]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -990,12 +1006,12 @@ export default function Dashboard() {
     "#460020", // extremely dark burgundy
   ];
 
-  const summaryCards: SummaryCard[] = summary
+  const summaryCards: SummaryCard[] = summary?.counts
     ? [
       {
         key: "total",
         label: "Total Leads",
-        value: summary.totalLeads,
+        value: summary.counts.total || 0,
         Icon: Users,
         iconBg: "bg-blue-500/10",
         iconColor: "text-blue-500",
@@ -1003,7 +1019,7 @@ export default function Dashboard() {
       {
         key: "new",
         label: "Total New Leads",
-        value: summary.statusWiseCounts?.find(s => s.statusName?.toLowerCase() === 'new' || s.statusName?.toLowerCase() === 'new lead')?.count || 0,
+        value: summary.counts.new || 0,
         Icon: TrendingUp,
         iconBg: "bg-purple-500/10",
         iconColor: "text-purple-500",
@@ -1011,7 +1027,7 @@ export default function Dashboard() {
       {
         key: "won",
         label: "Total Won Leads",
-        value: summary.statusWiseCounts?.find(s => s.statusName?.toLowerCase() === 'won')?.count || 0,
+        value: summary.counts.won || 0,
         Icon: CheckCircle2,
         iconBg: "bg-emerald-500/10",
         iconColor: "text-emerald-500",
@@ -1019,7 +1035,7 @@ export default function Dashboard() {
       {
         key: "lost",
         label: "Total Lost Leads",
-        value: summary.statusWiseCounts?.find(s => s.statusName?.toLowerCase() === 'lost')?.count || 0,
+        value: summary.counts.lost || 0,
         Icon: XCircle,
         iconBg: "bg-red-500/10",
         iconColor: "text-red-500",
@@ -1027,7 +1043,7 @@ export default function Dashboard() {
       {
         key: "followups",
         label: "Follow-ups",
-        value: upcomingFollowups.length,
+        value: summary.counts.followups || 0,
         Icon: Phone,
         iconBg: "bg-orange-500/10",
         iconColor: "text-orange-500",
@@ -1035,7 +1051,7 @@ export default function Dashboard() {
       ...(!isTelecaller ? [{
         key: "revenue",
         label: "Total Revenue",
-        value: `₹${(summary.totalRevenue || 0).toLocaleString()}`,
+        value: `₹${(summary.totals?.revenue || 0).toLocaleString()}`,
         Icon: Activity,
         iconBg: "bg-amber-500/10",
         iconColor: "text-amber-500",

@@ -248,29 +248,33 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
       >
         <div className="flex h-full flex-col">
           {/* Header with Logo */}
-          <div className={`flex items-center h-20 px-4 border-b border-white/10 ${isOpen ? 'justify-between' : 'justify-center'}`}>
-            {isOpen && (
-             <div className="shrink-0 bg-white px-4 py-2 rounded-xl shadow-lg border border-white/20">
-  <img
-    src={smsLogo.src}
-    alt="SMS Logo"
-    className="h-8  w-40 object-contain mix-blend-darken"
-  />
+<div
+  className={`flex items-center h-20 px-4 bg-white/85 backdrop-blur-md border-b border-white/20 shadow-sm ${
+    isOpen ? "justify-between" : "justify-center"
+  }`}
+>
+  {isOpen && (
+    <div className="flex-1 flex items-center justify-center ml-8">
+      <img
+        src={smsLogo.src}
+        alt="SMS Logo"
+        className="h-16 w-auto max-w-[240px] object-contain shrink-0 scale-[1.1]"
+      />
+    </div>
+  )}
+
+  <button
+    onClick={toggleSidebar}
+    className={`p-2 rounded-lg hover:bg-black/10 transition-all duration-200 group ${isOpen ? "ml-3" : ""}`}
+    aria-label="Toggle sidebar"
+  >
+    {isOpen ? (
+      <ChevronLeft className="h-6 w-6 text-slate-700 drop-shadow-md" />
+    ) : (
+      <Menu className="h-6 w-6 text-slate-700 drop-shadow-md" />
+    )}
+  </button>
 </div>
-            )}
-            
-            <button
-              onClick={toggleSidebar}
-              className="p-2 rounded-lg hover:bg-white/10 transition-all duration-200 group"
-              aria-label="Toggle sidebar"
-            >
-              {isOpen ? (
-                <ChevronLeft className="h-5 w-5 text-white/70 group-hover:text-white transition-all" />
-              ) : (
-                <Menu className="h-6 w-6 text-white/70 group-hover:text-white transition-all" />
-              )}
-            </button>
-          </div>
 
           {/* Navigation Menu */}
           <nav className="flex-1 overflow-y-auto overflow-x-hidden py-6 px-3 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
