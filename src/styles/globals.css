@@ -5,9 +5,12 @@
   --foreground: #171717;
   --primary: #7d558f;
   --secondary: #a63c71;
-  --scrollbar-track: #f5f5f5;
+  /* --scrollbar-track: #f5f5f5;
   --scrollbar-thumb: #eeeeee;
-  --scrollbar-thumb-hover: #dddddd;
+  --scrollbar-thumb-hover: #dddddd; */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #c1c1c1;
+  --scrollbar-thumb-hover: #a0a0a0;
 }
 
 @theme inline {
@@ -114,7 +117,7 @@ textarea[disabled] {
 }
 
 /* Webkit (Chrome, Safari, Edge, Opera) Scrollbar Styling */
-*::-webkit-scrollbar {
+/* *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
@@ -136,16 +139,35 @@ textarea[disabled] {
 
 *::-webkit-scrollbar-corner {
   background: var(--scrollbar-track);
-}
+} */
 
-/* Firefox Scrollbar Styling (already set with scrollbar-color above) */
+/* Global Scrollbar Styling */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 10px;
+  border: none;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
 /* Specific container scrollbar overrides if needed */
-.overflow-auto,
+/* .overflow-auto,
 .overflow-y-auto,
 .overflow-x-auto,
 .scrollbar-custom {
@@ -183,7 +205,7 @@ textarea[disabled] {
 .overflow-x-auto::-webkit-scrollbar-thumb:hover,
 .scrollbar-custom::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
-}
+} */
 
 /* Global Table Scroll Utility */
 .table-responsive {
