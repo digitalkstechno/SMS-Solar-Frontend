@@ -1669,11 +1669,10 @@ export default function Dashboard() {
           }}
           lead={selectedLeadForUpdate}
           onSuccess={() => {
-            fetchAllLeads();
-            fetchLeadSummary();
-            fetchUpcomingFollowups(upcomingPage);
-            fetchDueFollowups(duePage);
+            setIsUpdateLeadDialogOpen(false);
+            setSelectedLeadForUpdate(null);
           }}
+          fetchApi={fetchDueFollowups}
         />
       )}
     </div>
