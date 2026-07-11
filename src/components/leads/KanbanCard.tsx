@@ -7,7 +7,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { baseUrl, getAuthToken } from '@/config';
 import { ApiLead, ApiStatus } from './types';
-import { Edit, Eye, RefreshCw } from 'lucide-react';
+import { Edit, Eye, RefreshCw, Package } from 'lucide-react';
 import DataTable, { Column } from '@/components/DataTable';
 
 interface Props {
@@ -25,7 +25,7 @@ interface Props {
 type SubView = 'board' | 'lost' | 'won';
 
 export default function KanbanCard({
-    lead, onDragStart, onView, onEdit, onMarkLost, onMarkWon, onReactivate, isUpdating
+    lead, onDragStart, onView, onEdit, onMarkLost, onMarkWon, onReactivate, onMarkStock, isUpdating
 }: {
     lead: ApiLead;
     onDragStart?: () => void;
@@ -34,6 +34,7 @@ export default function KanbanCard({
     onMarkLost?: () => void;
     onMarkWon?: () => void;
     onReactivate?: () => void;
+    onMarkStock?: () => void;
     isUpdating?: boolean;
 }) {
     return (
@@ -87,6 +88,15 @@ export default function KanbanCard({
                             className="h-7 w-7 cursor-pointer rounded-full bg-orange-100 text-orange-600 flex items-center justify-center hover:-translate-y-0.5 hover:shadow transition-all"
                         >
                             <RefreshCw className="h-3.5 w-3.5" />
+                        </button>
+                    )}
+                    {onMarkStock && (
+                        <button
+                            onClick={onMarkStock}
+                            title="Assign Stock"
+                            className="h-7 w-7 cursor-pointer rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center hover:-translate-y-0.5 hover:shadow transition-all"
+                        >
+                            <Package className="h-3.5 w-3.5" />
                         </button>
                     )}
                 </div>

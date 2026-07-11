@@ -441,8 +441,8 @@ export default function DataTable<T extends Record<string, any>>({
                               className={`group h-9 min-w-[36px] flex items-center justify-center gap-1.5 rounded-lg bg-gray-100 border border-transparent ${c.base} ${c.hover} ${c.ring} hover:text-white hover:border-transparent px-3 transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 active:scale-95`}
                               title={act.label}
                             >
-                              {act.icon && <span className="transition-colors">{act.icon}</span>}
-                              {act.label && <span className="text-xs font-semibold">{act.label}</span>}
+                              {act.icon && <span className="transition-colors group-hover:text-white">{act.icon}</span>}
+                              {act.label && <span className="text-xs font-semibold group-hover:text-white">{act.label}</span>}
                             </button>
                           );
                         })}
