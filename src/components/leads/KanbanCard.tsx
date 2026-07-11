@@ -102,16 +102,12 @@ export default function KanbanCard({
                 </div>
             </div>
 
-            <div className="mt-2 space-y-1.5 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                    <FiPhone className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="truncate">{lead.contact}</span>
-                </div>
-                <div className="flex items-center gap-2 min-w-0">
-                    <FiMail className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="truncate">{lead.email}</span>
-                </div>
+            <div className="mt-2 text-sm text-gray-600">
                 <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <FiPhone className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">{lead.contact}</span>
+                    </div>
                     <div className="flex items-center gap-1.5 min-w-0">
                         {lead.assignedTo?.avatar ? (
                             <img src={lead.assignedTo.avatar} className="h-5 w-5 rounded-full object-cover flex-shrink-0" alt="" />
@@ -122,11 +118,6 @@ export default function KanbanCard({
                         )}
                         <span className="truncate text-xs">{lead.assignedTo?.fullName || 'Unassigned'}</span>
                     </div>
-                    {lead.discomName && (
-                        <span className="px-2 py-0.5 text-xs font-semibold rounded-full flex-shrink-0 bg-blue-100 text-blue-700">
-                            {lead.discomName}
-                        </span>
-                    )}
                 </div>
             </div>
 
