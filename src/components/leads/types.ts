@@ -99,6 +99,13 @@ export type ApiLead = {
       values: string[];
     }[];
   }[];
+  assignedStock?: {
+    _id?: string;
+    product: any;
+    category: any;
+    quantity: number;
+    date: string;
+  }[];
 };
 
 export type AddLeadForm = {

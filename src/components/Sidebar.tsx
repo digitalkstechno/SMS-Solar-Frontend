@@ -249,7 +249,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
         <div className="flex h-full flex-col">
           {/* Header with Logo */}
 <div
-  className={`flex items-center h-20 px-4 bg-white/85 backdrop-blur-md border-b border-white/20 shadow-sm ${
+  className={`flex items-center h-20 px-4 bg-[#FFFFFF]  ${
     isOpen ? "justify-between" : "justify-center"
   }`}
 >

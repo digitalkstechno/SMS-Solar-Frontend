@@ -1533,8 +1533,6 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               </div>
             </div>
-
-            {/* Lead Statistics - Pie Chart Only (no toggles) */}
             <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -1542,7 +1540,6 @@ export default function Dashboard() {
                   <p className="text-sm text-gray-500 mt-1">Performance by status categories</p>
                 </div>
               </div>
-
               <div className="flex flex-col md:flex-row gap-8 items-center">
                 <div className="h-[320px] w-[350px] flex-shrink-0 flex items-center justify-center">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1565,7 +1562,6 @@ export default function Dashboard() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-
                 <div className="flex-1 w-full space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
                   {statusChartData.map((s, i) => (
                     <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50/80 transition-all duration-200 cursor-default">

@@ -34,7 +34,9 @@ type TransactionType = {
   productName: string;
   type: string;
   quantity: number;
+  clientName?: string;
   note: string;
+  unit?: string;
   createdAt: string;
 };
 
@@ -70,7 +72,7 @@ export function StockInContent() {
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
   const formik = useFormik({
-    initialValues: { _id: '', categoryId: '', productId: '', quantity: '' as any, note: '' },
+    initialValues: { _id: '', categoryId: '', productId: '', quantity: '' as any, note: '', unit: '' },
     validationSchema,
     validateOnChange: true,
     validateOnBlur: true,
@@ -83,10 +85,10 @@ export function StockInContent() {
   useEffect(() => {
     if (!hasDispatchedRef.current) {
       hasDispatchedRef.current = true;
-      if (catStatus === 'idle') dispatch(fetchCategories());
-      if (prodStatus === 'idle') dispatch(fetchProducts());
+      dispatch(fetchCategories());
+      dispatch(fetchProducts());
     }
-  }, [catStatus, prodStatus, dispatch]);
+  }, [dispatch]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -101,7 +103,9 @@ export function StockInContent() {
         productName: i.productId?.name || '-',
         type: i.type,
         quantity: i.quantity,
+        clientName: i.issuedTo || (i.leadId ? (i.leadId.fullName || i.leadId.leadrefrance || '-') : '-'),
         note: i.note || '-',
+        unit: i.unit || '',
         createdAt: i.createdAt ? new Date(i.createdAt).toLocaleDateString() : '-',
       }));
 
@@ -135,7 +139,8 @@ export function StockInContent() {
       productId: values.productId, 
       type: 'IN', 
       quantity: Number(values.quantity), 
-      note: values.note 
+      note: values.note,
+      unit: values.unit
     };
 
     try {
@@ -192,6 +197,7 @@ export function StockInContent() {
     { key: 'categoryName', label: 'CATEGORY' },
     { key: 'productName', label: 'PRODUCT NAME' },
     { key: 'quantity', label: 'QUANTITY' },
+    { key: 'unit', label: 'UNIT' },
     { key: 'note', label: 'NOTE' },
     { key: 'createdAt', label: 'DATE' },
   ];
@@ -215,12 +221,14 @@ export function StockInContent() {
         onPageChange={setCurrentPage}
         onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
         onEdit={(row) => {
+          const product = availableProducts.find(p => p._id === row.productId);
           formik.setValues({
             _id: row._id,
             categoryId: row.categoryId,
             productId: row.productId,
             quantity: row.quantity,
             note: row.note === '-' ? '' : row.note,
+            unit: row.unit || product?.unit || '', 
           });
           setIsDialogOpen(true);
         }}
@@ -301,7 +309,13 @@ export function StockInContent() {
             required
             name="productId"
             value={formik.values.productId}
-            onChange={(e) => { formik.setFieldValue('productId', e); }}
+            onChange={(e) => { 
+              formik.setFieldValue('productId', e);
+              const prod = availableProducts.find(p => p._id === e);
+              if (prod && prod.unit) {
+                formik.setFieldValue('unit', prod.unit);
+              }
+            }}
             onBlur={() => formik.setFieldTouched('productId', true)}
             options={availableProducts.map((prod) => ({ value: prod._id, label: prod.name }))}
             placeholder="-- Select Product --"
@@ -309,21 +323,13 @@ export function StockInContent() {
           />
 
           {formik.values.productId && (
-            <div className="space-y-1">
-              <label className="block text-sm font-semibold text-gray-700">Current Stock</label>
-              <div className="flex items-center rounded border border-green-200 bg-green-50 overflow-hidden">
-                <div className="bg-[#16A34A] text-white p-3">
-                  <PackageOpen size={20} />
-                </div>
-                <div className="px-4 font-bold text-lg text-green-700">
-                  {selectedProductCurrentStock}
-                </div>
-              </div>
+            <div className="text-sm font-semibold text-[#A63C71] bg-[#A63C71]/10 p-2 rounded-md inline-block mb-2">
+              Current Stock: {selectedProductCurrentStock}
             </div>
           )}
 
           <FormInput
-            label="Quantity"
+            label="Quantity *"
             required
             name="quantity"
             type="number"
@@ -332,6 +338,23 @@ export function StockInContent() {
             onBlur={formik.handleBlur}
             error={formik.touched.quantity && formik.errors.quantity ? String(formik.errors.quantity) : undefined}
             placeholder="Enter quantity to add"
+          />
+
+          <FormSelect
+            label="Unit"
+            name="unit"
+            value={formik.values.unit}
+            onChange={(e) => { formik.setFieldValue('unit', e); }}
+            onBlur={() => formik.setFieldTouched('unit', true)}
+            options={[
+              { value: 'Qty', label: 'Qty' },
+              { value: 'Meter (m)', label: 'Meter (m)' },
+              { value: 'Kg', label: 'Kg' },
+              { value: 'Liter', label: 'Liter' },
+              { value: 'Pieces', label: 'Pieces' },
+              { value: 'Box', label: 'Box' }
+            ]}
+            placeholder="-- Default (Qty) --"
           />
 
           <div className="space-y-1">
