@@ -8,6 +8,7 @@ export interface ProductItem {
   category?: any;
   categoryId?: any;
   currentStock?: number;
+  unit?: string;
   createdAt?: string;
 }
 

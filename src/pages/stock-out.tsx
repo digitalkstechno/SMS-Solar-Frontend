@@ -35,6 +35,7 @@ type TransactionType = {
   productName: string;
   type: string;
   quantity: number;
+  clientName?: string;
   note: string;
   createdAt: string;
 };
@@ -112,17 +113,27 @@ export function StockOutContent() {
     try {
       const res = await axios.get(`${baseUrl.stock}?type=OUT`, { headers });
       const data = (res.data?.data as any[]) ?? [];
-      const items: TransactionType[] = data.map((i) => ({
-        _id: i._id,
-        categoryId: i.categoryId?._id || '',
-        categoryName: i.categoryId?.name || '-',
-        productId: i.productId?._id || '',
-        productName: i.productId?.name || '-',
-        type: i.type,
-        quantity: i.quantity,
-        note: i.note || '-',
-        createdAt: i.createdAt ? new Date(i.createdAt).toLocaleDateString() : '-',
-      }));
+      
+      const groupedData = data.reduce((acc: any, i: any) => {
+        const prodId = i.productId?._id || 'unknown';
+        if (!acc[prodId]) {
+          acc[prodId] = {
+            _id: prodId, // Use productId as the unique key for the aggregated row
+            categoryId: i.categoryId?._id || '',
+            categoryName: i.categoryId?.name || '-',
+            productId: prodId,
+            productName: i.productId?.name || '-',
+            type: i.type,
+            quantity: 0,
+            note: '-', // Aggregated rows don't have a single note
+            createdAt: '-' // Nor a single date
+          };
+        }
+        acc[prodId].quantity += (i.quantity || 0);
+        return acc;
+      }, {});
+
+      const items: TransactionType[] = Object.values(groupedData);
 
       let filteredItems = items;
       if (debouncedSearch) {
@@ -202,9 +213,7 @@ export function StockOutContent() {
   const columns: Column<TransactionType>[] = [
     { key: 'categoryName', label: 'CATEGORY' },
     { key: 'productName', label: 'PRODUCT NAME' },
-    { key: 'quantity', label: 'QUANTITY' },
-    { key: 'note', label: 'NOTE' },
-    { key: 'createdAt', label: 'DATE' },
+    { key: 'quantity', label: 'TOTAL STOCK OUT' },
   ];
 
   return (
