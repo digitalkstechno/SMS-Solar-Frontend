@@ -60,6 +60,15 @@ export function StockOutContent() {
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const role: any = currentStaff?.role || {};
+  const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+  const stockPerms = rawPerms.stock || {};
+  const isAdmin = role.roleName?.toLowerCase() === 'admin';
+  const canCreate = isAdmin || !!stockPerms.create;
+  const canUpdate = isAdmin || !!stockPerms.update;
+  const canDeleteStock = isAdmin || !!stockPerms.delete;
+
   const availableProducts = useMemo(() => {
     return products.filter((p) => {
       const cId = p.categoryId?._id || p.categoryId;
@@ -235,7 +244,7 @@ export function StockOutContent() {
         onSearch={(v) => { setSearch(v); setCurrentPage(1); }}
         onPageChange={setCurrentPage}
         onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
-        onEdit={(row) => {
+        onEdit={canUpdate ? (row) => {
           formik.setValues({
             _id: row._id,
             categoryId: row.categoryId,
@@ -244,12 +253,12 @@ export function StockOutContent() {
             note: row.note === '-' ? '' : row.note,
           });
           setIsDialogOpen(true);
-        }}
-        onDelete={handleDeleteClick}
-        addButton={{
+        } : undefined}
+        onDelete={canDeleteStock ? handleDeleteClick : undefined}
+        addButton={canCreate ? {
           label: 'Add Stock Out',
           onClick: () => { formik.resetForm(); setIsDialogOpen(true); },
-        }}
+        } : undefined}
       />
 
       <DeleteDialog

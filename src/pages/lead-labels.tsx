@@ -10,6 +10,7 @@ import { baseUrl, getAuthToken } from '@/config';
 import DeleteDialog from '@/components/DeleteDialog';
 import FormInput from '@/components/ui/Input';
 import { toast } from 'react-toastify';
+import { useAppSelector } from '@/redux/hooks';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
     const [debouncedValue, setDebouncedValue] = useState(value);
@@ -74,6 +75,15 @@ export function LeadLabelsContent() {
 
     const token = typeof window !== 'undefined' ? getAuthToken() : null;
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+    const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+    const role: any = currentStaff?.role || {};
+    const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+    const leadLabelPerms = rawPerms.leadLabel || {};
+    const isAdmin = role.roleName?.toLowerCase() === 'admin';
+    const canCreate = isAdmin || !!leadLabelPerms.create;
+    const canUpdate = isAdmin || !!leadLabelPerms.update;
+    const canDeleteLabel = isAdmin || !!leadLabelPerms.delete;
 
     // Initialize formik
     const formik = useFormik({
@@ -268,15 +278,15 @@ export function LeadLabelsContent() {
                     setPageSize(s);
                     setCurrentPage(1);
                 }}
-                onEdit={handleEdit}
-                onDelete={handleDeleteClick}
-                addButton={{
+                onEdit={canUpdate ? handleEdit : undefined}
+                onDelete={canDeleteLabel ? handleDeleteClick : undefined}
+                addButton={canCreate ? {
                     label: 'Add Label',
                     onClick: () => {
                         resetForm();
                         setIsDialogOpen(true);
                     },
-                }}
+                } : undefined}
             />
 
             {/* DELETE CONFIRMATION DIALOG */}

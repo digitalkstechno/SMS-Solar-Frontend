@@ -10,6 +10,7 @@ import { baseUrl, getAuthToken } from '@/config';
 import DeleteDialog from '@/components/DeleteDialog';
 import FormInput from '@/components/ui/Input';
 import { toast } from 'react-toastify';
+import { useAppSelector } from '@/redux/hooks';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -65,6 +66,15 @@ export function LeadSourcesContent() {
 
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const role: any = currentStaff?.role || {};
+  const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+  const leadSourcePerms = rawPerms.leadSource || {};
+  const isAdmin = role.roleName?.toLowerCase() === 'admin';
+  const canCreate = isAdmin || !!leadSourcePerms.create;
+  const canUpdate = isAdmin || !!leadSourcePerms.update;
+  const canDeleteSource = isAdmin || !!leadSourcePerms.delete;
 
   // Initialize formik
   const formik = useFormik({
@@ -223,15 +233,17 @@ export function LeadSourcesContent() {
             alert('Failed to fetch data');
           }
         }}
-        onDelete={handleDeleteClick}
-        addButton={{
+        onDelete={canDeleteSource ? handleDeleteClick : undefined}
+        canEdit={canUpdate}
+        canDelete={canDeleteSource}
+        addButton={canCreate ? {
           label: 'Add Source',
           onClick: () => {
             formik.resetForm();
             formik.setFieldValue('order', allData.length + 1);
             setIsDialogOpen(true);
           },
-        }}
+        } : undefined}
       />
 
       {/* DELETE CONFIRMATION DIALOG */}

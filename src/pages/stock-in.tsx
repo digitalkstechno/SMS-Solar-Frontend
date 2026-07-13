@@ -73,6 +73,15 @@ export function StockInContent() {
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const role: any = currentStaff?.role || {};
+  const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+  const stockPerms = rawPerms.stock || {};
+  const isAdmin = role.roleName?.toLowerCase() === 'admin';
+  const canCreate = isAdmin || !!stockPerms.create;
+  const canUpdate = isAdmin || !!stockPerms.update;
+  const canDeleteStock = isAdmin || !!stockPerms.delete;
+
   const formik = useFormik({
     initialValues: { _id: '', categoryId: '', productId: '', quantity: '' as any, note: '', unit: '' },
     validationSchema,
@@ -222,7 +231,7 @@ export function StockInContent() {
         onSearch={(v) => { setSearch(v); setCurrentPage(1); }}
         onPageChange={setCurrentPage}
         onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
-        onEdit={(row) => {
+        onEdit={canUpdate ? (row) => {
           const product = availableProducts.find(p => p._id === row.productId);
           formik.setValues({
             _id: row._id,
@@ -233,18 +242,19 @@ export function StockInContent() {
             unit: row.unit || product?.unit || '', 
           });
           setIsDialogOpen(true);
-        }}
+        } : undefined}
         canDelete={(row) => {
+          if (!canDeleteStock) return false;
           const product = products.find(p => p._id === row.productId);
           if (!product) return true;
           // If quantity is greater than current stock, it means some of it was consumed
           return row.quantity <= product.currentStock;
         }}
         onDelete={handleDeleteClick}
-        addButton={{
+        addButton={canCreate ? {
           label: 'Add Stock In',
           onClick: () => { formik.resetForm(); setIsDialogOpen(true); },
-        }}
+        } : undefined}
       />
 
       <DeleteDialog
