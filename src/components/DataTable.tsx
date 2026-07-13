@@ -279,20 +279,20 @@ export default function DataTable<T extends Record<string, any>>({
       </div>
 
       {/* Table - Modern Design */}
-      <div className="border-t border-gray-100 overflow-x-auto">
-        <table className="w-full divide-y divide-gray-100">
-          <thead className="bg-gray-100">
+      <div className="border-t border-gray-100 overflow-auto max-h-[calc(100vh-280px)]">
+        <table className="w-full divide-y divide-gray-100 relative">
+          <thead className="bg-gray-100 sticky top-0 z-20 shadow-sm">
             <tr>
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
-                  className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap ${column.className || ''}`}
+                  className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap bg-gray-100 ${column.className || ''}`}
                 >
                   {column.label}
                 </th>
               ))}
               {actions && (onView || onEdit || onDelete || extraActions) && (
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap">
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap bg-gray-100">
                   Actions
                 </th>
               )}
@@ -414,12 +414,20 @@ export default function DataTable<T extends Record<string, any>>({
                         )}
 
                         {/* DELETE */}
-                        {onDelete && (!canDelete || canDelete(row)) && (
+                        {onDelete && (
                           <button
-                            onClick={() => onDelete(row)}
-                            className="group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 text-red-600 transition-all duration-200 hover:bg-red-500 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:scale-95"
+                            onClick={() => {
+                              if (!canDelete || canDelete(row)) onDelete(row);
+                            }}
+                            disabled={canDelete ? !canDelete(row) : false}
+                            className={`group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 transition-all duration-200 ${
+                              canDelete && !canDelete(row)
+                                ? 'text-gray-300 opacity-50 cursor-not-allowed'
+                                : 'text-red-600 hover:bg-red-500 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:scale-95'
+                            }`}
+                            title={canDelete && !canDelete(row) ? "Cannot delete this consumed stock" : "Delete"}
                           >
-                            <FiTrash2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                            <FiTrash2 className={`h-4 w-4 ${(!canDelete || canDelete(row)) ? 'group-hover:scale-110' : ''} transition-transform`} />
                           </button>
                         )}
 
@@ -459,7 +467,7 @@ export default function DataTable<T extends Record<string, any>>({
 
       {/* Pagination - Modern Design */}
       {pagination && calculatedTotalPages > 0 && !loading && displayedData.length > 0 && (
-        <div className="border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white px-4 md:px-6 py-5">
+        <div className="border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white px-4 md:px-6 py-5 sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-4 text-sm">
               <div className="flex items-center gap-2">

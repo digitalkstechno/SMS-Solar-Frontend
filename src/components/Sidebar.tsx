@@ -2,7 +2,7 @@
 
 import React from "react"
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { useRouter } from "next/router";
 import {
   LayoutDashboard,
   Settings,
@@ -24,7 +24,6 @@ import {
   Megaphone,
   FileText,
 } from 'lucide-react';
-import { useRouter } from "next/navigation";
 import { useAppSelector } from '@/redux/hooks';
 import axios from "axios";
 import { baseUrl, clearAuthToken, getAuthToken } from "@/config";
@@ -43,8 +42,8 @@ interface MenuItem {
 }
 
 export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
-  const pathname = usePathname();
   const router = useRouter();
+  const pathname = router.pathname;
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
