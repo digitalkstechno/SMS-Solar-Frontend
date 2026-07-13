@@ -92,6 +92,7 @@ export default function DataTable<T extends Record<string, any>>({
 }: DataTableProps<T>) {
   const [searchValue, setSearchValue] = useState(externalSearchValue);
   const [internalPage, setInternalPage] = useState(currentPage);
+  const [internalPageSize, setInternalPageSize] = useState(pageSize);
 
   useEffect(() => {
     setSearchValue(externalSearchValue);
@@ -100,6 +101,10 @@ export default function DataTable<T extends Record<string, any>>({
   useEffect(() => {
     setInternalPage(currentPage);
   }, [currentPage]);
+
+  useEffect(() => {
+    setInternalPageSize(pageSize);
+  }, [pageSize]);
 
   const handlePageChange = (page: number) => {
     setInternalPage(page);
@@ -193,13 +198,13 @@ export default function DataTable<T extends Record<string, any>>({
 
   const safeTotalRecords = Number(totalRecords) || data.length;
   // We use client-side pagination if the data length matches total records, or if the server returned more data than the page size (meaning it didn't paginate)
-  const isClientSidePagination = safeTotalRecords === data.length || data.length > pageSize;
+  const isClientSidePagination = safeTotalRecords === data.length || data.length > internalPageSize;
   const calculatedTotalPages = isClientSidePagination
-    ? Math.ceil(filteredData.length / pageSize)
+    ? Math.ceil(filteredData.length / internalPageSize)
     : totalPages;
 
   const displayedData = isClientSidePagination
-    ? filteredData.slice((internalPage - 1) * pageSize, internalPage * pageSize)
+    ? filteredData.slice((internalPage - 1) * internalPageSize, internalPage * internalPageSize)
     : filteredData;
 
   return (
@@ -279,7 +284,7 @@ export default function DataTable<T extends Record<string, any>>({
       </div>
 
       {/* Table - Modern Design */}
-      <div className="border-t border-gray-100 overflow-auto max-h-[calc(100vh-280px)]">
+      <div className="border-t border-gray-100 overflow-auto max-h-[550px]">
         <table className="w-full divide-y divide-gray-100 relative">
           <thead className="bg-gray-100 sticky top-0 z-20 shadow-sm">
             <tr>
@@ -477,7 +482,7 @@ export default function DataTable<T extends Record<string, any>>({
                     onClick={() => setPageSizeDropdownOpen(!pageSizeDropdownOpen)}
                     className="flex items-center gap-2 cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-all focus:border-[#A63C71] focus:ring-1 focus:ring-[#A63C71] hover:border-[#A63C71]/50 outline-none"
                   >
-                    {pageSize}
+                    {internalPageSize}
                     <svg className={`w-4 h-4 transition-transform ${pageSizeDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </button>
                   {pageSizeDropdownOpen && (
@@ -486,17 +491,19 @@ export default function DataTable<T extends Record<string, any>>({
                         <div
                           key={s}
                           onClick={() => {
+                            setInternalPageSize(s);
+                            setInternalPage(1);
                             onPageSizeChange(s);
                             setPageSizeDropdownOpen(false);
                           }}
                           className={`cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 flex items-center justify-between ${
-                            pageSize === s 
+                            internalPageSize === s 
                               ? 'bg-[#A63C71]/10 text-[#A63C71]' 
                               : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                           }`}
                         >
                           <span>{s}</span>
-                          {pageSize === s && (
+                          {internalPageSize === s && (
                             <div className="h-1.5 w-1.5 rounded-full bg-[#A63C71]"></div>
                           )}
                         </div>
@@ -506,9 +513,9 @@ export default function DataTable<T extends Record<string, any>>({
                 </div>
               </div>
               <span className="text-gray-500 text-xs md:text-sm">
-                Showing <span className="font-medium text-gray-700">{(internalPage - 1) * pageSize + 1}</span> to{' '}
+                Showing <span className="font-medium text-gray-700">{(internalPage - 1) * internalPageSize + 1}</span> to{' '}
                 <span className="font-medium text-gray-700">
-                  {Math.min(internalPage * pageSize, totalRecords)}
+                  {Math.min(internalPage * internalPageSize, totalRecords)}
                 </span>{' '}
                 of <span className="font-medium text-gray-700">{totalRecords}</span>
               </span>
