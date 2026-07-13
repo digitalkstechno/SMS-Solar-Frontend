@@ -15,6 +15,8 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchCategories } from '@/redux/slices/categorySlice';
 import { fetchProducts } from '@/redux/slices/productSlice';
 import { useRef } from 'react';
+import { toast } from 'react-toastify';
+
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
@@ -154,7 +156,7 @@ export function StockInContent() {
       setIsDialogOpen(false);
       formik.resetForm();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Operation failed');
+      toast.error(err.response?.data?.message || 'Operation failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -174,7 +176,7 @@ export function StockInContent() {
       setShowDeleteDialog(false);
       setTransactionToDelete(null);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Delete failed');
+      toast.error(err.response?.data?.message || 'Delete failed');
     }
   };
 
@@ -231,6 +233,12 @@ export function StockInContent() {
             unit: row.unit || product?.unit || '', 
           });
           setIsDialogOpen(true);
+        }}
+        canDelete={(row) => {
+          const product = products.find(p => p._id === row.productId);
+          if (!product) return true;
+          // If quantity is greater than current stock, it means some of it was consumed
+          return row.quantity <= product.currentStock;
         }}
         onDelete={handleDeleteClick}
         addButton={{

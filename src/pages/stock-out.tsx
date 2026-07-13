@@ -15,6 +15,7 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchCategories } from '@/redux/slices/categorySlice';
 import { fetchProducts } from '@/redux/slices/productSlice';
 import { useRef } from 'react';
+import { toast } from 'react-toastify';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -162,7 +163,7 @@ export function StockOutContent() {
     setIsSubmitting(true);
 
     if (Number(values.quantity) > selectedProductCurrentStock && !values._id) {
-       alert('Quantity cannot exceed current stock');
+       toast.error('Quantity cannot exceed current stock');
        setIsSubmitting(false);
        return;
     }
@@ -186,7 +187,7 @@ export function StockOutContent() {
       setIsDialogOpen(false);
       formik.resetForm();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Operation failed');
+      toast.error(err.response?.data?.message || 'Operation failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -206,7 +207,7 @@ export function StockOutContent() {
       setShowDeleteDialog(false);
       setTransactionToDelete(null);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Delete failed');
+      toast.error(err.response?.data?.message || 'Delete failed');
     }
   };
 
