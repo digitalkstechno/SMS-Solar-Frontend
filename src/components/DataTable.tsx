@@ -398,43 +398,49 @@ export default function DataTable<T extends Record<string, any>>({
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
 
-                        {/* VIEW */}
-                        {onView && (
-                          <button
-                            onClick={() => onView(row)}
-                            className="group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 text-gray-600 transition-all duration-200 hover:bg-[#0a2352] hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-95"
-                          >
-                            <FiEye className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                          </button>
-                        )}
+                        {(() => {
+                          const isEditable = typeof canEdit === 'function' ? canEdit(row) : (canEdit !== undefined ? !!canEdit : true);
+                          const isDeletable = typeof canDelete === 'function' ? canDelete(row) : (canDelete !== undefined ? !!canDelete : true);
 
-                        {/* EDIT */}
-                        {onEdit && (!canEdit || canEdit(row)) && (
-                          <button
-                            onClick={() => onEdit(row)}
-                            className="group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 text-green-600 transition-all duration-200 hover:bg-green-600 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:scale-95"
-                          >
-                            <FiEdit className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                          </button>
-                        )}
+                          return (
+                            <>
+                              {/* VIEW */}
+                              {onView && (
+                                <button
+                                  onClick={() => onView(row)}
+                                  className="group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 text-gray-600 transition-all duration-200 hover:bg-[#0a2352] hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-95"
+                                >
+                                  <FiEye className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                                </button>
+                              )}
 
-                        {/* DELETE */}
-                        {onDelete && (
-                          <button
-                            onClick={() => {
-                              if (!canDelete || canDelete(row)) onDelete(row);
-                            }}
-                            disabled={canDelete ? !canDelete(row) : false}
-                            className={`group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 transition-all duration-200 ${
-                              canDelete && !canDelete(row)
-                                ? 'text-gray-300 opacity-50 cursor-not-allowed'
-                                : 'text-red-600 hover:bg-red-500 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:scale-95'
-                            }`}
-                            title={canDelete && !canDelete(row) ? "Cannot delete this consumed stock" : "Delete"}
-                          >
-                            <FiTrash2 className={`h-4 w-4 ${(!canDelete || canDelete(row)) ? 'group-hover:scale-110' : ''} transition-transform`} />
-                          </button>
-                        )}
+                              {/* EDIT */}
+                              {onEdit && isEditable && (
+                                <button
+                                  onClick={() => onEdit(row)}
+                                  className="group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 text-green-600 transition-all duration-200 hover:bg-green-600 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:scale-95"
+                                >
+                                  <FiEdit className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                                </button>
+                              )}
+
+                              {/* DELETE */}
+                              {onDelete && (
+                                <button
+                                  onClick={() => {
+                                    if (isDeletable) onDelete(row);
+                                  }}
+                                  disabled={!isDeletable}
+                                  className={`group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 transition-all duration-200 ${
+                                    !isDeletable
+                                      ? 'text-gray-300 opacity-50 cursor-not-allowed'
+                                      : 'text-red-600 hover:bg-red-500 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:scale-95'
+                                  }`}
+                                  title={!isDeletable ? "Cannot delete this item" : "Delete"}
+                                >
+                                  <FiTrash2 className={`h-4 w-4 ${isDeletable ? 'group-hover:scale-110' : ''} transition-transform`} />
+                                </button>
+                              )}
 
                         {/* EXTRA ACTIONS */}
                         {extraActions?.filter(act => !act.show || act.show(row)).map((act, idx) => {
@@ -459,7 +465,9 @@ export default function DataTable<T extends Record<string, any>>({
                             </button>
                           );
                         })}
-
+                            </>
+                          );
+                        })()}
                       </div>
                     </td>
                   )}
