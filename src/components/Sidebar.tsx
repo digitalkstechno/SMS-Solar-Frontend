@@ -22,6 +22,7 @@ import {
   PackageMinus,
   Building2,
   Megaphone,
+  FileText,
 } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import { useAppSelector } from '@/redux/hooks';
@@ -121,6 +122,18 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   }
   if (canViewCity) {
     menuItems.push({ icon: Building2, label: "City", path: "/city" });
+  }
+
+  const role: any = currentStaff?.role || {};
+  const isAdmin = role.roleName?.toLowerCase() === "admin";
+  if (isAdmin) {
+    menuItems.push({
+      icon: FileText,
+      label: "Reports",
+      children: [
+        { icon: PackagePlus, label: "Stock In Report", path: "/reports/stock-in" }
+      ]
+    });
   }
 
   const hasAnySetupPerm = true; // Still show Setup if needed for remaining items like Kanban Status
