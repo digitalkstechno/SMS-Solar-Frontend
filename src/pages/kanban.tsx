@@ -891,10 +891,10 @@ export default function LeadsPage() {
                     />
                   </div>
                 </div>
-                <div className="table-responsive overflow-x-auto">
-                  <table className="min-w-[1000px] w-full whitespace-nowrap">
-                    <thead>
-                      <tr className="bg-[#dee2e6] text-black text-xs font-bold">
+                <div className="table-responsive overflow-auto max-h-[calc(100vh-280px)] border-t border-gray-200">
+                  <table className="min-w-[1000px] w-full whitespace-nowrap relative">
+                    <thead className="sticky top-0 z-20">
+                      <tr className="bg-[#dee2e6] text-black text-xs font-bold shadow-sm">
                         <th className="px-4 py-3 text-left">Lead Name</th>
                         <th className="px-4 py-3 text-left">Company</th>
                         <th className="px-4 py-3 text-left">Location</th>
@@ -1016,10 +1016,10 @@ export default function LeadsPage() {
                     />
                   </div>
                 </div>
-                <div className="table-responsive overflow-x-auto">
-                  <table className="min-w-[1000px] w-full whitespace-nowrap">
-                    <thead>
-                      <tr className="bg-[#dee2e6] text-black text-xs font-bold">
+                <div className="table-responsive overflow-auto max-h-[calc(100vh-280px)] border-t border-gray-200">
+                  <table className="min-w-[1000px] w-full whitespace-nowrap relative">
+                    <thead className="sticky top-0 z-20">
+                      <tr className="bg-[#dee2e6] text-black text-xs font-bold shadow-sm">
                         <th className="px-4 py-3 text-left">Lead Name</th>
                         <th className="px-4 py-3 text-left">Company</th>
                         <th className="px-4 py-3 text-left">Location</th>

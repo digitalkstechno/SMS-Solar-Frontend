@@ -15,6 +15,8 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchCategories } from '@/redux/slices/categorySlice';
 import { fetchProducts } from '@/redux/slices/productSlice';
 import { useRef } from 'react';
+import { toast } from 'react-toastify';
+
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
@@ -70,6 +72,15 @@ export function StockInContent() {
 
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const role: any = currentStaff?.role || {};
+  const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+  const stockPerms = rawPerms.stock || {};
+  const isAdmin = role.roleName?.toLowerCase() === 'admin';
+  const canCreate = isAdmin || !!stockPerms.create;
+  const canUpdate = isAdmin || !!stockPerms.update;
+  const canDeleteStock = isAdmin || !!stockPerms.delete;
 
   const formik = useFormik({
     initialValues: { _id: '', categoryId: '', productId: '', quantity: '' as any, note: '', unit: '' },
@@ -154,7 +165,7 @@ export function StockInContent() {
       setIsDialogOpen(false);
       formik.resetForm();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Operation failed');
+      toast.error(err.response?.data?.message || 'Operation failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -174,7 +185,7 @@ export function StockInContent() {
       setShowDeleteDialog(false);
       setTransactionToDelete(null);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Delete failed');
+      toast.error(err.response?.data?.message || 'Delete failed');
     }
   };
 
@@ -220,7 +231,7 @@ export function StockInContent() {
         onSearch={(v) => { setSearch(v); setCurrentPage(1); }}
         onPageChange={setCurrentPage}
         onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
-        onEdit={(row) => {
+        onEdit={canUpdate ? (row) => {
           const product = availableProducts.find(p => p._id === row.productId);
           formik.setValues({
             _id: row._id,
@@ -231,12 +242,19 @@ export function StockInContent() {
             unit: row.unit || product?.unit || '', 
           });
           setIsDialogOpen(true);
+        } : undefined}
+        canDelete={(row) => {
+          if (!canDeleteStock) return false;
+          const product = products.find(p => p._id === row.productId);
+          if (!product) return true;
+          // If quantity is greater than current stock, it means some of it was consumed
+          return row.quantity <= product.currentStock;
         }}
         onDelete={handleDeleteClick}
-        addButton={{
+        addButton={canCreate ? {
           label: 'Add Stock In',
           onClick: () => { formik.resetForm(); setIsDialogOpen(true); },
-        }}
+        } : undefined}
       />
 
       <DeleteDialog

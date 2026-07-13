@@ -76,6 +76,7 @@ export const baseUrl = {
   leadsBySourceAnalytics: `${API}analytics/leads-by-source`,
   dashboardStats: `${API}lead/dashboard-stats`,
   assignStock: (id: string) => `${API}lead/${id}/assign-stock`,
+  exportStockInReport: `${API}stock/export`,
 };
 
 const TOKEN_COOKIE_NAME = "crm_token";

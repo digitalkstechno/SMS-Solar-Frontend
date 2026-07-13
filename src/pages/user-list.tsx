@@ -68,10 +68,11 @@ export function UserContent() {
   useEffect(() => {
     if (currentStaff) {
       const role: any = currentStaff.role || {};
+      const isAdmin = role.roleName?.toLowerCase() === 'admin';
       const rawPerms = Array.isArray(role.permissions)
         ? role.permissions[0]
         : role.permissions || {};
-      setSetupPermissions(rawPerms.staff || null);
+      setSetupPermissions(isAdmin ? { create: true, readAll: true, update: true, delete: true } : rawPerms.staff || null);
     } else {
       setSetupPermissions(null);
     }

@@ -15,6 +15,7 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchCategories } from '@/redux/slices/categorySlice';
 import { fetchProducts } from '@/redux/slices/productSlice';
 import { useRef } from 'react';
+import { toast } from 'react-toastify';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -58,6 +59,15 @@ export function StockOutContent() {
 
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const role: any = currentStaff?.role || {};
+  const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+  const stockPerms = rawPerms.stock || {};
+  const isAdmin = role.roleName?.toLowerCase() === 'admin';
+  const canCreate = isAdmin || !!stockPerms.create;
+  const canUpdate = isAdmin || !!stockPerms.update;
+  const canDeleteStock = isAdmin || !!stockPerms.delete;
 
   const availableProducts = useMemo(() => {
     return products.filter((p) => {
@@ -162,7 +172,7 @@ export function StockOutContent() {
     setIsSubmitting(true);
 
     if (Number(values.quantity) > selectedProductCurrentStock && !values._id) {
-       alert('Quantity cannot exceed current stock');
+       toast.error('Quantity cannot exceed current stock');
        setIsSubmitting(false);
        return;
     }
@@ -186,7 +196,7 @@ export function StockOutContent() {
       setIsDialogOpen(false);
       formik.resetForm();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Operation failed');
+      toast.error(err.response?.data?.message || 'Operation failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -206,7 +216,7 @@ export function StockOutContent() {
       setShowDeleteDialog(false);
       setTransactionToDelete(null);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Delete failed');
+      toast.error(err.response?.data?.message || 'Delete failed');
     }
   };
 
@@ -234,7 +244,7 @@ export function StockOutContent() {
         onSearch={(v) => { setSearch(v); setCurrentPage(1); }}
         onPageChange={setCurrentPage}
         onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
-        onEdit={(row) => {
+        onEdit={canUpdate ? (row) => {
           formik.setValues({
             _id: row._id,
             categoryId: row.categoryId,
@@ -243,12 +253,12 @@ export function StockOutContent() {
             note: row.note === '-' ? '' : row.note,
           });
           setIsDialogOpen(true);
-        }}
-        onDelete={handleDeleteClick}
-        addButton={{
+        } : undefined}
+        onDelete={canDeleteStock ? handleDeleteClick : undefined}
+        addButton={canCreate ? {
           label: 'Add Stock Out',
           onClick: () => { formik.resetForm(); setIsDialogOpen(true); },
-        }}
+        } : undefined}
       />
 
       <DeleteDialog

@@ -73,6 +73,15 @@ export function ProductContent() {
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const role: any = currentStaff?.role || {};
+  const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+  const productPerms = rawPerms.product || {};
+  const isAdmin = role.roleName?.toLowerCase() === 'admin';
+  const canCreate = isAdmin || !!productPerms.create;
+  const canUpdate = isAdmin || !!productPerms.update;
+  const canDeleteProduct = isAdmin || !!productPerms.delete;
+
   const formik = useFormik({
     initialValues: {
       _id: '',
@@ -223,22 +232,22 @@ export function ProductContent() {
           setPageSize(s);
           setCurrentPage(1);
         }}
-        onEdit={(row) => {
+        onEdit={canUpdate ? (row) => {
           formik.setValues({
             _id: row._id,
             categoryId: row.categoryId,
             name: row.name,
           });
           setIsDialogOpen(true);
-        }}
-        onDelete={handleDeleteClick}
-        addButton={{
+        } : undefined}
+        onDelete={canDeleteProduct ? handleDeleteClick : undefined}
+        addButton={canCreate ? {
           label: 'Add Product',
           onClick: () => {
             formik.resetForm();
             setIsDialogOpen(true);
           },
-        }}
+        } : undefined}
       />
 
       <DeleteDialog

@@ -239,7 +239,11 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                 const blobUrl = window.URL.createObjectURL(response.data);
                 const link = document.createElement('a');
                 link.href = blobUrl;
-                link.download = 'quotation.pdf';
+                const clientName = (lead?.fullName || lead?.leadrefrance || 'Client').replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
+                const d = new Date();
+                const pad = (n: number) => String(n).padStart(2, '0');
+                const dateStr = `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+                link.download = `Quotation_${clientName}_${dateStr}.pdf`;
                 document.body.appendChild(link);
                 link.click();
                 link.remove();

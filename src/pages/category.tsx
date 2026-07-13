@@ -63,6 +63,15 @@ export function CategoryContent() {
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const role: any = currentStaff?.role || {};
+  const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+  const categoryPerms = rawPerms.category || {};
+  const isAdmin = role.roleName?.toLowerCase() === 'admin';
+  const canCreate = isAdmin || !!categoryPerms.create;
+  const canUpdate = isAdmin || !!categoryPerms.update;
+  const canDeleteCategory = isAdmin || !!categoryPerms.delete;
+
   // Initialize formik
   const formik = useFormik({
     initialValues: {
@@ -213,21 +222,28 @@ export function CategoryContent() {
           setPageSize(s);
           setCurrentPage(1);
         }}
-        onEdit={(row) => {
-          formik.setValues({
-            _id: row._id,
-            name: row.name,
-          });
-          setIsDialogOpen(true);
-        }}
-        onDelete={handleDeleteClick}
-        addButton={{
+        onEdit={canUpdate ? async (row) => {
+          try {
+            const res = await axios.get(`${baseUrl.category}/${row._id}`, { headers });
+            const data = res.data.data;
+            formik.setValues({
+              _id: data._id,
+              name: data.name,
+            });
+            setIsDialogOpen(true);
+          } catch (err) {
+            console.error('Failed to fetch by id', err);
+            toast.error('Failed to fetch data');
+          }
+        } : undefined}
+        onDelete={canDeleteCategory ? handleDeleteClick : undefined}
+        addButton={canCreate ? {
           label: 'Add Category',
           onClick: () => {
             formik.resetForm();
             setIsDialogOpen(true);
           },
-        }}
+        } : undefined}
       />
 
       <DeleteDialog

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { useAppDispatch } from '@/redux/hooks';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchLeadStatuses } from '@/redux/slices/leadStatusSlice';
 import Dialog from '@/components/Dialog';
 import DataTable, { Column } from '@/components/DataTable';
@@ -80,6 +80,15 @@ export function LeadStatusContent() {
 
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const role: any = currentStaff?.role || {};
+  const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+  const leadStatusPerms = rawPerms.leadStatus || {};
+  const isAdmin = role.roleName?.toLowerCase() === 'admin';
+  const canCreate = isAdmin || !!leadStatusPerms.create;
+  const canUpdate = isAdmin || !!leadStatusPerms.update;
+  const canDeleteStatus = isAdmin || !!leadStatusPerms.delete;
 
   // Initialize formik
   const formik = useFormik({
@@ -210,6 +219,14 @@ export function LeadStatusContent() {
   };
 
   const canEditDelete = (row: any) => {
+    if (!canUpdate) return false;
+    if (!isReserved(row.name)) return true;
+    const firstReserved = allData.find((d: any) => d.name?.toLowerCase() === row.name?.toLowerCase());
+    return firstReserved?._id !== row._id;
+  };
+
+  const canDeleteRow = (row: any) => {
+    if (!canDeleteStatus) return false;
     if (!isReserved(row.name)) return true;
     const firstReserved = allData.find((d: any) => d.name?.toLowerCase() === row.name?.toLowerCase());
     return firstReserved?._id !== row._id;
@@ -257,15 +274,15 @@ export function LeadStatusContent() {
         }}
         onDelete={handleDeleteClick}
         canEdit={canEditDelete}
-        canDelete={canEditDelete}
-        addButton={{
+        canDelete={canDeleteRow}
+        addButton={canCreate ? {
           label: 'Add Status',
           onClick: () => {
             formik.resetForm();
             formik.setFieldValue('order', allData.length + 1);
             setIsDialogOpen(true);
           },
-        }}
+        } : undefined}
       />
 
       {/* DELETE CONFIRMATION DIALOG */}

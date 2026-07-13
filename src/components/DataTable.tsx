@@ -92,6 +92,7 @@ export default function DataTable<T extends Record<string, any>>({
 }: DataTableProps<T>) {
   const [searchValue, setSearchValue] = useState(externalSearchValue);
   const [internalPage, setInternalPage] = useState(currentPage);
+  const [internalPageSize, setInternalPageSize] = useState(pageSize);
 
   useEffect(() => {
     setSearchValue(externalSearchValue);
@@ -100,6 +101,10 @@ export default function DataTable<T extends Record<string, any>>({
   useEffect(() => {
     setInternalPage(currentPage);
   }, [currentPage]);
+
+  useEffect(() => {
+    setInternalPageSize(pageSize);
+  }, [pageSize]);
 
   const handlePageChange = (page: number) => {
     setInternalPage(page);
@@ -193,13 +198,13 @@ export default function DataTable<T extends Record<string, any>>({
 
   const safeTotalRecords = Number(totalRecords) || data.length;
   // We use client-side pagination if the data length matches total records, or if the server returned more data than the page size (meaning it didn't paginate)
-  const isClientSidePagination = safeTotalRecords === data.length || data.length > pageSize;
+  const isClientSidePagination = safeTotalRecords === data.length || data.length > internalPageSize;
   const calculatedTotalPages = isClientSidePagination
-    ? Math.ceil(filteredData.length / pageSize)
+    ? Math.ceil(filteredData.length / internalPageSize)
     : totalPages;
 
   const displayedData = isClientSidePagination
-    ? filteredData.slice((internalPage - 1) * pageSize, internalPage * pageSize)
+    ? filteredData.slice((internalPage - 1) * internalPageSize, internalPage * internalPageSize)
     : filteredData;
 
   return (
@@ -279,20 +284,20 @@ export default function DataTable<T extends Record<string, any>>({
       </div>
 
       {/* Table - Modern Design */}
-      <div className="border-t border-gray-100 overflow-x-auto">
-        <table className="w-full divide-y divide-gray-100">
-          <thead className="bg-gray-100">
+      <div className="border-t border-gray-100 overflow-auto max-h-[550px]">
+        <table className="w-full divide-y divide-gray-100 relative">
+          <thead className="bg-gray-100 sticky top-0 z-20 shadow-sm">
             <tr>
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
-                  className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap ${column.className || ''}`}
+                  className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap bg-gray-100 ${column.className || ''}`}
                 >
                   {column.label}
                 </th>
               ))}
               {actions && (onView || onEdit || onDelete || extraActions) && (
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap">
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 whitespace-nowrap bg-gray-100">
                   Actions
                 </th>
               )}
@@ -393,35 +398,49 @@ export default function DataTable<T extends Record<string, any>>({
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
 
-                        {/* VIEW */}
-                        {onView && (
-                          <button
-                            onClick={() => onView(row)}
-                            className="group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 text-gray-600 transition-all duration-200 hover:bg-[#0a2352] hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-95"
-                          >
-                            <FiEye className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                          </button>
-                        )}
+                        {(() => {
+                          const isEditable = typeof canEdit === 'function' ? canEdit(row) : (canEdit !== undefined ? !!canEdit : true);
+                          const isDeletable = typeof canDelete === 'function' ? canDelete(row) : (canDelete !== undefined ? !!canDelete : true);
 
-                        {/* EDIT */}
-                        {onEdit && (!canEdit || canEdit(row)) && (
-                          <button
-                            onClick={() => onEdit(row)}
-                            className="group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 text-green-600 transition-all duration-200 hover:bg-green-600 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:scale-95"
-                          >
-                            <FiEdit className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                          </button>
-                        )}
+                          return (
+                            <>
+                              {/* VIEW */}
+                              {onView && (
+                                <button
+                                  onClick={() => onView(row)}
+                                  className="group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 text-gray-600 transition-all duration-200 hover:bg-[#0a2352] hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-95"
+                                >
+                                  <FiEye className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                                </button>
+                              )}
 
-                        {/* DELETE */}
-                        {onDelete && (!canDelete || canDelete(row)) && (
-                          <button
-                            onClick={() => onDelete(row)}
-                            className="group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 text-red-600 transition-all duration-200 hover:bg-red-500 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:scale-95"
-                          >
-                            <FiTrash2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                          </button>
-                        )}
+                              {/* EDIT */}
+                              {onEdit && isEditable && (
+                                <button
+                                  onClick={() => onEdit(row)}
+                                  className="group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 text-green-600 transition-all duration-200 hover:bg-green-600 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:scale-95"
+                                >
+                                  <FiEdit className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                                </button>
+                              )}
+
+                              {/* DELETE */}
+                              {onDelete && (
+                                <button
+                                  onClick={() => {
+                                    if (isDeletable) onDelete(row);
+                                  }}
+                                  disabled={!isDeletable}
+                                  className={`group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 transition-all duration-200 ${
+                                    !isDeletable
+                                      ? 'text-gray-300 opacity-50 cursor-not-allowed'
+                                      : 'text-red-600 hover:bg-red-500 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:scale-95'
+                                  }`}
+                                  title={!isDeletable ? "Cannot delete this item" : "Delete"}
+                                >
+                                  <FiTrash2 className={`h-4 w-4 ${isDeletable ? 'group-hover:scale-110' : ''} transition-transform`} />
+                                </button>
+                              )}
 
                         {/* EXTRA ACTIONS */}
                         {extraActions?.filter(act => !act.show || act.show(row)).map((act, idx) => {
@@ -446,7 +465,9 @@ export default function DataTable<T extends Record<string, any>>({
                             </button>
                           );
                         })}
-
+                            </>
+                          );
+                        })()}
                       </div>
                     </td>
                   )}
@@ -459,7 +480,7 @@ export default function DataTable<T extends Record<string, any>>({
 
       {/* Pagination - Modern Design */}
       {pagination && calculatedTotalPages > 0 && !loading && displayedData.length > 0 && (
-        <div className="border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white px-4 md:px-6 py-5">
+        <div className="border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white px-4 md:px-6 py-5 sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
@@ -469,7 +490,7 @@ export default function DataTable<T extends Record<string, any>>({
                     onClick={() => setPageSizeDropdownOpen(!pageSizeDropdownOpen)}
                     className="flex items-center gap-2 cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-all focus:border-[#A63C71] focus:ring-1 focus:ring-[#A63C71] hover:border-[#A63C71]/50 outline-none"
                   >
-                    {pageSize}
+                    {internalPageSize}
                     <svg className={`w-4 h-4 transition-transform ${pageSizeDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </button>
                   {pageSizeDropdownOpen && (
@@ -478,17 +499,19 @@ export default function DataTable<T extends Record<string, any>>({
                         <div
                           key={s}
                           onClick={() => {
+                            setInternalPageSize(s);
+                            setInternalPage(1);
                             onPageSizeChange(s);
                             setPageSizeDropdownOpen(false);
                           }}
                           className={`cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 flex items-center justify-between ${
-                            pageSize === s 
+                            internalPageSize === s 
                               ? 'bg-[#A63C71]/10 text-[#A63C71]' 
                               : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                           }`}
                         >
                           <span>{s}</span>
-                          {pageSize === s && (
+                          {internalPageSize === s && (
                             <div className="h-1.5 w-1.5 rounded-full bg-[#A63C71]"></div>
                           )}
                         </div>
@@ -498,9 +521,9 @@ export default function DataTable<T extends Record<string, any>>({
                 </div>
               </div>
               <span className="text-gray-500 text-xs md:text-sm">
-                Showing <span className="font-medium text-gray-700">{(internalPage - 1) * pageSize + 1}</span> to{' '}
+                Showing <span className="font-medium text-gray-700">{(internalPage - 1) * internalPageSize + 1}</span> to{' '}
                 <span className="font-medium text-gray-700">
-                  {Math.min(internalPage * pageSize, totalRecords)}
+                  {Math.min(internalPage * internalPageSize, totalRecords)}
                 </span>{' '}
                 of <span className="font-medium text-gray-700">{totalRecords}</span>
               </span>

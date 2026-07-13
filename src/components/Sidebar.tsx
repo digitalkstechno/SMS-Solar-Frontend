@@ -2,7 +2,7 @@
 
 import React from "react"
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { useRouter } from "next/router";
 import {
   LayoutDashboard,
   Settings,
@@ -22,8 +22,8 @@ import {
   PackageMinus,
   Building2,
   Megaphone,
+  FileText,
 } from 'lucide-react';
-import { useRouter } from "next/navigation";
 import { useAppSelector } from '@/redux/hooks';
 import axios from "axios";
 import { baseUrl, clearAuthToken, getAuthToken } from "@/config";
@@ -42,8 +42,8 @@ interface MenuItem {
 }
 
 export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
-  const pathname = usePathname();
   const router = useRouter();
+  const pathname = router.pathname;
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -58,6 +58,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   const [canViewProduct, setCanViewProduct] = useState(false);
   const [canViewStock, setCanViewStock] = useState(false);
   const [canViewCity, setCanViewCity] = useState(false);
+  const [canViewReport, setCanViewReport] = useState(false);
 
   const currentStaff = useAppSelector((state) => state.auth.currentStaff);
 
@@ -81,6 +82,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
     const productPerms = rawPerms.product || {};
     const stockPerms = rawPerms.stock || {};
     const cityPerms = rawPerms.city || {};
+    const reportPerms = rawPerms.report || {};
 
     const isAdmin = role.roleName?.toLowerCase() === "admin";
 
@@ -88,13 +90,14 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
         setCanViewTask(isAdmin || !!(taskPerms.readOwn || taskPerms.readAll));
         setCanViewStaff(isAdmin || !!(staffPerms.readAll || setupPerms.readAll));
         setCanViewRole(isAdmin || !!(rolePerms.readAll || setupPerms.readAll));
-        setCanViewLeadStatus(isAdmin || !!(leadStatusPerms.readAll || leadStatusPerms.readOwn || setupPerms.readAll));
-        setCanViewLeadSource(isAdmin || !!(leadSourcePerms.readAll || leadSourcePerms.readOwn || setupPerms.readAll));
-        setCanViewLeadLabel(isAdmin || !!(leadLabelPerms.readAll || leadLabelPerms.readOwn || setupPerms.readAll));
-        setCanViewCategory(isAdmin || !!(categoryPerms.readAll || categoryPerms.readOwn || setupPerms.readAll));
-        setCanViewProduct(isAdmin || !!(productPerms.readAll || productPerms.readOwn || setupPerms.readAll));
-        setCanViewStock(isAdmin || !!(stockPerms.readAll || stockPerms.readOwn || setupPerms.readAll));
-        setCanViewCity(isAdmin || !!(cityPerms.readAll || cityPerms.readOwn || setupPerms.readAll));
+        setCanViewLeadStatus(isAdmin || !!(leadStatusPerms.readAll || leadStatusPerms.readOwn));
+        setCanViewLeadSource(isAdmin || !!(leadSourcePerms.readAll || leadSourcePerms.readOwn));
+        setCanViewLeadLabel(isAdmin || !!(leadLabelPerms.readAll || leadLabelPerms.readOwn));
+        setCanViewCategory(isAdmin || !!(categoryPerms.readAll || categoryPerms.readOwn));
+        setCanViewProduct(isAdmin || !!(productPerms.readAll || productPerms.readOwn));
+        setCanViewStock(isAdmin || !!(stockPerms.readAll || stockPerms.readOwn));
+        setCanViewCity(isAdmin || !!(cityPerms.readAll || cityPerms.readOwn));
+        setCanViewReport(isAdmin || !!(reportPerms.readAll || reportPerms.readOwn));
   }, [currentStaff]);
 
   const menuItems: MenuItem[] = [
@@ -121,6 +124,18 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   }
   if (canViewCity) {
     menuItems.push({ icon: Building2, label: "City", path: "/city" });
+  }
+
+  const role: any = currentStaff?.role || {};
+  if (canViewReport) {
+    menuItems.push({
+      icon: FileText,
+      label: "Reports",
+      children: [
+        { icon: Users, label: "Lead Report", path: "/reports/leads" },
+        { icon: PackagePlus, label: "Stock In Report", path: "/reports/stock-in" }
+      ]
+    });
   }
 
   const hasAnySetupPerm = true; // Still show Setup if needed for remaining items like Kanban Status

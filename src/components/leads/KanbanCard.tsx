@@ -102,31 +102,22 @@ export default function KanbanCard({
                 </div>
             </div>
 
-            <div className="mt-2 space-y-1.5 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                    <FiPhone className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="truncate">{lead.contact}</span>
-                </div>
-                <div className="flex items-center gap-2 min-w-0">
-                    <FiMail className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="truncate">{lead.email}</span>
-                </div>
+            <div className="mt-2 text-sm text-gray-600">
                 <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <FiPhone className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">{lead.contact}</span>
+                    </div>
                     <div className="flex items-center gap-1.5 min-w-0">
                         {lead.assignedTo?.avatar ? (
                             <img src={lead.assignedTo.avatar} className="h-5 w-5 rounded-full object-cover flex-shrink-0" alt="" />
                         ) : (
-                            <div className="h-5 w-5 rounded-full bg-gradient-to-r from-purple-500 to-purple-300 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
-                                {lead.assignedTo?.fullName?.charAt(0).toUpperCase() || '?'}
-                            </div>
+                          <div className="h-5 w-5 rounded-full bg-gradient-to-br from-pink-300 via-pink-400 to-[#A63C71] flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 shadow-sm ring-1 ring-pink-200/50">
+    {lead.assignedTo?.fullName?.charAt(0).toUpperCase() || '?'}
+</div>
                         )}
                         <span className="truncate text-xs">{lead.assignedTo?.fullName || 'Unassigned'}</span>
                     </div>
-                    {lead.discomName && (
-                        <span className="px-2 py-0.5 text-xs font-semibold rounded-full flex-shrink-0 bg-blue-100 text-blue-700">
-                            {lead.discomName}
-                        </span>
-                    )}
                 </div>
             </div>
 
