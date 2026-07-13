@@ -112,9 +112,9 @@ export default function KanbanCard({
                         {lead.assignedTo?.avatar ? (
                             <img src={lead.assignedTo.avatar} className="h-5 w-5 rounded-full object-cover flex-shrink-0" alt="" />
                         ) : (
-                            <div className="h-5 w-5 rounded-full bg-gradient-to-r from-purple-500 to-purple-300 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
-                                {lead.assignedTo?.fullName?.charAt(0).toUpperCase() || '?'}
-                            </div>
+                          <div className="h-5 w-5 rounded-full bg-gradient-to-br from-pink-300 via-pink-400 to-[#A63C71] flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 shadow-sm ring-1 ring-pink-200/50">
+    {lead.assignedTo?.fullName?.charAt(0).toUpperCase() || '?'}
+</div>
                         )}
                         <span className="truncate text-xs">{lead.assignedTo?.fullName || 'Unassigned'}</span>
                     </div>
