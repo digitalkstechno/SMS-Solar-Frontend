@@ -27,8 +27,8 @@ export default function RoleForm({
   onSubmit,
   initialData,
 }: RoleFormProps) {
-  type Feature = 'lead' | 'staff' | 'role' | 'leadStatus' | 'leadSource' | 'category' | 'product' | 'stock' | 'city';
-  const features: Feature[] = ['lead', 'staff', 'role', 'leadStatus', 'leadSource', 'category', 'product', 'stock', 'city'];
+  type Feature = 'lead' | 'staff' | 'role' | 'leadStatus' | 'leadSource' | 'category' | 'product' | 'stock' | 'city' | 'report';
+  const features: Feature[] = ['lead', 'staff', 'role', 'leadStatus', 'leadSource', 'category', 'product', 'stock', 'city', 'report'];
 
   const featureLabels: Record<Feature, string> = {
     lead: 'Leads',
@@ -40,6 +40,7 @@ export default function RoleForm({
     product: 'Product',
     stock: 'Stock',
     city: 'City Master',
+    report: 'Reports',
   };
 
   const defaultCaps: CapabilitySet = {
@@ -107,7 +108,17 @@ export default function RoleForm({
     },
     validationSchema,
     onSubmit: async (values) => {
-      await onSubmit(values);
+      const isAdmin = values.roleName.toLowerCase() === 'admin';
+      if (isAdmin) {
+        // Force all permissions to true for Admin
+        const adminPerms = {} as Record<Feature, CapabilitySet>;
+        for (const feature of features) {
+          adminPerms[feature] = { create: true, readOwn: true, readAll: true, update: true, delete: true };
+        }
+        await onSubmit({ ...values, permissions: adminPerms });
+      } else {
+        await onSubmit(values);
+      }
       onClose();
     },
     enableReinitialize: true,
@@ -247,17 +258,20 @@ export default function RoleForm({
                     <div className="col-span-5 text-gray-800 font-medium">{featureLabels[feature]}</div>
                     <div className="col-span-7">
                       <div className="flex flex-wrap gap-4">
-                        {(['readAll', 'readOwn', 'create', 'update', 'delete'] as CapabilityKey[]).map((cap) => {
-                          const isCapDisabled = cap === 'readOwn' 
-                            && formik.values.roleName.toLowerCase() !== 'admin' 
+                        {(feature === 'report' ? (['readAll'] as CapabilityKey[]) : (['readAll', 'readOwn', 'create', 'update', 'delete'] as CapabilityKey[])).map((cap) => {
+                          const isAdmin = formik.values.roleName.toLowerCase() === 'admin';
+                          const isCapDisabled = isAdmin || (cap === 'readOwn' 
+                            && !isAdmin 
                             && feature !== 'lead' 
-                            && feature !== 'leadStatus';
+                            && feature !== 'leadStatus');
+
+                          const isChecked = isAdmin ? true : caps[cap];
 
                           return (
                             <label key={cap} className={`inline-flex items-center gap-2 text-sm text-gray-700 ${isCapDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                               <input
                                 type="checkbox"
-                                checked={caps[cap] && !isCapDisabled}
+                                checked={isChecked && !isCapDisabled || isChecked}
                                 disabled={isCapDisabled}
                                 onChange={() => toggleCapability(feature, cap)}
                                 className="h-4 w-4 rounded border-gray-300 text-sky-950 focus:ring-sky-200 disabled:opacity-50 disabled:cursor-not-allowed"

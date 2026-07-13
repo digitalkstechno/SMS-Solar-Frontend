@@ -2,91 +2,94 @@ import { useEffect, useState } from 'react';
 import DataTable, { Column } from '@/components/DataTable';
 import axios from 'axios';
 import { baseUrl, getAuthToken } from '@/config';
-import { FileText, Download, Filter } from 'lucide-react';
-import Dialog from '@/components/Dialog';
-import FormInput from '@/components/ui/Input';
+import { FileText, Download, Filter, Users } from 'lucide-react';
 import FormSelect from '@/components/ui/FormSelect';
 import DateRangePicker from '@/components/ui/DateRangePicker';
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { fetchCategories } from '@/redux/slices/categorySlice';
-import { fetchProducts } from '@/redux/slices/productSlice';
 
-type TransactionType = {
+type LeadType = {
   _id: string;
-  categoryName: string;
-  productName: string;
-  quantity: number;
-  currentStock: number;
-  note: string;
+  fullName: string;
+  contact: string;
+  kwRequirement: string;
+  leadStatus: string;
+  assignedTo: string;
   createdAt: string;
 };
 
-export default function StockInReportPage() {
-  const dispatch = useAppDispatch();
-  const { data: categories } = useAppSelector((state) => state.category);
-  const { data: products } = useAppSelector((state) => state.product);
-
-  const [data, setData] = useState<TransactionType[]>([]);
+export default function LeadReportPage() {
+  const [data, setData] = useState<LeadType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [productId, setProductId] = useState('');
+  const [statusId, setStatusId] = useState('');
+  const [staffId, setStaffId] = useState('');
+  
+  const [statuses, setStatuses] = useState<any[]>([]);
+  const [staff, setStaff] = useState<any[]>([]);
 
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
   useEffect(() => {
-    dispatch(fetchCategories());
-    dispatch(fetchProducts());
-  }, [dispatch]);
-
-  // Derived filtered products based on category
-  const availableProducts = categoryId
-    ? products.filter(p => p.categoryId === categoryId || (p.categoryId as any)?._id === categoryId)
-    : products;
+    const fetchOptions = async () => {
+      try {
+        const [statusRes, staffRes] = await Promise.all([
+          axios.get(`${baseUrl.leadStatuses}?limit=100`, { headers }),
+          axios.get(`${baseUrl.getAllUsers}?limit=100`, { headers })
+        ]);
+        setStatuses(statusRes.data?.data || []);
+        setStaff(staffRes.data?.data || []);
+      } catch (err) {}
+    };
+    if (token) fetchOptions();
+  }, [token]);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const params: any = { type: 'IN' };
-      if (fromDate) params.from = fromDate;
-      if (toDate) params.to = toDate;
-      if (categoryId) params.categoryId = categoryId;
-      if (productId) params.productId = productId;
-
-      const res = await axios.get(baseUrl.stock, { headers, params });
-      let rawData = (res.data?.data as any[]) ?? [];
+      const params: any = { limit: 1000 };
       
-      rawData.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      const res = await axios.get(baseUrl.getAllLeads, { headers, params });
+      let rawData = (res.data?.data || res.data?.leads) ?? [];
+      
+      rawData.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      
+      let filteredItems = rawData;
 
-      const items: TransactionType[] = rawData.map((i) => ({
+      if (fromDate || toDate) {
+        const start = fromDate ? new Date(fromDate).getTime() : 0;
+        const end = toDate ? new Date(toDate).setHours(23, 59, 59, 999) : Infinity;
+        filteredItems = filteredItems.filter((i: any) => {
+          if (!i.createdAt) return false;
+          const time = new Date(i.createdAt).getTime();
+          return time >= start && time <= end;
+        });
+      }
+      
+      if (statusId) {
+        filteredItems = filteredItems.filter((i: any) => i.leadStatus?._id === statusId);
+      }
+      
+      if (staffId) {
+        filteredItems = filteredItems.filter((i: any) => i.assignedTo?._id === staffId);
+      }
+
+      const items: LeadType[] = filteredItems.map((i: any) => ({
         _id: i._id,
-        categoryName: i.categoryId?.name || '-',
-        productName: i.productId?.name || '-',
-        quantity: i.quantity || 0,
-        currentStock: i.productId?.currentStock || 0,
-        note: i.note || '-',
+        fullName: i.fullName || '-',
+        contact: i.contact || i.phone || '-',
+        kwRequirement: i.kwRequirement || '-',
+        leadStatus: i.leadStatus?.name || '-',
+        assignedTo: i.assignedTo?.fullName || '-',
         createdAt: i.createdAt ? new Date(i.createdAt).toLocaleDateString('en-IN') : '-',
       }));
       
-      // Client-side filtering if backend doesn't fully support categoryId/productId
-      let filteredItems = items;
-      if (categoryId) {
-        const cat = categories.find(c => c._id === categoryId);
-        if (cat) filteredItems = filteredItems.filter(i => i.categoryName === cat.name);
-      }
-      if (productId) {
-        const prod = products.find(p => p._id === productId);
-        if (prod) filteredItems = filteredItems.filter(i => i.productName === prod.name);
-      }
-      
-      setData(filteredItems);
+      setData(items);
     } catch (err) {
-      console.error('Failed to load stock-in report', err);
+      console.error('Failed to load lead report', err);
       setData([]);
     } finally {
       setIsLoading(false);
@@ -95,7 +98,7 @@ export default function StockInReportPage() {
 
   useEffect(() => {
     fetchData();
-  }, [fromDate, toDate, categoryId, productId]);
+  }, [fromDate, toDate, statusId, staffId]);
 
   const handleExport = async () => {
     if (isExporting) return;
@@ -104,16 +107,15 @@ export default function StockInReportPage() {
       const params: any = {};
       if (fromDate) params.from = fromDate;
       if (toDate) params.to = toDate;
-      if (categoryId) params.categoryId = categoryId;
-      if (productId) params.productId = productId;
+      if (statusId) params.status = statusId;
+      if (staffId) params.staff = staffId;
 
-      const res = await axios.get(baseUrl.exportStockInReport, {
+      const res = await axios.get(baseUrl.exportLeads, {
         headers,
         params,
-        responseType: 'blob', // Expecting binary data
+        responseType: 'blob',
       });
 
-      // Check if the response is actually JSON (an error message from the backend)
       if (res.data.type === 'application/json') {
         const text = await res.data.text();
         const errorData = JSON.parse(text);
@@ -126,7 +128,7 @@ export default function StockInReportPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `stock_in_report_${Date.now()}.xlsx`);
+      link.setAttribute('download', `lead_report_${Date.now()}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -139,20 +141,20 @@ export default function StockInReportPage() {
     }
   };
 
-  const columns: Column<TransactionType>[] = [
-    { label: 'Category', key: 'categoryName' },
-    { label: 'Product Name', key: 'productName' },
-    { label: 'Added Quantity', key: 'quantity' },
-    { label: 'Current Stock', key: 'currentStock' },
+  const columns: Column<LeadType>[] = [
+    { label: 'Full Name', key: 'fullName' },
+    { label: 'Contact', key: 'contact' },
+    { label: 'KW Requirement', key: 'kwRequirement' },
+    { label: 'Status', key: 'leadStatus' },
     { label: 'Date', key: 'createdAt' },
-    { label: 'Note', key: 'note' },
+    { label: 'Assigned To', key: 'assignedTo' },
   ];
 
   const clearFilters = () => {
     setFromDate('');
     setToDate('');
-    setCategoryId('');
-    setProductId('');
+    setStatusId('');
+    setStaffId('');
     setIsFilterOpen(false);
   };
 
@@ -161,11 +163,11 @@ export default function StockInReportPage() {
       <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
         <div className="flex items-center gap-3">
           <div className="bg-[#A63C71]/10 p-3 rounded-xl">
-            <FileText className="h-6 w-6 text-[#A63C71]" />
+            <Users className="h-6 w-6 text-[#A63C71]" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Stock In Report</h1>
-            <p className="text-sm text-gray-500">View and export stock in transactions</p>
+            <h1 className="text-2xl font-bold text-gray-900">Lead Report</h1>
+            <p className="text-sm text-gray-500">View and export lead details</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -212,25 +214,22 @@ export default function StockInReportPage() {
             </div>
             <div className="flex-1">
               <FormSelect
-                label="Category"
-                name="categoryId"
-                value={categoryId}
-                onChange={(e) => {
-                  setCategoryId(e);
-                  setProductId('');
-                }}
-                options={categories.map((cat) => ({ value: cat._id, label: cat.name }))}
-                placeholder="All Categories"
+                label="Lead Status"
+                name="statusId"
+                value={statusId}
+                onChange={(e) => setStatusId(e)}
+                options={statuses.map((s) => ({ value: s._id, label: s.name }))}
+                placeholder="All Statuses"
               />
             </div>
             <div className="flex-1">
               <FormSelect
-                label="Product"
-                name="productId"
-                value={productId}
-                onChange={(e) => setProductId(e)}
-                options={availableProducts.map((prod) => ({ value: prod._id, label: prod.name }))}
-                placeholder="All Products"
+                label="Assigned To"
+                name="staffId"
+                value={staffId}
+                onChange={(e) => setStaffId(e)}
+                options={staff.map((s) => ({ value: s._id, label: s.fullName }))}
+                placeholder="All Staff"
               />
             </div>
             <div className="flex-none mb-1">

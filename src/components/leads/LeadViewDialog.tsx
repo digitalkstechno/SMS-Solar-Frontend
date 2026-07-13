@@ -936,13 +936,6 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
     const toastId = toast.loading('Downloading PDF...');
     try {
       let qData = quotation;
-      if (quotation._id) {
-        const res = await axios.get(
-          `${baseUrl.updateLead}/${lead._id}/quotation/${quotation._id}`,
-          { headers: { Authorization: `Bearer ${getAuthToken()}` } }
-        );
-        qData = res.data?.data || quotation;
-      }
       
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
       const response = await axios.post(`${apiUrl}quotation/generate`, {
@@ -956,7 +949,11 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
       const blobUrl = window.URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = 'quotation.pdf';
+      const clientName = (lead.fullName || lead.leadrefrance || 'Client').replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
+      const d = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const dateStr = `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+      link.download = `Quotation_${clientName}_${dateStr}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -974,13 +971,6 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
     const toastId = toast.loading('Sending Quotation via WhatsApp...');
     try {
       let qData = quotation;
-      if (quotation._id) {
-        const res = await axios.get(
-          `${baseUrl.updateLead}/${lead._id}/quotation/${quotation._id}`,
-          { headers: { Authorization: `Bearer ${getAuthToken()}` } }
-        );
-        qData = res.data?.data || quotation;
-      }
       
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
       const response = await axios.post(`${apiUrl}quotation/whatsapp`, {

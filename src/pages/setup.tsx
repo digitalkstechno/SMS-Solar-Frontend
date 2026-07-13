@@ -153,15 +153,15 @@ export default function Setup() {
   // FIXED: Always define all useMemo hooks, regardless of loading state
   const canViewRole = useMemo(() => !!(permissions?.role?.readAll || permissions?.setup?.readAll), [permissions]);
   const canViewStaff = useMemo(() => !!(permissions?.staff?.readAll || permissions?.setup?.readAll), [permissions]);
-  const canViewLeadSource = useMemo(() => !!(permissions?.leadSource?.readAll || permissions?.setup?.readAll), [permissions]);
-  const canViewLeadStatus = useMemo(() => !!(permissions?.leadStatus?.readAll || permissions?.setup?.readAll), [permissions]);
-  const canViewLeadLabel = useMemo(() => !!(permissions?.leadLabel?.readAll || permissions?.setup?.readAll), [permissions]);
+  const canViewLeadSource = useMemo(() => !!(permissions?.leadSource?.readAll || permissions?.leadSource?.readOwn), [permissions]);
+  const canViewLeadStatus = useMemo(() => !!(permissions?.leadStatus?.readAll || permissions?.leadStatus?.readOwn), [permissions]);
+  const canViewLeadLabel = useMemo(() => !!(permissions?.leadLabel?.readAll || permissions?.leadLabel?.readOwn), [permissions]);
   const canViewTeams = useMemo(() => !!(permissions?.teams?.readAll), [permissions]);
   const canViewOrgs = useMemo(() => !!(permissions?.organizations?.readAll), [permissions]);
-  const canViewTaskStatus = useMemo(() => !!(permissions?.taskStatus?.readAll || permissions?.setup?.readAll), [permissions]);
-  const canViewCategory = useMemo(() => !!(permissions?.setup?.readAll), [permissions]);
-  const canViewProduct = useMemo(() => !!(permissions?.setup?.readAll), [permissions]);
-  const canViewStock = useMemo(() => !!(permissions?.setup?.readAll), [permissions]);
+  const canViewTaskStatus = useMemo(() => !!(permissions?.taskStatus?.readAll || permissions?.taskStatus?.readOwn), [permissions]);
+  const canViewCategory = useMemo(() => !!(permissions?.category?.readAll || permissions?.category?.readOwn), [permissions]);
+  const canViewProduct = useMemo(() => !!(permissions?.product?.readAll || permissions?.product?.readOwn), [permissions]);
+  const canViewStock = useMemo(() => !!(permissions?.stock?.readAll || permissions?.stock?.readOwn), [permissions]);
 
   const menuItems = useMemo(() => {
     const items = [
