@@ -65,7 +65,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   useEffect(() => {
     const token = getAuthToken();
     if (!token || !currentStaff) return;
-    
+
     const role: any = currentStaff.role || {};
     const rawPerms = Array.isArray(role.permissions)
       ? role.permissions[0]
@@ -86,67 +86,64 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
 
     const isAdmin = role.roleName?.toLowerCase() === "admin";
 
-        setCanViewLead(isAdmin || !!(leadPerms.readOwn || leadPerms.readAll));
-        setCanViewTask(isAdmin || !!(taskPerms.readOwn || taskPerms.readAll));
-        setCanViewStaff(isAdmin || !!(staffPerms.readAll || setupPerms.readAll));
-        setCanViewRole(isAdmin || !!(rolePerms.readAll || setupPerms.readAll));
-        setCanViewLeadStatus(isAdmin || !!(leadStatusPerms.readAll || leadStatusPerms.readOwn));
-        setCanViewLeadSource(isAdmin || !!(leadSourcePerms.readAll || leadSourcePerms.readOwn));
-        setCanViewLeadLabel(isAdmin || !!(leadLabelPerms.readAll || leadLabelPerms.readOwn));
-        setCanViewCategory(isAdmin || !!(categoryPerms.readAll || categoryPerms.readOwn));
-        setCanViewProduct(isAdmin || !!(productPerms.readAll || productPerms.readOwn));
-        setCanViewStock(isAdmin || !!(stockPerms.readAll || stockPerms.readOwn));
-        setCanViewCity(isAdmin || !!(cityPerms.readAll || cityPerms.readOwn));
-        setCanViewReport(isAdmin || !!(reportPerms.readAll || reportPerms.readOwn));
+    setCanViewLead(isAdmin || !!(leadPerms.readOwn || leadPerms.readAll));
+    setCanViewTask(isAdmin || !!(taskPerms.readOwn || taskPerms.readAll));
+    setCanViewStaff(isAdmin || !!(staffPerms.readAll || setupPerms.readAll));
+    setCanViewRole(isAdmin || !!(rolePerms.readAll || setupPerms.readAll));
+    setCanViewLeadStatus(isAdmin || !!(leadStatusPerms.readAll || leadStatusPerms.readOwn));
+    setCanViewLeadSource(isAdmin || !!(leadSourcePerms.readAll || leadSourcePerms.readOwn));
+    setCanViewLeadLabel(isAdmin || !!(leadLabelPerms.readAll || leadLabelPerms.readOwn));
+    setCanViewCategory(isAdmin || !!(categoryPerms.readAll || categoryPerms.readOwn));
+    setCanViewProduct(isAdmin || !!(productPerms.readAll || productPerms.readOwn));
+    setCanViewStock(isAdmin || !!(stockPerms.readAll || stockPerms.readOwn));
+    setCanViewCity(isAdmin || !!(cityPerms.readAll || cityPerms.readOwn));
+    setCanViewReport(isAdmin || !!(reportPerms.readAll || reportPerms.readOwn));
   }, [currentStaff]);
 
-  const menuItems: MenuItem[] = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  ];
+  const menuItems: MenuItem[] = [];
 
-  if (canViewLead) {
-    menuItems.push({ icon: UserPlus, label: "Leads", path: "/leads" });
-  }
+  if (currentStaff) {
+    menuItems.push({ icon: LayoutDashboard, label: "Dashboard", path: "/" });
 
-  // if (canViewTask) {
-  //   menuItems.push({ icon: CheckSquare, label: "Tasks", path: "/tasks" });
-  // }
+    if (canViewLead) {
+      menuItems.push({ icon: UserPlus, label: "Leads", path: "/leads" });
+    }
 
-  if (canViewRole) menuItems.push({ icon: Building2, label: "Department Management", path: "/roles" });
-  if (canViewStaff) menuItems.push({ icon: Users, label: "User", path: "/user-list" });
-  if (canViewLeadStatus) menuItems.push({ icon: Flag, label: "Lead Status", path: "/lead-status" });
-  if (canViewLeadSource) menuItems.push({ icon: Megaphone, label: "Lead Source", path: "/lead-sources" });
-  if (canViewCategory) menuItems.push({ icon: List, label: "Category", path: "/category" });
-  if (canViewProduct) menuItems.push({ icon: Package, label: "Product", path: "/product" });
-  if (canViewStock) {
-    menuItems.push({ icon: PackagePlus, label: "Stock In", path: "/stock-in" });
-    menuItems.push({ icon: PackageMinus, label: "Stock Out", path: "/stock-out" });
-  }
-  if (canViewCity) {
-    menuItems.push({ icon: Building2, label: "City", path: "/city" });
-  }
+    // if (canViewTask) {
+    //   menuItems.push({ icon: CheckSquare, label: "Tasks", path: "/tasks" });
+    // }
 
-  const role: any = currentStaff?.role || {};
-  if (canViewReport) {
-    menuItems.push({
-      icon: FileText,
-      label: "Reports",
-      children: [
-        { icon: Users, label: "Lead Report", path: "/reports/leads" },
-        { icon: PackagePlus, label: "Stock In Report", path: "/reports/stock-in" }
-      ]
-    });
-  }
+    if (canViewRole) menuItems.push({ icon: Building2, label: "Department Management", path: "/roles" });
+    if (canViewStaff) menuItems.push({ icon: Users, label: "User", path: "/user-list" });
+    if (canViewLeadStatus) menuItems.push({ icon: Flag, label: "Lead Status", path: "/lead-status" });
+    if (canViewLeadSource) menuItems.push({ icon: Megaphone, label: "Lead Source", path: "/lead-sources" });
+    if (canViewCategory) menuItems.push({ icon: List, label: "Category", path: "/category" });
+    if (canViewProduct) menuItems.push({ icon: Package, label: "Product", path: "/product" });
+    if (canViewStock) {
+      menuItems.push({ icon: PackagePlus, label: "Stock In", path: "/stock-in" });
+      menuItems.push({ icon: PackageMinus, label: "Stock Out", path: "/stock-out" });
+    }
+    if (canViewCity) {
+      menuItems.push({ icon: Building2, label: "City", path: "/city" });
+    }
 
-  const hasAnySetupPerm = true; // Still show Setup if needed for remaining items like Kanban Status
+    if (canViewReport) {
+      menuItems.push({
+        icon: FileText,
+        label: "Reports",
+        children: [
+          { icon: Users, label: "Lead Report", path: "/reports/leads" },
+          { icon: PackagePlus, label: "Stock In Report", path: "/reports/stock-in" }
+        ]
+      });
+    }
 
-  // if (hasAnySetupPerm) {
     menuItems.push({
       icon: Settings,
       label: "Setup",
       path: "/setup",
     });
-  // }
+  }
 
   const isActive = (path?: string) => {
     if (!path) return false;
@@ -210,14 +207,14 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
             Swal.showLoading();
           }
         });
-        
+
         // Perform logout
         clearAuthToken();
         if (typeof window !== "undefined") {
           localStorage.removeItem("token");
           localStorage.removeItem("auth");
         }
-        
+
         // Show success message
         Swal.fire({
           title: 'Logged Out!',
@@ -242,7 +239,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
     }
   };
 
-  
+
   return (
     <>
       {/* Overlay for mobile when sidebar is open */}
@@ -255,41 +252,39 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-40 h-screen bg-gradient-to-b from-[#4b6cb7] via-[#7b558f] to-[#a63c71] text-white shadow-2xl ${mounted ? 'transition-all duration-300 ease-in-out' : ''} ${
-          isOpen 
-            ? 'w-64 translate-x-0' 
+        className={`fixed top-0 left-0 z-40 h-screen bg-gradient-to-b from-[#4b6cb7] via-[#7b558f] to-[#a63c71] text-white shadow-2xl ${mounted ? 'transition-all duration-300 ease-in-out' : ''} ${isOpen
+            ? 'w-64 translate-x-0'
             : 'w-64 -translate-x-full md:w-20 md:translate-x-0'
-        }`}
+          }`}
       >
         <div className="flex h-full flex-col">
           {/* Header with Logo */}
-<div
-  className={`flex items-center h-20 px-4 bg-[#FFFFFF]  ${
-    isOpen ? "justify-between" : "justify-center"
-  }`}
->
-  {isOpen && (
-    <div className="flex-1 flex items-center justify-center ml-8">
-      <img
-        src={smsLogo.src}
-        alt="SMS Logo"
-        className="h-16 w-auto max-w-[240px] object-contain shrink-0 scale-[1.1]"
-      />
-    </div>
-  )}
+          <div
+            className={`flex items-center h-20 px-4 bg-[#FFFFFF]  ${isOpen ? "justify-between" : "justify-center"
+              }`}
+          >
+            {isOpen && (
+              <div className="flex-1 flex items-center justify-center ml-8">
+                <img
+                  src={smsLogo.src}
+                  alt="SMS Logo"
+                  className="h-16 w-auto max-w-[240px] object-contain shrink-0 scale-[1.1]"
+                />
+              </div>
+            )}
 
-  <button
-    onClick={toggleSidebar}
-    className={`p-2 rounded-lg hover:bg-black/10 transition-all duration-200 group ${isOpen ? "ml-3" : ""}`}
-    aria-label="Toggle sidebar"
-  >
-    {isOpen ? (
-      <ChevronLeft className="h-6 w-6 text-slate-700 drop-shadow-md" />
-    ) : (
-      <Menu className="h-6 w-6 text-slate-700 drop-shadow-md" />
-    )}
-  </button>
-</div>
+            <button
+              onClick={toggleSidebar}
+              className={`p-2 rounded-lg hover:bg-black/10 transition-all duration-200 group ${isOpen ? "ml-3" : ""}`}
+              aria-label="Toggle sidebar"
+            >
+              {isOpen ? (
+                <ChevronLeft className="h-6 w-6 text-slate-700 drop-shadow-md" />
+              ) : (
+                <Menu className="h-6 w-6 text-slate-700 drop-shadow-md" />
+              )}
+            </button>
+          </div>
 
           {/* Navigation Menu */}
           <nav className="flex-1 overflow-y-auto overflow-x-hidden py-6 px-3 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
@@ -306,15 +301,13 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
                       <div>
                         <button
                           onClick={() => toggleExpand(item.label)}
-                          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 group ${
-                            expanded
+                          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 group ${expanded
                               ? 'bg-white/10 text-white'
                               : 'text-white/70 hover:bg-white/5 hover:text-white'
-                          }`}
+                            }`}
                         >
-                          <Icon className={`h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110 ${
-                            expanded ? 'text-white' : 'text-white/70'
-                          }`} />
+                          <Icon className={`h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110 ${expanded ? 'text-white' : 'text-white/70'
+                            }`} />
                           {isOpen && (
                             <>
                               <span className="flex-1 text-sm font-medium text-left">{item.label}</span>
@@ -329,20 +322,18 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
                             {item.children?.map((child) => {
                               const ChildIcon = child.icon;
                               const isChildActive = isActive(child.path);
-                              
+
                               return (
                                 <li key={child.label}>
                                   <button
                                     onClick={() => handleNavigation(child.path)}
-                                    className={`flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all duration-200 group ${
-                                      isChildActive
+                                    className={`flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-all duration-200 group ${isChildActive
                                         ? 'bg-gradient-to-r from-[#0f3c70]/20 to-[#0f2f5a]/20 text-white border border-white/10'
                                         : 'text-white/60 hover:bg-white/5 hover:text-white'
-                                    }`}
+                                      }`}
                                   >
-                                    <ChildIcon className={`h-4 w-4 flex-shrink-0 transition-transform group-hover:scale-110 ${
-                                      isChildActive ? 'text-[#9f7cff]' : 'text-white/60'
-                                    }`} />
+                                    <ChildIcon className={`h-4 w-4 flex-shrink-0 transition-transform group-hover:scale-110 ${isChildActive ? 'text-[#9f7cff]' : 'text-white/60'
+                                      }`} />
                                     <span className="text-sm">{child.label}</span>
                                   </button>
                                 </li>
@@ -354,15 +345,13 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
                     ) : (
                       <button
                         onClick={() => handleNavigation(item.path)}
-                        className={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 group ${
-                          isItemActive
+                        className={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 group ${isItemActive
                             ? 'bg-white/20 text-white shadow-md'
                             : 'text-white/80 hover:bg-white/10 hover:text-white'
-                        }`}
+                          }`}
                       >
-                        <Icon className={`h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110 ${
-                          isItemActive ? 'text-white' : 'text-white/80'
-                        }`} />
+                        <Icon className={`h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110 ${isItemActive ? 'text-white' : 'text-white/80'
+                          }`} />
                         {isOpen && (
                           <span className="text-sm font-medium text-left flex-1 whitespace-nowrap truncate">{item.label}</span>
                         )}

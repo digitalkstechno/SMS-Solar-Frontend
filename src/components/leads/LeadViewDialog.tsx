@@ -540,6 +540,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
   const [reassigning, setReassigning] = useState(false);
   const [localAssignedTo, setLocalAssignedTo] = useState<any>(null);
   const [departments, setDepartments] = useState<any[]>([]);
+  const [visitDone, setVisitDone] = useState<boolean | null>(null);
 
   const canUpdateLead = useMemo(() => {
     if (isAdmin) return true;
@@ -567,6 +568,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
       setLocalActivities(lead.activities || []);
       setLocalAssignedTo(lead.assignedTo || null);
       setLocalQuotations(lead.quotations || []);
+      setVisitDone(lead.isVisitDone ?? null);
     }
   }, [lead]);
 
@@ -617,6 +619,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
         `${baseUrl.updateLead}/${lead._id}`,
         {
           leadStatus: editStatus,
+          isVisitDone: visitDone,
         },
         { headers: { Authorization: `Bearer ${getAuthToken()}` } }
       );
@@ -630,6 +633,24 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
       toast.error(e?.response?.data?.message || 'Failed to update lead');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleVisitChange = async (value: boolean) => {
+    if (!lead || !canUpdateLead) return;
+    setVisitDone(value);
+    try {
+      await axios.put(
+        `${baseUrl.updateLead}/${lead._id}/visit`,
+        { isVisitDone: value },
+        { headers: { Authorization: `Bearer ${getAuthToken()}` } }
+      );
+      toast.success('Visit status updated');
+      onRefresh();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Failed to update visit status');
+      // Revert if failed
+      setVisitDone(lead.isVisitDone ?? null);
     }
   };
 
@@ -1145,7 +1166,39 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                 )}
               </div>
             </div>
-            <div className="rounded-lg bg-gray-50 p-4">
+
+            {/* Visit Section */}
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+              <div className="mb-3 text-sm font-bold text-gray-800">Visit</div>
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="visit"
+                    checked={visitDone === true}
+                    onChange={() => handleVisitChange(true)}
+                    className="w-4 h-4 accent-[#a63c71] cursor-pointer"
+                    disabled={!canUpdateLead}
+                  />
+                  <span className="text-sm font-medium text-gray-700">Yes</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="visit"
+                    checked={visitDone === false}
+                    onChange={() => handleVisitChange(false)}
+                    className="w-4 h-4 accent-[#a63c71] cursor-pointer"
+                    disabled={!canUpdateLead}
+                  />
+                  <span className="text-sm font-medium text-gray-700">No</span>
+                </label>
+              </div>
+            </div>
+
+            {visitDone !== null && (
+              <>
+                <div className="rounded-lg bg-gray-50 p-4">
               <div className="mb-3 text-sm font-medium text-gray-600">Status</div>
               <div className="flex flex-wrap gap-2">
                 {statuses.map((s) => (
@@ -1448,6 +1501,8 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                 </div>
               )}
             </div>
+          </>
+        )}
 
             {/* Lost info */}
             {lead.isLost && (

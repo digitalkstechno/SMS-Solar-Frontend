@@ -198,37 +198,36 @@ export default function LeadAddDialog({
     },
   });
 
+  // Prefetch base data on mount
+  useEffect(() => {
+    const fetchBaseData = async () => {
+      try {
+        const headers = { Authorization: `Bearer ${token()}` };
+        const [sourceRes, cityRes] = await Promise.all([
+          axios.get(baseUrl.leadSources, { headers }),
+          axios.get(`${baseUrl.city}/all?all=true`, { headers })
+        ]);
+        setLeadSources(sourceRes.data?.data || sourceRes.data || []);
+        setCities(cityRes.data?.data || []);
+      } catch (error) {
+        console.error('Failed to prefetch base data', error);
+      }
+    };
+    fetchBaseData();
+  }, []);
+
   useEffect(() => {
     if (!isOpen) return;
     const fetchData = async () => {
-      setLoading(true);
-      try {
-        const headers = { Authorization: `Bearer ${token()}` };
-
-        let leadData = null;
-        if (mode === 'edit' && initialData?._id) {
-          const [deptRes, leadRes, sourcesRes, cityRes] = await Promise.all([
+      if (mode === 'edit' && initialData?._id) {
+        setLoading(true);
+        try {
+          const headers = { Authorization: `Bearer ${token()}` };
+          const [deptRes, leadRes] = await Promise.all([
             axios.get(baseUrl.department, { headers }),
-            axios.get(`${baseUrl.findLeadById}/${initialData._id}`, { headers }),
-            axios.get(baseUrl.leadSources, { headers }),
-            axios.get(`${baseUrl.city}/all?all=true`, { headers })
+            axios.get(`${baseUrl.findLeadById}/${initialData._id}`, { headers })
           ]);
-          const depts = deptRes.data?.data || [];
-          setLeadSources(sourcesRes.data?.data || []);
-          setCities(cityRes.data?.data || []);
-          leadData = leadRes.data?.data;
-          leadData = leadRes.data?.data;
-        } else {
-          const [sourceRes, cityRes] = await Promise.all([
-            axios.get(baseUrl.leadSources, { headers }),
-            axios.get(`${baseUrl.city}/all?all=true`, { headers })
-          ]);
-          setLeadSources(sourceRes.data?.data || sourceRes.data || []);
-          setCities(cityRes.data?.data || []);
-          setStaff([]);
-        }
-
-        if (mode === 'edit') {
+          const leadData = leadRes.data?.data;
           const dataToUse = leadData || initialData;
           if (dataToUse) {
             formik.setValues({
@@ -247,13 +246,14 @@ export default function LeadAddDialog({
               isActive: dataToUse.isActive ?? true,
             });
           }
-        } else {
-          formik.resetForm();
+        } catch {
+          formik.setStatus('Failed to load lead data');
+        } finally {
+          setLoading(false);
         }
-      } catch {
-        formik.setStatus('Failed to load data');
-      } finally {
-        setLoading(false);
+      } else {
+        formik.resetForm();
+        setAttachments([]);
       }
     };
     fetchData();

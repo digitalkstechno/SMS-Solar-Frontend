@@ -296,7 +296,7 @@ export function CityContent() {
             </button>
             <button
               onClick={handleConfirmDelete}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 cursor-pointer"
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white   cursor-pointer"
             >
               Delete
             </button>

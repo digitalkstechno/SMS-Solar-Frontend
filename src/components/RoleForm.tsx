@@ -117,6 +117,11 @@ export default function RoleForm({
         }
         await onSubmit({ ...values, permissions: adminPerms });
       } else {
+        const lowerName = values.roleName.toLowerCase();
+        if (lowerName === 'sales' || lowerName === 'telecalling') {
+          // Ensure Sales/Telecalling has no 'Department Management' permissions
+          values.permissions.role = { ...defaultCaps };
+        }
         await onSubmit(values);
       }
       onClose();
@@ -239,6 +244,7 @@ export default function RoleForm({
             error={formik.touched.roleName && formik.errors.roleName ? formik.errors.roleName : undefined}
             required
             placeholder="Enter department name (e.g., Admin, Manager, Staff)"
+            disabled={initialData && (initialData.roleName?.toLowerCase() === 'sales' || initialData.roleName?.toLowerCase() === 'telecalling')}
             // helperText="Role name must be unique and descriptive"
           />
         </div>
@@ -260,10 +266,18 @@ export default function RoleForm({
                       <div className="flex flex-wrap gap-4">
                         {(feature === 'report' ? (['readAll'] as CapabilityKey[]) : (['readAll', 'readOwn', 'create', 'update', 'delete'] as CapabilityKey[])).map((cap) => {
                           const isAdmin = formik.values.roleName.toLowerCase() === 'admin';
-                          const isCapDisabled = isAdmin || (cap === 'readOwn' 
+                          const lowerName = formik.values.roleName.toLowerCase();
+                          const isSalesOrTele = lowerName === 'sales' || lowerName === 'telecalling';
+                          
+                          let isCapDisabled = isAdmin || (cap === 'readOwn' 
                             && !isAdmin 
                             && feature !== 'lead' 
                             && feature !== 'leadStatus');
+                            
+                          // Disable edit permissions for 'Department Management' (role) if the role is Sales/Telecalling
+                          if (isSalesOrTele && feature === 'role') {
+                            isCapDisabled = true;
+                          }
 
                           const isChecked = isAdmin ? true : caps[cap];
 
