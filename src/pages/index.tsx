@@ -218,6 +218,22 @@ const CustomSalesTooltip = ({ active, payload }: any) => {
   return null;
 };
 
+const CustomXAxisTick = ({ x, y, payload }: any) => {
+  const parts = payload.value ? payload.value.split(" ") : [];
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={10} textAnchor="middle" fill="#6B7280" fontSize={11} fontWeight="500">
+        {parts.map((part: string, index: number) => (
+          <tspan x={0} dy={index === 0 ? 0 : 14} key={index}>
+            {part}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
+};
+
+
 
 export default function Dashboard() {
   const router = useRouter();
@@ -930,7 +946,7 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={salesWinRateData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }} barSize={35}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11, fontWeight: "500" }} dy={10} interval={0} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={<CustomXAxisTick />} dy={10} interval={0} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11 }} dx={-10} allowDecimals={false} />
                     <Tooltip content={<CustomSalesTooltip />} cursor={{ fill: '#F3F4F6' }} />
                     <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '13px' }} />
