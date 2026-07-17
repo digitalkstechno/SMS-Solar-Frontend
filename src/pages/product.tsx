@@ -61,6 +61,7 @@ export function ProductContent() {
   const hasDispatchedCat = useRef(false);
   const [totalRecords, setTotalRecords] = useState(0);
   const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const debouncedSearch = useDebounce(search, 600);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -71,6 +72,15 @@ export function ProductContent() {
 
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const role: any = currentStaff?.role || {};
+  const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+  const productPerms = rawPerms.product || {};
+  const isAdmin = role.roleName?.toLowerCase() === 'admin';
+  const canCreate = isAdmin || !!productPerms.create;
+  const canUpdate = isAdmin || !!productPerms.update;
+  const canDeleteProduct = isAdmin || !!productPerms.delete;
 
   const formik = useFormik({
     initialValues: {
@@ -100,11 +110,11 @@ export function ProductContent() {
     }
   }, [catStatus, dispatch]);
 
-  const fetchData = async (signal?: AbortSignal) => {
+  const fetchData = async () => {
+    setIsLoading(true);
     try {
       const res = await axios.get(baseUrl.product, {
         headers,
-        signal,
         params: {
           search: debouncedSearch || undefined,
           page: currentPage,
@@ -137,12 +147,12 @@ export function ProductContent() {
       setAllData([]);
       setTotalRecords(0);
     }
-  };
+   finally {
+      setIsLoading(false);
+    }};
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchData(controller.signal);
-    return () => controller.abort();
+    fetchData();
   }, [debouncedSearch, currentPage, pageSize]);
 
 
@@ -212,6 +222,7 @@ export function ProductContent() {
         totalPages={Math.ceil(totalRecords / pageSize)}
         totalRecords={totalRecords}
         pageSize={pageSize}
+        loading={isLoading}
         onSearch={(v) => {
           setSearch(v);
           setCurrentPage(1);
@@ -221,22 +232,22 @@ export function ProductContent() {
           setPageSize(s);
           setCurrentPage(1);
         }}
-        onEdit={(row) => {
+        onEdit={canUpdate ? (row) => {
           formik.setValues({
             _id: row._id,
             categoryId: row.categoryId,
             name: row.name,
           });
           setIsDialogOpen(true);
-        }}
-        onDelete={handleDeleteClick}
-        addButton={{
+        } : undefined}
+        onDelete={canDeleteProduct ? handleDeleteClick : undefined}
+        addButton={canCreate ? {
           label: 'Add Product',
           onClick: () => {
             formik.resetForm();
             setIsDialogOpen(true);
           },
-        }}
+        } : undefined}
       />
 
       <DeleteDialog

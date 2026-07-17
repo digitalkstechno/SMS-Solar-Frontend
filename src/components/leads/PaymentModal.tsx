@@ -36,7 +36,7 @@ export default function PaymentModal({ isOpen, lead, onClose, onPaymentAdded }: 
   const [form, setForm] = useState({
     amount: '',
     date: new Date().toISOString().split('T')[0],
-    mode: 'Cash' as const,
+    mode: 'Cash' as 'Cash' | 'GPay' | 'Bank Transfer',
     proof: null as File | null,
   });
 

@@ -28,9 +28,10 @@ interface Props {
   onClose: () => void;
   lead: ApiLead | null;
   onSuccess: () => void;
+  fetchApi: () => void;
 }
 
-export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuccess }: Props) {
+export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuccess, fetchApi }: Props) {
   const [actionType, setActionType] = useState<'done' | 'stage' | 'followup'>('stage');
   const [statuses, setStatuses] = useState<ApiStatus[]>([]);
   const [selectedStage, setSelectedStage] = useState('');
@@ -51,7 +52,7 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
 
   useEffect(() => {
     if (currentStaff) {
-      setStaffId(currentStaff._id);
+      setStaffId(currentStaff._id || '');
     }
   }, [currentStaff]);
 
@@ -122,8 +123,15 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
       );
 
       toast.success('Lead updated successfully!');
-      onSuccess();
-      onClose();
+      setLoading(false);
+
+      try {
+        fetchApi();
+        onClose();
+      } catch (uiError) {
+        console.error('Post-update UI error:', uiError);
+      }
+
     } catch (error: any) {
       toast.error(error?.response?.data?.message || 'Failed to update lead');
     } finally {
@@ -149,7 +157,7 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+            className="min-w-[80px] cursor-pointer rounded-lg bg-[#a63c71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] disabled:opacity-50"
           >
             {loading ? 'Saving...' : 'Save'}
           </button>
@@ -159,32 +167,32 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
       <div className="space-y-6">
         {/* Action Type Radio Buttons */}
         <div className="flex flex-col gap-3 sm:flex-row sm:gap-6">
-          {lead?.leadStatus?.name?.toLowerCase() !== 'won' && (
-            <>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="actionType"
-                  value="done"
-                  checked={actionType === 'done'}
-                  onChange={() => setActionType('done')}
-                  className="w-4 h-4 text-[#A63C71] border-gray-300 focus:ring-[#A63C71]"
-                />
-                <span className="text-sm font-medium text-gray-700">Follow Up Done</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="actionType"
-                  value="stage"
-                  checked={actionType === 'stage'}
-                  onChange={() => setActionType('stage')}
-                  className="w-4 h-4 text-[#A63C71] border-gray-300 focus:ring-[#A63C71]"
-                />
-                <span className="text-sm font-medium text-gray-700">Stage</span>
-              </label>
-            </>
-          )}
+          {/* {lead?.leadStatus?.name?.toLowerCase() !== 'won' && (
+            <> */}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="actionType"
+              value="done"
+              checked={actionType === 'done'}
+              onChange={() => setActionType('done')}
+              className="w-4 h-4 text-[#A63C71] border-gray-300 focus:ring-[#A63C71]"
+            />
+            <span className="text-sm font-medium text-gray-700">Follow Up Done</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="actionType"
+              value="stage"
+              checked={actionType === 'stage'}
+              onChange={() => setActionType('stage')}
+              className="w-4 h-4 text-[#A63C71] border-gray-300 focus:ring-[#A63C71]"
+            />
+            <span className="text-sm font-medium text-gray-700">Stage</span>
+          </label>
+          {/* </>
+          )} */}
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
@@ -224,7 +232,7 @@ export default function DashboardLeadUpdateDialog({ isOpen, onClose, lead, onSuc
                   <label className="text-xs font-medium text-gray-700">Next Followup Date <span className="text-red-500">*</span></label>
                   <DatePicker
                     selected={nextDate ? new Date(nextDate) : null}
-                    onChange={(date) => setNextDate(date ? date.toISOString().split('T')[0] : '')}
+                    onChange={(date: Date | null) => setNextDate(date ? date.toISOString().split('T')[0] : '')}
                     placeholderText="mm/dd/yyyy"
                     dateFormat="MM/dd/yyyy"
                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:ring-1 focus:ring-blue-500 transition-all outline-none cursor-pointer"

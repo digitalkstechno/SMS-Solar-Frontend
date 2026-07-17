@@ -45,15 +45,17 @@ export type ApiLead = {
   projecttype?: string;
   address?: string;
   locationLink?: string;
+  city?: string;
   companyName?: string;
   priority?: string;
   phone?: string;
   note?: string;
-  createdBy?: ApiUser | string;
-  leadLabel?: LeadLabel | string;
+  createdBy?: ApiUser;
+  leadLabel?: LeadLabel[] | string[];
   leadStatus?: ApiStatus;
   assignedTo?: ApiUser;
   isActive?: boolean;
+  isVisitDone?: boolean;
   followUps?: ApiFollowUp[];
   attachments?: {
     _id?: string;
@@ -97,6 +99,13 @@ export type ApiLead = {
       title: string;
       values: string[];
     }[];
+  }[];
+  assignedStock?: {
+    _id?: string;
+    product: any;
+    category: any;
+    quantity: number;
+    date: string;
   }[];
 };
 

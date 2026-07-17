@@ -5,9 +5,12 @@
   --foreground: #171717;
   --primary: #7d558f;
   --secondary: #a63c71;
-  --scrollbar-track: #f5f5f5;
+  /* --scrollbar-track: #f5f5f5;
   --scrollbar-thumb: #eeeeee;
-  --scrollbar-thumb-hover: #dddddd;
+  --scrollbar-thumb-hover: #dddddd; */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #c1c1c1;
+  --scrollbar-thumb-hover: #a0a0a0;
 }
 
 @theme inline {
@@ -16,9 +19,11 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
-.bg-primary{
+
+.bg-primary {
   background-color: var(--primary) !important;
 }
+
 .bg-blue-600 {
   background-color: var(--primary) !important;
 }
@@ -112,7 +117,7 @@ textarea[disabled] {
 }
 
 /* Webkit (Chrome, Safari, Edge, Opera) Scrollbar Styling */
-*::-webkit-scrollbar {
+/* *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
@@ -134,16 +139,35 @@ textarea[disabled] {
 
 *::-webkit-scrollbar-corner {
   background: var(--scrollbar-track);
-}
+} */
 
-/* Firefox Scrollbar Styling (already set with scrollbar-color above) */
+/* Global Scrollbar Styling */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 10px;
+  border: none;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
 /* Specific container scrollbar overrides if needed */
-.overflow-auto,
+/* .overflow-auto,
 .overflow-y-auto,
 .overflow-x-auto,
 .scrollbar-custom {
@@ -181,7 +205,7 @@ textarea[disabled] {
 .overflow-x-auto::-webkit-scrollbar-thumb:hover,
 .scrollbar-custom::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
-}
+} */
 
 /* Global Table Scroll Utility */
 .table-responsive {
@@ -248,6 +272,7 @@ button {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -320,9 +345,29 @@ button {
 .react-datepicker-wrapper input:focus {
   border-color: #000000 !important;
   box-shadow: 0 0 0 1px #000000 !important;
-}input[type="time"], input[type="date"], input[type="datetime-local"] {
+}
+
+input[type="time"],
+input[type="date"],
+input[type="datetime-local"] {
   accent-color: #A63C71;
 }
+
 input[type="time"]::-webkit-calendar-picker-indicator {
   filter: hue-rotate(320deg) saturate(200%);
+}
+
+.recharts-wrapper,
+.recharts-wrapper *,
+.recharts-surface {
+  outline: none !important;
+  border: none !important;
+}
+
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus,
+.recharts-surface:focus,
+.recharts-surface:focus-visible {
+  outline: none !important;
+  border: none !important;
 }

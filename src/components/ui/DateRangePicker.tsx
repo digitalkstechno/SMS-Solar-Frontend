@@ -48,7 +48,7 @@ export default function DateRangePicker({
             <div className="relative flex items-center w-full">
               <DatePicker
                 selected={fromDateObj}
-                onChange={(date) => onFromDateChange(formatDate(date))}
+                onChange={(date: Date | null) => onFromDateChange(formatDate(date))}
                 selectsStart
                 startDate={fromDateObj}
                 endDate={toDateObj}
@@ -68,7 +68,7 @@ export default function DateRangePicker({
             <div className="relative flex items-center w-full">
               <DatePicker
                 selected={toDateObj}
-                onChange={(date) => onToDateChange(formatDate(date))}
+                onChange={(date: Date | null) => onToDateChange(formatDate(date))}
                 selectsEnd
                 startDate={fromDateObj}
                 endDate={toDateObj}
@@ -83,14 +83,6 @@ export default function DateRangePicker({
             </div>
           </div>
         </div>
-        <button
-          onClick={onReset}
-          type="button"
-          className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all rounded-xl border border-transparent hover:border-red-100 cursor-pointer"
-          title="Reset Filter"
-        >
-          <RotateCcw className="h-4 w-4" />
-        </button>
       </div>
     );
   }
@@ -105,7 +97,7 @@ export default function DateRangePicker({
           <div className="relative flex items-center w-full">
             <DatePicker
               selected={fromDateObj}
-              onChange={(date) => onFromDateChange(formatDate(date))}
+              onChange={(date: Date | null) => onFromDateChange(formatDate(date))}
               selectsStart
               startDate={fromDateObj}
               endDate={toDateObj}
@@ -126,7 +118,7 @@ export default function DateRangePicker({
           <div className="relative flex items-center w-full">
             <DatePicker
               selected={toDateObj}
-              onChange={(date) => onToDateChange(formatDate(date))}
+              onChange={(date: Date | null) => onToDateChange(formatDate(date))}
               selectsEnd
               startDate={fromDateObj}
               endDate={toDateObj}
@@ -142,14 +134,6 @@ export default function DateRangePicker({
         </div>
       </div>
 
-      <button
-        onClick={onReset}
-        type="button"
-        className="p-3 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 transition-all rounded-xl border border-gray-200 hover:border-red-200 cursor-pointer flex items-center justify-center h-[46px] w-[46px] shrink-0"
-        title="Reset Filter"
-      >
-        <RotateCcw className="h-4 w-4" />
-      </button>
     </div>
   );
 }

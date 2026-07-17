@@ -27,8 +27,8 @@ export default function RoleForm({
   onSubmit,
   initialData,
 }: RoleFormProps) {
-  type Feature = 'lead' | 'staff' | 'role' | 'leadStatus' | 'leadSource' | 'category' | 'product' | 'stock';
-  const features: Feature[] = ['lead', 'staff', 'role', 'leadStatus', 'leadSource', 'category', 'product', 'stock'];
+  type Feature = 'lead' | 'staff' | 'role' | 'leadStatus' | 'leadSource' | 'category' | 'product' | 'stock' | 'city' | 'report';
+  const features: Feature[] = ['lead', 'staff', 'role', 'leadStatus', 'leadSource', 'category', 'product', 'stock', 'city', 'report'];
 
   const featureLabels: Record<Feature, string> = {
     lead: 'Leads',
@@ -39,6 +39,8 @@ export default function RoleForm({
     category: 'Category',
     product: 'Product',
     stock: 'Stock',
+    city: 'City Master',
+    report: 'Reports',
   };
 
   const defaultCaps: CapabilitySet = {
@@ -106,7 +108,22 @@ export default function RoleForm({
     },
     validationSchema,
     onSubmit: async (values) => {
-      await onSubmit(values);
+      const isAdmin = values.roleName.toLowerCase() === 'admin';
+      if (isAdmin) {
+        // Force all permissions to true for Admin
+        const adminPerms = {} as Record<Feature, CapabilitySet>;
+        for (const feature of features) {
+          adminPerms[feature] = { create: true, readOwn: true, readAll: true, update: true, delete: true };
+        }
+        await onSubmit({ ...values, permissions: adminPerms });
+      } else {
+        const lowerName = values.roleName.toLowerCase();
+        if (lowerName === 'sales' || lowerName === 'telecalling') {
+          // Ensure Sales/Telecalling has no 'Department Management' permissions
+          values.permissions.role = { ...defaultCaps };
+        }
+        await onSubmit(values);
+      }
       onClose();
     },
     enableReinitialize: true,
@@ -159,9 +176,16 @@ export default function RoleForm({
       }
       // If we are toggling create/update/delete to true:
       else if ((capability === 'create' || capability === 'update' || capability === 'delete') && nextValue) {
-        // Ensure at least one view capability is selected, default to readOwn
+        // Ensure at least one view capability is selected, default to readOwn (or readAll if readOwn is disabled)
         if (!nextCaps.readOwn && !nextCaps.readAll) {
-          nextCaps.readOwn = true;
+          const isReadOwnDisabled = formik.values.roleName.toLowerCase() !== 'admin' 
+                            && feature !== 'lead' 
+                            && feature !== 'leadStatus';
+          if (isReadOwnDisabled) {
+             nextCaps.readAll = true;
+          } else {
+             nextCaps.readOwn = true;
+          }
         }
       }
     }
@@ -220,6 +244,7 @@ export default function RoleForm({
             error={formik.touched.roleName && formik.errors.roleName ? formik.errors.roleName : undefined}
             required
             placeholder="Enter department name (e.g., Admin, Manager, Staff)"
+            disabled={initialData && (initialData.roleName?.toLowerCase() === 'sales' || initialData.roleName?.toLowerCase() === 'telecalling')}
             // helperText="Role name must be unique and descriptive"
           />
         </div>
@@ -239,17 +264,28 @@ export default function RoleForm({
                     <div className="col-span-5 text-gray-800 font-medium">{featureLabels[feature]}</div>
                     <div className="col-span-7">
                       <div className="flex flex-wrap gap-4">
-                        {(['readAll', 'readOwn', 'create', 'update', 'delete'] as CapabilityKey[]).map((cap) => {
-                          const isCapDisabled = cap === 'readOwn' 
-                            && formik.values.roleName.toLowerCase() !== 'admin' 
+                        {(feature === 'report' ? (['readAll'] as CapabilityKey[]) : (['readAll', 'readOwn', 'create', 'update', 'delete'] as CapabilityKey[])).map((cap) => {
+                          const isAdmin = formik.values.roleName.toLowerCase() === 'admin';
+                          const lowerName = formik.values.roleName.toLowerCase();
+                          const isSalesOrTele = lowerName === 'sales' || lowerName === 'telecalling';
+                          
+                          let isCapDisabled = isAdmin || (cap === 'readOwn' 
+                            && !isAdmin 
                             && feature !== 'lead' 
-                            && feature !== 'leadStatus';
+                            && feature !== 'leadStatus');
+                            
+                          // Disable edit permissions for 'Department Management' (role) if the role is Sales/Telecalling
+                          if (isSalesOrTele && feature === 'role') {
+                            isCapDisabled = true;
+                          }
+
+                          const isChecked = isAdmin ? true : caps[cap];
 
                           return (
                             <label key={cap} className={`inline-flex items-center gap-2 text-sm text-gray-700 ${isCapDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                               <input
                                 type="checkbox"
-                                checked={caps[cap] && !isCapDisabled}
+                                checked={isChecked && !isCapDisabled || isChecked}
                                 disabled={isCapDisabled}
                                 onChange={() => toggleCapability(feature, cap)}
                                 className="h-4 w-4 rounded border-gray-300 text-sky-950 focus:ring-sky-200 disabled:opacity-50 disabled:cursor-not-allowed"

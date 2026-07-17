@@ -10,6 +10,7 @@ import { baseUrl, getAuthToken } from '@/config';
 import DeleteDialog from '@/components/DeleteDialog';
 import FormInput from '@/components/ui/Input';
 import { toast } from 'react-toastify';
+import { useAppSelector } from '@/redux/hooks';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
     const [debouncedValue, setDebouncedValue] = useState(value);
@@ -62,6 +63,7 @@ export function LeadLabelsContent() {
     const [allData, setAllData] = useState<LeadLabel[]>([]);
     const [totalRecords, setTotalRecords] = useState(0);
     const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
     const debouncedSearch = useDebounce(search, 600);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
@@ -73,6 +75,15 @@ export function LeadLabelsContent() {
 
     const token = typeof window !== 'undefined' ? getAuthToken() : null;
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+    const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+    const role: any = currentStaff?.role || {};
+    const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+    const leadLabelPerms = rawPerms.leadLabel || {};
+    const isAdmin = role.roleName?.toLowerCase() === 'admin';
+    const canCreate = isAdmin || !!leadLabelPerms.create;
+    const canUpdate = isAdmin || !!leadLabelPerms.update;
+    const canDeleteLabel = isAdmin || !!leadLabelPerms.delete;
 
     // Initialize formik
     const formik = useFormik({
@@ -94,6 +105,7 @@ export function LeadLabelsContent() {
     /* ================= LOAD DATA ================= */
 
     const fetchData = async () => {
+    setIsLoading(true);
         try {
             const res = await axios.get(`${baseUrl.leadLabels}`, {
                 headers,
@@ -113,7 +125,9 @@ export function LeadLabelsContent() {
             setTotalRecords(0);
             toast.error(err?.response?.data?.message || 'Failed to load lead labels');
         }
-    };
+     finally {
+      setIsLoading(false);
+    }};
 
     // initial load & whenever search/page/limit changes
     useEffect(() => {
@@ -254,6 +268,7 @@ export function LeadLabelsContent() {
                 totalPages={Math.ceil(totalRecords / pageSize)}
                 totalRecords={totalRecords}
                 pageSize={pageSize}
+        loading={isLoading}
                 onSearch={(v) => {
                     setSearch(v);
                     setCurrentPage(1);
@@ -263,15 +278,15 @@ export function LeadLabelsContent() {
                     setPageSize(s);
                     setCurrentPage(1);
                 }}
-                onEdit={handleEdit}
-                onDelete={handleDeleteClick}
-                addButton={{
+                onEdit={canUpdate ? handleEdit : undefined}
+                onDelete={canDeleteLabel ? handleDeleteClick : undefined}
+                addButton={canCreate ? {
                     label: 'Add Label',
                     onClick: () => {
                         resetForm();
                         setIsDialogOpen(true);
                     },
-                }}
+                } : undefined}
             />
 
             {/* DELETE CONFIRMATION DIALOG */}

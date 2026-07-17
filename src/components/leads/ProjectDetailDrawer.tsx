@@ -48,6 +48,7 @@ interface FormState {
   paymentMode: string;
   projectAmount: string;
   subsidyLessProject: string;
+  isLoanRequired: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -57,7 +58,7 @@ const EMPTY_FORM: FormState = {
   wiringType: '', homeFloor: '', walkway: '', walkwayLengthFeet: '',
   ladder: '', ladderLengthFeet: '', hdgiPipeMake: '',
   hdgiPipe80x40: '0', hdgiPipe60x40: '0', hdgiPipe40x40: '0', hdgiPipe20x40PatiPipe: '0',
-  paymentMode: '', projectAmount: '', subsidyLessProject: '',
+  paymentMode: '', projectAmount: '', subsidyLessProject: '', isLoanRequired: 'no',
 };
 
 const PHOTO_FIELDS = [
@@ -227,6 +228,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
             paymentMode: d.paymentMode || '',
             projectAmount: d.projectAmount?.toString() || '',
             subsidyLessProject: d.subsidyLessProject || '',
+            isLoanRequired: d.isLoanRequired || 'no',
           });
           const ef: Record<string, any> = {};
           [...PHOTO_FIELDS, ...REG_DOC_FIELDS, ...LOAN_DOC_FIELDS].forEach(({ key }) => {
@@ -361,7 +363,9 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
   };
 
   const handleNext = () => {
-    const sectionOrder: SectionKey[] = ['project', 'photos', 'regDocs', 'payment', 'loanDocs'];
+    const sectionOrder: SectionKey[] = form.isLoanRequired === 'yes' 
+      ? ['project', 'photos', 'regDocs', 'payment', 'loanDocs']
+      : ['project', 'photos', 'regDocs', 'payment'];
     const currentIdx = sectionOrder.indexOf(activeSection);
     if (validateStep(activeSection)) {
       if (currentIdx < sectionOrder.length - 1) {
@@ -373,7 +377,9 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
   };
 
   const handleBack = () => {
-    const sectionOrder: SectionKey[] = ['project', 'photos', 'regDocs', 'payment', 'loanDocs'];
+    const sectionOrder: SectionKey[] = form.isLoanRequired === 'yes' 
+      ? ['project', 'photos', 'regDocs', 'payment', 'loanDocs']
+      : ['project', 'photos', 'regDocs', 'payment'];
     const currentIdx = sectionOrder.indexOf(activeSection);
     if (currentIdx > 0) {
       setActiveSection(sectionOrder[currentIdx - 1]);
@@ -381,7 +387,9 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
   };
 
   const handleTabClick = (targetSection: SectionKey) => {
-    const sectionOrder: SectionKey[] = ['project', 'photos', 'regDocs', 'payment', 'loanDocs'];
+    const sectionOrder: SectionKey[] = form.isLoanRequired === 'yes' 
+      ? ['project', 'photos', 'regDocs', 'payment', 'loanDocs']
+      : ['project', 'photos', 'regDocs', 'payment'];
     const currentIdx = sectionOrder.indexOf(activeSection);
     const targetIdx = sectionOrder.indexOf(targetSection);
 
@@ -406,7 +414,9 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
     if (!lead) return;
 
     // Validate all steps before submitting
-    const sectionOrder: SectionKey[] = ['project', 'photos', 'regDocs', 'payment', 'loanDocs'];
+    const sectionOrder: SectionKey[] = form.isLoanRequired === 'yes' 
+      ? ['project', 'photos', 'regDocs', 'payment', 'loanDocs']
+      : ['project', 'photos', 'regDocs', 'payment'];
     for (const step of sectionOrder) {
       if (!validateStep(step)) {
         toast.error(`Please complete the required fields in ${sections.find(s => s.key === step)?.label || step}`);
@@ -436,13 +446,17 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
     }
   };
 
-  const sections: { key: SectionKey; label: string; icon: React.ReactNode }[] = [
+  const allSections: { key: SectionKey; label: string; icon: React.ReactNode }[] = [
     { key: 'project', label: 'Project Info', icon: <Settings className="h-4 w-4" /> },
     { key: 'photos', label: 'Site Photos', icon: <Image className="h-4 w-4" /> },
     { key: 'regDocs', label: 'Reg. Docs', icon: <FileCheck className="h-4 w-4" /> },
     { key: 'payment', label: 'Payment', icon: <CreditCard className="h-4 w-4" /> },
     { key: 'loanDocs', label: 'Loan Docs', icon: <FileText className="h-4 w-4" /> },
   ];
+  
+  const sections = form.isLoanRequired === 'yes' 
+    ? allSections 
+    : allSections.filter(s => s.key !== 'loanDocs');
 
   return (
     <>
@@ -454,7 +468,7 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
       {/* Drawer */}
       <div
         ref={drawerRef}
-        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-4xl flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-4xl flex-col bg-white transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0 shadow-2xl' : 'translate-x-full shadow-none'}`}
       >
         {/* Header */}
         <div className="flex items-center gap-4 border-b border-gray-100 bg-secondary px-6 py-5">
@@ -510,54 +524,34 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
                           label: `Quotation #${idx + 1} - ${q.solarModule || 'Module'} / ${q.inverter || 'Inverter'} (${q.date ? new Date(q.date).toLocaleDateString('en-GB') : 'N/A'})`
                         }))}
                         value={selectedQuotationIdx}
-                        onChange={(val) => {
+                        onChange={async (val) => {
                           setSelectedQuotationIdx(val);
                           setSelectedOptionIdx('0');
                           
-                          // Trigger auto-fill with first option
-                          const idx = parseInt(val);
-                          const selectedQ = lead.quotations?.[idx];
-                          if (selectedQ) {
-                            const getValByKeywords = (keywords: string[]) => {
-                              const row = selectedQ.rows?.find((r: any) => {
-                                const title = (r.title || '').toUpperCase();
-                                return keywords.some(kw => title.includes(kw));
-                              });
-                              return row?.values?.[0] || '';
-                            };
-
-                            const panelMake = getValByKeywords(['SOLAR MODULE MAKE', 'PANEL MAKE', 'MODULE MAKE', 'PANEL BRAND', 'MODULE BRAND', 'MODULE COMPANY']);
-                            const panelWp = getValByKeywords(['SYSTEM CAPACITY', 'PANEL WP', 'WATTAGE', 'PANEL CAPACITY']);
-                            const noOfPanel = getValByKeywords(['NO OF PANEL', 'NO. OF PANELS', 'PANEL COUNT', 'PANEL QTY', 'PANEL QUANTITY']);
-                            const inverterMake = getValByKeywords(['INVERTER MAKE', 'INVERTER BRAND', 'INVERTER COMPANY', 'INVERTER']);
-                            const inverterKw = getValByKeywords(['INVERTER KW', 'INVERTER CAPACITY', 'INVERTER SIZE', 'KW']);
-                            const discom = getValByKeywords(['DISCOM', 'DISCOM NAME']);
-                            const roof = getValByKeywords(['ROOF', 'ROOF TYPE', 'INSTALLATION ROOF']);
-                            const connType = getValByKeywords(['CONNECTION', 'CONNECTION TYPE']);
-                            const wiringType = getValByKeywords(['WIRING', 'WIRING TYPE']);
-                            const homeFloor = getValByKeywords(['FLOOR', 'HOME FLOOR']);
-                            const hdgiPipeMake = getValByKeywords(['PIPE MAKE', 'PIPE BRAND', 'HDGI PIPE', 'HDGI']);
-                            const projectAmount = getValByKeywords(['CUSTOMER PAYABLE AMOUNT', 'PROJECT AMOUNT', 'TOTAL PRICE', 'PAYABLE AMOUNT', 'AMOUNT']);
-
-                            const finalPanelMake = panelMake || selectedQ.solarModule || '';
-                            const finalInverterMake = inverterMake || selectedQ.inverter || '';
-
+                          try {
+                            const token = getAuthToken();
+                            const res = await axios.get(`${baseUrl.projectDetail}/quotation-extract/${lead._id}?qIdx=${val}&optIdx=0`, {
+                              headers: { Authorization: `Bearer ${token}` }
+                            });
+                            const data = res.data.data;
                             setForm(prev => ({
                               ...prev,
-                              panelMake: finalPanelMake,
-                              panelWp: panelWp || prev.panelWp,
-                              noOfPanel: noOfPanel || prev.noOfPanel,
-                              inverterMake: finalInverterMake,
-                              inverterKw: inverterKw || prev.inverterKw,
-                              discom: discom ? discom.toLowerCase() : prev.discom,
-                              installationRoof: roof ? roof.toLowerCase() : prev.installationRoof,
-                              consumerConnectionType: connType ? connType.toLowerCase() : prev.consumerConnectionType,
-                              wiringType: wiringType ? wiringType.toLowerCase() : prev.wiringType,
-                              homeFloor: homeFloor || prev.homeFloor,
-                              hdgiPipeMake: hdgiPipeMake || prev.hdgiPipeMake,
-                              projectAmount: projectAmount || prev.projectAmount,
+                              panelMake: data.panelMake || prev.panelMake,
+                              panelWp: data.panelWp || prev.panelWp,
+                              noOfPanel: data.noOfPanel || prev.noOfPanel,
+                              inverterMake: data.inverterMake || prev.inverterMake,
+                              inverterKw: data.inverterKw || prev.inverterKw,
+                              discom: data.discom || prev.discom,
+                              installationRoof: data.installationRoof || prev.installationRoof,
+                              consumerConnectionType: data.consumerConnectionType || prev.consumerConnectionType,
+                              wiringType: data.wiringType || prev.wiringType,
+                              homeFloor: data.homeFloor || prev.homeFloor,
+                              hdgiPipeMake: data.hdgiPipeMake || prev.hdgiPipeMake,
+                              projectAmount: data.projectAmount || prev.projectAmount,
                             }));
-                            toast.success('Project details populated from quotation!');
+                            toast.success('Project details populated from backend!');
+                          } catch (err) {
+                            toast.error('Failed to auto-fill quotation data');
                           }
                         }}
                         placeholder="Choose a quotation to auto-fill..."
@@ -572,52 +566,32 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
                             label: opt || `Option ${optIdx + 1}`
                           }))}
                           value={selectedOptionIdx}
-                          onChange={(val) => {
+                          onChange={async (val) => {
                             setSelectedOptionIdx(val);
-                            const qIdx = parseInt(selectedQuotationIdx);
-                            const optIdx = parseInt(val);
-                            const selectedQ = lead.quotations?.[qIdx];
-                            if (selectedQ) {
-                              const getValByKeywords = (keywords: string[]) => {
-                                const row = selectedQ.rows?.find((r: any) => {
-                                  const title = (r.title || '').toUpperCase();
-                                  return keywords.some(kw => title.includes(kw));
-                                });
-                                return row?.values?.[optIdx] || '';
-                              };
-
-                              const panelMake = getValByKeywords(['SOLAR MODULE MAKE', 'PANEL MAKE', 'MODULE MAKE', 'PANEL BRAND', 'MODULE BRAND', 'MODULE COMPANY']);
-                              const panelWp = getValByKeywords(['SYSTEM CAPACITY', 'PANEL WP', 'WATTAGE', 'PANEL CAPACITY']);
-                              const noOfPanel = getValByKeywords(['NO OF PANEL', 'NO. OF PANELS', 'PANEL COUNT', 'PANEL QTY', 'PANEL QUANTITY']);
-                              const inverterMake = getValByKeywords(['INVERTER MAKE', 'INVERTER BRAND', 'INVERTER COMPANY', 'INVERTER']);
-                              const inverterKw = getValByKeywords(['INVERTER KW', 'INVERTER CAPACITY', 'INVERTER SIZE', 'KW']);
-                              const discom = getValByKeywords(['DISCOM', 'DISCOM NAME']);
-                              const roof = getValByKeywords(['ROOF', 'ROOF TYPE', 'INSTALLATION ROOF']);
-                              const connType = getValByKeywords(['CONNECTION', 'CONNECTION TYPE']);
-                              const wiringType = getValByKeywords(['WIRING', 'WIRING TYPE']);
-                              const homeFloor = getValByKeywords(['FLOOR', 'HOME FLOOR']);
-                              const hdgiPipeMake = getValByKeywords(['PIPE MAKE', 'PIPE BRAND', 'HDGI PIPE', 'HDGI']);
-                              const projectAmount = getValByKeywords(['CUSTOMER PAYABLE AMOUNT', 'PROJECT AMOUNT', 'TOTAL PRICE', 'PAYABLE AMOUNT', 'AMOUNT']);
-
-                              const finalPanelMake = panelMake || selectedQ.solarModule || '';
-                              const finalInverterMake = inverterMake || selectedQ.inverter || '';
-
+                            try {
+                              const token = getAuthToken();
+                              const res = await axios.get(`${baseUrl.projectDetail}/quotation-extract/${lead._id}?qIdx=${selectedQuotationIdx}&optIdx=${val}`, {
+                                headers: { Authorization: `Bearer ${token}` }
+                              });
+                              const data = res.data.data;
                               setForm(prev => ({
                                 ...prev,
-                                panelMake: finalPanelMake,
-                                panelWp: panelWp || prev.panelWp,
-                                noOfPanel: noOfPanel || prev.noOfPanel,
-                                inverterMake: finalInverterMake,
-                                inverterKw: inverterKw || prev.inverterKw,
-                                discom: discom ? discom.toLowerCase() : prev.discom,
-                                installationRoof: roof ? roof.toLowerCase() : prev.installationRoof,
-                                consumerConnectionType: connType ? connType.toLowerCase() : prev.consumerConnectionType,
-                                wiringType: wiringType ? wiringType.toLowerCase() : prev.wiringType,
-                                homeFloor: homeFloor || prev.homeFloor,
-                                hdgiPipeMake: hdgiPipeMake || prev.hdgiPipeMake,
-                                projectAmount: projectAmount || prev.projectAmount,
+                                panelMake: data.panelMake || prev.panelMake,
+                                panelWp: data.panelWp || prev.panelWp,
+                                noOfPanel: data.noOfPanel || prev.noOfPanel,
+                                inverterMake: data.inverterMake || prev.inverterMake,
+                                inverterKw: data.inverterKw || prev.inverterKw,
+                                discom: data.discom || prev.discom,
+                                installationRoof: data.installationRoof || prev.installationRoof,
+                                consumerConnectionType: data.consumerConnectionType || prev.consumerConnectionType,
+                                wiringType: data.wiringType || prev.wiringType,
+                                homeFloor: data.homeFloor || prev.homeFloor,
+                                hdgiPipeMake: data.hdgiPipeMake || prev.hdgiPipeMake,
+                                projectAmount: data.projectAmount || prev.projectAmount,
                               }));
-                              toast.success(`Project details populated from ${lead.quotations[qIdx].options?.[optIdx] || `Option ${optIdx + 1}`}!`);
+                              toast.success(`Project details populated from Option ${parseInt(val) + 1}!`);
+                            } catch (err) {
+                              toast.error('Failed to auto-fill option data');
                             }
                           }}
                           placeholder="Choose option..."
@@ -914,6 +888,22 @@ export default function ProjectDetailDrawer({ isOpen, lead, onClose, onSaved }: 
                         options={YES_NO_OPTS}
                         placeholder="Select..."
                         error={errors.subsidyLessProject}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <FormSelect
+                        label="Requires Loan?"
+                        name="isLoanRequired"
+                        value={form.isLoanRequired}
+                        onChange={(val) => {
+                           handleFormChange('isLoanRequired', val);
+                           if (val === 'no' && activeSection === 'loanDocs') {
+                             setActiveSection('payment');
+                           }
+                        }}
+                        options={YES_NO_OPTS}
+                        placeholder="Select..."
                         required
                       />
                     </div>

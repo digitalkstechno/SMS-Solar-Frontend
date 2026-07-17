@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import DataTable, { Column } from '@/components/DataTable';
 import { FiChevronDown } from 'react-icons/fi';
 
@@ -84,6 +85,7 @@ const inquiryData: Inquiry[] = [
 ];
 
 export default function Inquiry() {
+  const [pageSize, setPageSize] = useState(10);
   const columns: Column<Inquiry>[] = [
     { key: 'fullName', label: 'FULL NAME', sortable: true },
     { key: 'number', label: 'NUMBER', sortable: true },
@@ -125,7 +127,9 @@ export default function Inquiry() {
         title="Inquery"
         searchable={true}
         pagination={true}
-        pageSize={10}
+        pageSize={pageSize}
+        onPageSizeChange={setPageSize}
+        loading={false}
         actions={false}
       />
     </>

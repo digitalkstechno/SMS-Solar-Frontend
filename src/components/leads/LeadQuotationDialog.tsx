@@ -6,7 +6,6 @@ import { toast } from 'react-toastify';
 import { ApiLead } from './types';
 import FormInput from '../ui/Input';
 import { Trash2, X, Download } from 'lucide-react';
-import { generateQuotationPDF } from '@/utills/quotationPdfGenerator';
 
 interface Props {
   isOpen: boolean;
@@ -129,7 +128,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
         inverter,
         options,
         rows,
-        createdAt: oldQuotation?.createdAt || new Date().toISOString()
+        createdAt: (oldQuotation as any)?.createdAt || new Date().toISOString()
       };
 
       const currentQuotations = Array.isArray(lead.quotations) ? [...lead.quotations] : [];
@@ -138,17 +137,14 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
       } else {
         currentQuotations.push(newQuotation);
       }
-
       const payload = {
         quotations: currentQuotations
       };
-
       await axios.put(
         `${baseUrl.updateLead}/${lead._id}`,
         payload,
         { headers: { Authorization: `Bearer ${getAuthToken()}` } }
       );
-      
       toast.success(editIndex !== null && editIndex !== undefined ? 'Quotation updated successfully' : 'Quotation saved successfully');
       onRefresh();
       onClose();
@@ -226,16 +222,38 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
             Cancel
           </button>
           <button
-            onClick={() => generateQuotationPDF({
-              ...lead,
-              quotation: {
-                date,
-                solarModule,
-                inverter,
-                options,
-                rows
+            onClick={async () => {
+              try {
+                const toastId = toast.loading('Downloading PDF...');
+                const qData = { date, solarModule, inverter, options, rows };
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
+                
+                const response = await axios.post(`${apiUrl}quotation/generate`, {
+                  quotation: qData,
+                  fullName: lead?.fullName
+                }, {
+                  responseType: 'blob',
+                  headers: { Authorization: `Bearer ${getAuthToken()}` }
+                });
+                
+                const blobUrl = window.URL.createObjectURL(response.data);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                const clientName = (lead?.fullName || lead?.leadrefrance || 'Client').replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
+                const d = new Date();
+                const pad = (n: number) => String(n).padStart(2, '0');
+                const dateStr = `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+                link.download = `Quotation_${clientName}_${dateStr}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                
+                toast.update(toastId, { render: 'PDF Downloaded!', type: 'success', isLoading: false, autoClose: 3000 });
+              } catch (e) {
+                toast.dismiss();
+                toast.error('Failed to download PDF');
               }
-            })}
+            }}
             className="rounded-lg border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-100 flex items-center gap-1.5"
           >
             <Download className="h-4 w-4" /> Download PDF

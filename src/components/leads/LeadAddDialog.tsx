@@ -41,7 +41,9 @@ export default function LeadAddDialog({
 }: Props) {
   const [statuses, setStatuses] = useState<DropdownItem[]>([]);
   const [staff, setStaff] = useState<DropdownItem[]>([]);
-  const [leadSources, setLeadSources] = useState<DropdownItem[]>([]);
+  const [leadSources, setLeadSources] = useState<any[]>([]);
+  const [cities, setCities] = useState<{ _id: string; cityName: string }[]>([]);
+  const [isWon, setIsWon] = useState(false);
   const [loading, setLoading] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [quotationOpen, setQuotationOpen] = useState(false);
@@ -79,7 +81,30 @@ export default function LeadAddDialog({
         .length(10, 'Mobile number must be exactly 10 digits'),
       email: Yup.string()
         .matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Invalid email format')
-        .max(100, 'Email must not exceed 100 characters'),
+        .max(100, 'Email must not exceed 100 characters')
+        .test('valid-domain', 'Invalid email domain. Please enter a valid domain (e.g., @gmail.com)', (value) => {
+          if (!value) return true;
+          const domain = value.split('@')[1]?.toLowerCase();
+          if (!domain) return false;
+          
+          // Reject invalid variations of gmail
+          if (domain !== 'gmail.com') {
+            const isGmailTypo = 
+              domain.includes('gmail') || 
+              domain.includes('gamil') || 
+              domain.includes('gmal') || 
+              domain.includes('gmai') ||
+              /^g[a-z]*m[a-z]*a[a-z]*i[a-z]*l[a-z]*\.[a-z]+$/.test(domain);
+              
+            // Allow legitimate non-gmail domains like protonmail.com, globalmail.com etc.
+            // The regex ^g...$ ensures it starts with g and ends with l before the dot.
+            if (isGmailTypo && domain.startsWith('g')) {
+               return false;
+            }
+          }
+          
+          return true;
+        }),
       kwRequirement: Yup.string().required('KW Requirement is required'),
       discomName: Yup.string(),
       leadrefrance: Yup.string(),
@@ -173,60 +198,36 @@ export default function LeadAddDialog({
     },
   });
 
+  // Prefetch base data on mount
+  useEffect(() => {
+    const fetchBaseData = async () => {
+      try {
+        const headers = { Authorization: `Bearer ${token()}` };
+        const [sourceRes, cityRes] = await Promise.all([
+          axios.get(baseUrl.leadSources, { headers }),
+          axios.get(`${baseUrl.city}/all?all=true`, { headers })
+        ]);
+        setLeadSources(sourceRes.data?.data || sourceRes.data || []);
+        setCities(cityRes.data?.data || []);
+      } catch (error) {
+        console.error('Failed to prefetch base data', error);
+      }
+    };
+    fetchBaseData();
+  }, []);
+
   useEffect(() => {
     if (!isOpen) return;
     const fetchData = async () => {
-      setLoading(true);
-      try {
-        const headers = { Authorization: `Bearer ${token()}` };
-
-        let leadData = null;
-        if (mode === 'edit' && initialData?._id) {
-          const [staffRes, deptRes, leadRes, sourcesRes] = await Promise.all([
-            axios.get(baseUrl.getSalesExecutives, { headers }),
+      if (mode === 'edit' && initialData?._id) {
+        setLoading(true);
+        try {
+          const headers = { Authorization: `Bearer ${token()}` };
+          const [deptRes, leadRes] = await Promise.all([
             axios.get(baseUrl.department, { headers }),
-            axios.get(`${baseUrl.findLeadById}/${initialData._id}`, { headers }),
-            axios.get(baseUrl.leadSources, { headers })
+            axios.get(`${baseUrl.findLeadById}/${initialData._id}`, { headers })
           ]);
-          const depts = deptRes.data?.data || [];
-          const users = staffRes.data?.data || [];
-          setLeadSources(sourcesRes.data?.data || []);
-          const usersWithDepts = users.map((u: any) => {
-            const d = depts.find((dept: any) => dept._id === u.department);
-            return { ...u, departmentName: d ? (d.roleName || d.name) : '' };
-          });
-         
-          const salesUsers = false 
-            ? usersWithDepts 
-            : usersWithDepts.filter((u: any) => 
-                u.departmentName && u.departmentName.toLowerCase().includes('sales')
-              );
-          setStaff(salesUsers);
-          leadData = leadRes.data?.data;
-        } else {
-          const [staffRes, deptRes, sourcesRes] = await Promise.all([
-            axios.get(baseUrl.getSalesExecutives, { headers }),
-            axios.get(baseUrl.department, { headers }),
-            axios.get(baseUrl.leadSources, { headers })
-          ]);
-          const depts = deptRes.data?.data || [];
-          const users = staffRes.data?.data || [];
-          setLeadSources(sourcesRes.data?.data || []);
-          const usersWithDepts = users.map((u: any) => {
-            const d = depts.find((dept: any) => dept._id === u.department);
-            return { ...u, departmentName: d ? (d.roleName || d.name) : '' };
-          });
-    
-          const salesUsers = false 
-            ? usersWithDepts 
-            : usersWithDepts.filter((u: any) => 
-                u.departmentName && u.departmentName.toLowerCase().includes('sales')
-              );
-          setStaff(salesUsers);
-        }
-
-        if (mode === 'edit') {
-          // Fallback to initialData if leadData is somehow missing
+          const leadData = leadRes.data?.data;
           const dataToUse = leadData || initialData;
           if (dataToUse) {
             formik.setValues({
@@ -241,17 +242,18 @@ export default function LeadAddDialog({
               locationLink: dataToUse.locationLink || '',
               city: dataToUse.city || '',
               leadStatus: typeof dataToUse.leadStatus === 'string' ? dataToUse.leadStatus : (dataToUse.leadStatus?._id || ''),
-              assignedTo: typeof dataToUse.assignedTo === 'string' ? dataToUse.assignedTo : (dataToUse.assignedTo?._id || ''),
+              assignedTo: dataToUse.assignedTo?._id || dataToUse.assignedTo || '',
               isActive: dataToUse.isActive ?? true,
             });
           }
-        } else {
-          formik.resetForm();
+        } catch {
+          formik.setStatus('Failed to load lead data');
+        } finally {
+          setLoading(false);
         }
-      } catch {
-        formik.setStatus('Failed to load data');
-      } finally {
-        setLoading(false);
+      } else {
+        formik.resetForm();
+        setAttachments([]);
       }
     };
     fetchData();
@@ -259,10 +261,32 @@ export default function LeadAddDialog({
   }, [isOpen, mode, initialData]);
 
 
-  const filteredStaff = useMemo(() => {
-    if (!formik.values.city) return staff;
-    return staff.filter((u: any) => u.city?.toLowerCase() === formik.values.city.toLowerCase());
-  }, [staff, formik.values.city]);
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchStaffForCity = async () => {
+      if (!formik.values.city) {
+        setStaff([]);
+        return;
+      }
+      try {
+        const headers = { Authorization: `Bearer ${getAuthToken()}` };
+        const [staffRes, deptRes] = await Promise.all([
+          axios.get(`${baseUrl.getSalesExecutives}?city=${formik.values.city}`, { headers }),
+          axios.get(baseUrl.department, { headers })
+        ]);
+        const depts = deptRes.data?.data || [];
+        let users = staffRes.data?.data || [];
+        users = users.map((u: any) => {
+          const d = depts.find((dept: any) => dept._id === u.department);
+          return { ...u, departmentName: d ? (d.roleName || d.name) : '' };
+        });
+        setStaff(users);
+      } catch (err) {
+        console.error('Failed to fetch staff for city', err);
+      }
+    };
+    fetchStaffForCity();
+  }, [formik.values.city, isOpen]);
 
   const getFieldError = (fieldName: string) => {
     const isTouched = formik.touched[fieldName as keyof typeof formik.touched];
@@ -376,7 +400,6 @@ export default function LeadAddDialog({
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
                 error={getFieldError('email')}
-                required={requiredFields.includes('email')}
               />
               <FormInput
                 label="KW Requirement"
@@ -424,27 +447,9 @@ export default function LeadAddDialog({
                   value={formik.values.city || ''}
                   onChange={(val) => {
                     formik.setFieldValue('city', val);
-                    if (val) {
-                      const selectedUser = staff.find((u: any) => u._id === formik.values.assignedTo);
-                      if (selectedUser && selectedUser.city?.toLowerCase() !== val.toLowerCase()) {
-                        formik.setFieldValue('assignedTo', '');
-                      }
-                    }
                   }}
                   onBlur={() => formik.setFieldTouched('city')}
-                  options={[
-                    { value: 'surat', label: 'Surat' },
-                    { value: 'vapi', label: 'Vapi' },
-                    { value: 'navsari', label: 'Navsari' },
-                    { value: 'vadodra', label: 'Vadodara' },
-                    { value: 'bharuch', label: 'Bharuch' },
-                    { value: 'ankleshwar', label: 'Ankleshwar' },
-                    { value: 'bardoli', label: 'Bardoli' },
-                    { value: 'vyara', label: 'Vyara' },
-                    { value: 'mandvi', label: 'Mandvi' },
-                    { value: 'songadh', label: 'Songadh' },
-                    { value: 'valsad', label: 'Valsad' },
-                  ]}
+                  options={cities.map((c: any) => ({ value: c._id, label: c.cityName }))}
                   error={getFieldError('city')}
                   placeholder="Select City"
                   required
@@ -492,7 +497,7 @@ export default function LeadAddDialog({
                   value={formik.values.assignedTo}
                   onChange={(val) => { formik.setFieldValue('assignedTo', val); }}
                   onBlur={() => formik.setFieldTouched('assignedTo')}
-                  options={filteredStaff.map((s) => ({ value: s._id, label: `${s.fullName || s.name!}${s.departmentName ? ` (${s.departmentName})` : ''}` }))}
+                  options={staff.map((s) => ({ value: s._id, label: `${s.fullName || s.name!}${s.departmentName ? ` (${s.departmentName})` : ''}` }))}
                   error={getFieldError('assignedTo')}
                   placeholder="Select User"
                   required={requiredFields.includes('assignedTo')}

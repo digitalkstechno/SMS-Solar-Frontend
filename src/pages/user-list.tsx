@@ -19,7 +19,8 @@ interface StaffManagement {
   password: string;
   status: string;
   department: string;
-  city?: string;
+  city?: any;
+  cityDisplay?: string;
 }
 
 // ──────────────────────────────────────────────── Debounce hook
@@ -67,24 +68,24 @@ export function UserContent() {
   useEffect(() => {
     if (currentStaff) {
       const role: any = currentStaff.role || {};
+      const isAdmin = role.roleName?.toLowerCase() === 'admin';
       const rawPerms = Array.isArray(role.permissions)
         ? role.permissions[0]
         : role.permissions || {};
-      setSetupPermissions(rawPerms.staff || null);
+      setSetupPermissions(isAdmin ? { create: true, readAll: true, update: true, delete: true } : rawPerms.staff || null);
     } else {
       setSetupPermissions(null);
     }
   }, [currentStaff]);
 
 
-  const fetchStaff = useCallback(async (signal?: AbortSignal) => {
+  const fetchStaff = useCallback(async () => {
     setIsLoading(true);
     try {
       const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
       const [res, deptRes] = await Promise.all([
-        axios.get(baseUrl.getAllUsers, {
+          axios.get(baseUrl.getAllUsers, {
           headers,
-          signal,
           params: {
             page,
             limit,
@@ -92,7 +93,7 @@ export function UserContent() {
           },
         }),
         departments.length === 0
-          ? axios.get(baseUrl.department, { headers, signal })
+          ? axios.get(baseUrl.department, { headers })
           : Promise.resolve({ data: { data: departments } })
       ]);
 
@@ -108,6 +109,8 @@ export function UserContent() {
         password?: string;
         status?: string;
         department?: string | { roleName?: string, name?: string };
+        cityNames?: string;
+        city?: any;
       }[]) || [];
       const pagination = res.data?.pagination || {};
 
@@ -124,7 +127,8 @@ export function UserContent() {
           password: item.password ? '******' : '',
           status: item.status || 'Active',
           department: deptName || '-',
-          city: item.city || '-',
+          cityDisplay: item.cityNames || (Array.isArray(item.city) ? item.city.join(', ') : item.city) || '-',
+          city: item.city || [],
         };
       });
 
@@ -149,9 +153,7 @@ export function UserContent() {
   }, [page, limit, debouncedSearch, token]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchStaff(controller.signal);
-    return () => controller.abort();
+    fetchStaff();
   }, [fetchStaff]);
 
   const togglePasswordVisibility = (id: string) => {
@@ -242,7 +244,7 @@ export function UserContent() {
       label: 'DEPARTMENT',
     },
     {
-      key: 'city',
+      key: 'cityDisplay',
       label: 'CITY',
       render: (value) => <span className="capitalize">{value}</span>,
     },
@@ -287,7 +289,7 @@ export function UserContent() {
         password: '',
         status: item.status || 'Active',
         department: item.department || '',
-        city: item.city || '',
+        city: item.city || [],
       };
 
       setEditingExecutive(formatted);
@@ -356,6 +358,7 @@ export function UserContent() {
             setSearch(value);
             setPage(1);
           }}
+          loading={isLoading}
           onEdit={canUpdate ? handleEdit : undefined}
           onDelete={canDelete ? handleDeleteClick : undefined} // Changed to handleDeleteClick
           actions

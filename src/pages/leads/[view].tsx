@@ -10,7 +10,8 @@ import { baseUrl, getAuthToken } from '@/config';
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 import LeadsListView from '@/components/leads/LeadsListView';
-import { useAppSelector } from '@/redux/hooks';
+import { useAppSelector, useAppDispatch } from '@/redux/hooks';
+import { setGlobalLoading } from '@/redux/slices/appSlice';
 import LeadsKanbanView from '@/components/leads/LeadsKanbanView';
 import LeadAddDialog from '@/components/leads/LeadAddDialog';
 import LeadViewDialog from '@/components/leads/LeadViewDialog';
@@ -44,6 +45,7 @@ function useDebounce<T>(value: T, delay = 500): T {
 
 export default function LeadsPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { view: viewParam } = router.query;
 
   // ── Active view (list | kanban) ──────────────────────────────────────────
@@ -57,6 +59,7 @@ export default function LeadsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [staffFilter, setStaffFilter] = useState<string[]>([]);
+  const [sourceFilter, setSourceFilter] = useState<string[]>([]);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
@@ -121,11 +124,12 @@ export default function LeadsPage() {
     () => ({
       search: debouncedSearch,
       status: statusFilter.length > 0 ? statusFilter.join(',') : '',
+      source: sourceFilter.length > 0 ? sourceFilter.join(',') : '',
       staff: staffFilter.length > 0 ? staffFilter.join(',') : '',
       from: fromDate,
       to: toDate,
     }),
-    [debouncedSearch, statusFilter, staffFilter, fromDate, toDate]
+    [debouncedSearch, statusFilter, sourceFilter, staffFilter, fromDate, toDate]
   );
 
   // ── Data — pass kanbanSubView so hook fetches only what's needed ──────────
@@ -146,6 +150,9 @@ export default function LeadsPage() {
     lostPagination,
     wonPagination,
   } = useLeadsData(activeTab, filters, viewMode, kanbanSubView);
+
+  // Global loading is removed to prevent full page loader during search or filter
+  // It is handled locally by the components
 
   // ── Sync URL → state ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -236,14 +243,17 @@ export default function LeadsPage() {
 
   const clearFilters = () => {
     setStatusFilter([]);
+    setSourceFilter([]);
     setStaffFilter([]);
     setFromDate('');
     setToDate('');
     setSearch('');
+    setShowFilterDrawer(false);
   };
 
   const hasActiveFilters = !!(
     statusFilter.length > 0 ||
+    sourceFilter.length > 0 ||
     staffFilter.length > 0 ||
     fromDate ||
     toDate
@@ -407,6 +417,15 @@ export default function LeadsPage() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <FormMultiSelect
+                  label="Lead Source"
+                  value={sourceFilter}
+                  onChange={(e) => setSourceFilter(e)}
+                  options={sources.map((s) => ({ value: s._id, label: s.name }))}
+                />
+              </div>
+
               <div className="lg:col-span-2 w-full">
                 <DateRangePicker
                   fromDate={fromDate}
@@ -439,11 +458,8 @@ export default function LeadsPage() {
 
       {/* ── Main Content ─────────────────────────────────────────────────── */}
       <div className="flex-1 relative min-h-[400px]">
-        {/* Main Loader Overlay - Premium UI, Full Screen */}
-        {loading && <PremiumLoader text="Loading Leads" isFullScreen={true} />}
-
-        {/* Content Wrapper - Instantly toggles visibility synchronously with loading state */}
-        <div className={`h-full ${loading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        {/* Content Wrapper */}
+        <div className="h-full">
           {viewMode === 'list' ? (
             <LeadsListView
               statuses={statuses}
@@ -458,17 +474,19 @@ export default function LeadsPage() {
               scope={activeTab}
               filters={filters}
               externalLeads={leadsList}
-              loading={false}
+              loading={loading}
             pagination={listPagination}
             onSearch={(val) => setSearch(val)}
             currentUser={currentUser}
           />
         ) : (
           <LeadsKanbanView
+            loading={loading}
             leads={leads}
             lostLeads={lostLeads}
             wonLeads={wonLeads}
             statuses={statuses}
+            staffMembers={staffMembers}
             counts={counts?.statusCounts}
             onEdit={canUpdate ? handleEdit : undefined}
             onView={handleView}

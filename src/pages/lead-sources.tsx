@@ -9,7 +9,8 @@ import axios from 'axios';
 import { baseUrl, getAuthToken } from '@/config';
 import DeleteDialog from '@/components/DeleteDialog';
 import FormInput from '@/components/ui/Input';
-import toast from 'react-hot-toast';
+import { toast } from 'react-toastify';
+import { useAppSelector } from '@/redux/hooks';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -54,6 +55,7 @@ export function LeadSourcesContent() {
   const [allData, setAllData] = useState<LeadItem[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const debouncedSearch = useDebounce(search, 600);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -64,6 +66,15 @@ export function LeadSourcesContent() {
 
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const role: any = currentStaff?.role || {};
+  const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+  const leadSourcePerms = rawPerms.leadSource || {};
+  const isAdmin = role.roleName?.toLowerCase() === 'admin';
+  const canCreate = isAdmin || !!leadSourcePerms.create;
+  const canUpdate = isAdmin || !!leadSourcePerms.update;
+  const canDeleteSource = isAdmin || !!leadSourcePerms.delete;
 
   // Initialize formik
   const formik = useFormik({
@@ -84,6 +95,7 @@ export function LeadSourcesContent() {
   /* ================= LOAD DATA ================= */
 
   const fetchData = async () => {
+    setIsLoading(true);
     try {
       const res = await axios.get(baseUrl.leadSources, {
         headers,
@@ -108,7 +120,9 @@ export function LeadSourcesContent() {
       setAllData([]);
       setTotalRecords(0);
     }
-  };
+   finally {
+      setIsLoading(false);
+    }};
 
   // initial load & whenever search/page/limit changes
   useEffect(() => {
@@ -194,6 +208,7 @@ export function LeadSourcesContent() {
         totalPages={Math.ceil(totalRecords / pageSize)}
         totalRecords={totalRecords}
         pageSize={pageSize}
+        loading={isLoading}
         onSearch={(v) => {
           setSearch(v);
           setCurrentPage(1);
@@ -218,15 +233,17 @@ export function LeadSourcesContent() {
             alert('Failed to fetch data');
           }
         }}
-        onDelete={handleDeleteClick}
-        addButton={{
+        onDelete={canDeleteSource ? handleDeleteClick : undefined}
+        canEdit={canUpdate}
+        canDelete={canDeleteSource}
+        addButton={canCreate ? {
           label: 'Add Source',
           onClick: () => {
             formik.resetForm();
             formik.setFieldValue('order', allData.length + 1);
             setIsDialogOpen(true);
           },
-        }}
+        } : undefined}
       />
 
       {/* DELETE CONFIRMATION DIALOG */}

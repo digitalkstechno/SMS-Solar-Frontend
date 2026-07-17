@@ -10,6 +10,7 @@ import { baseUrl, getAuthToken } from '@/config';
 import DeleteDialog from '@/components/DeleteDialog';
 import FormInput from '@/components/ui/Input';
 import { toast } from 'react-toastify';
+import { useAppSelector } from '@/redux/hooks';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
     const [debouncedValue, setDebouncedValue] = useState(value);
@@ -55,6 +56,7 @@ export function TaskStatusContent() {
     const [allData, setAllData] = useState<TaskStatusItem[]>([]);
     const [totalRecords, setTotalRecords] = useState(0);
     const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
     const debouncedSearch = useDebounce(search, 600);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
@@ -66,6 +68,15 @@ export function TaskStatusContent() {
 
     const token = typeof window !== 'undefined' ? getAuthToken() : null;
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+    const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+    const role: any = currentStaff?.role || {};
+    const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+    const taskStatusPerms = rawPerms.taskStatus || {};
+    const isAdmin = role.roleName?.toLowerCase() === 'admin';
+    const canCreate = isAdmin || !!taskStatusPerms.create;
+    const canUpdate = isAdmin || !!taskStatusPerms.update;
+    const canDeleteStatus = isAdmin || !!taskStatusPerms.delete;
 
     // Initialize formik
     const formik = useFormik({
@@ -87,6 +98,7 @@ export function TaskStatusContent() {
     /* ================= LOAD DATA ================= */
 
     const fetchData = async () => {
+    setIsLoading(true);
         try {
             const res = await axios.get(baseUrl.taskStatuses, {
                 headers,
@@ -113,7 +125,9 @@ export function TaskStatusContent() {
             setTotalRecords(0);
             toast.error(err?.response?.data?.message || 'Failed to load task statuses');
         }
-    };
+     finally {
+      setIsLoading(false);
+    }};
 
     // initial load & whenever search/page/limit changes
     useEffect(() => {
@@ -264,6 +278,7 @@ export function TaskStatusContent() {
                 totalPages={Math.ceil(totalRecords / pageSize)}
                 totalRecords={totalRecords}
                 pageSize={pageSize}
+        loading={isLoading}
                 onSearch={(v) => {
                     setSearch(v);
                     setCurrentPage(1);
@@ -273,15 +288,15 @@ export function TaskStatusContent() {
                     setPageSize(s);
                     setCurrentPage(1);
                 }}
-                onEdit={handleEdit}
-                onDelete={handleDeleteClick}
-                addButton={{
+                onEdit={canUpdate ? handleEdit : undefined}
+                onDelete={canDeleteStatus ? handleDeleteClick : undefined}
+                addButton={canCreate ? {
                     label: 'Add Status',
                     onClick: () => {
                         resetForm();
                         setIsDialogOpen(true);
                     },
-                }}
+                } : undefined}
             />
 
             {/* DELETE CONFIRMATION DIALOG */}

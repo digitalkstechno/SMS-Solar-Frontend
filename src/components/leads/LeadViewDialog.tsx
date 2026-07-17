@@ -478,7 +478,7 @@ import { baseUrl, getAuthToken } from '@/config';
 import { ApiLead, ApiStatus } from './types';
 import { FiPhone, FiMail, FiMapPin, FiCalendar, FiClock, FiCheckSquare, FiMessageSquare, FiList, FiEdit2, FiX, FiCheck, FiFileText } from 'react-icons/fi';
 import CustomTimePicker from '../ui/CustomTimePicker';
-import { Eye, Download, FileText, Image, File, FileSpreadsheet, Search, Trash2 } from 'lucide-react';
+import { Eye, Download, FileText, Image, File, FileSpreadsheet, Search, Trash2, MessageCircle } from 'lucide-react';
 import { getFileIcon } from '@/utills/utill';
 import LeadQuotationDialog from './LeadQuotationDialog';
 import { FormSelect } from '../ui/FormSelect';
@@ -540,6 +540,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
   const [reassigning, setReassigning] = useState(false);
   const [localAssignedTo, setLocalAssignedTo] = useState<any>(null);
   const [departments, setDepartments] = useState<any[]>([]);
+  const [visitDone, setVisitDone] = useState<boolean | null>(null);
 
   const canUpdateLead = useMemo(() => {
     if (isAdmin) return true;
@@ -567,6 +568,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
       setLocalActivities(lead.activities || []);
       setLocalAssignedTo(lead.assignedTo || null);
       setLocalQuotations(lead.quotations || []);
+      setVisitDone(lead.isVisitDone ?? null);
     }
   }, [lead]);
 
@@ -617,6 +619,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
         `${baseUrl.updateLead}/${lead._id}`,
         {
           leadStatus: editStatus,
+          isVisitDone: visitDone,
         },
         { headers: { Authorization: `Bearer ${getAuthToken()}` } }
       );
@@ -630,6 +633,24 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
       toast.error(e?.response?.data?.message || 'Failed to update lead');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleVisitChange = async (value: boolean) => {
+    if (!lead || !canUpdateLead) return;
+    setVisitDone(value);
+    try {
+      await axios.put(
+        `${baseUrl.updateLead}/${lead._id}/visit`,
+        { isVisitDone: value },
+        { headers: { Authorization: `Bearer ${getAuthToken()}` } }
+      );
+      toast.success('Visit status updated');
+      onRefresh();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Failed to update visit status');
+      // Revert if failed
+      setVisitDone(lead.isVisitDone ?? null);
     }
   };
 
@@ -743,14 +764,36 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
   const handleDeleteFollowup = async (fId: string) => {
     if (!lead) return;
     const result = await Swal.fire({
-      title: 'Delete Follow-up?',
-      text: 'Are you sure you want to delete this follow-up?',
-      icon: 'warning',
+      html: `
+        <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-[#A63C71]/10 text-[#A63C71] mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+            </div>
+            <h2 class="text-lg font-bold text-[#1f2937] mb-1">Delete Follow-up?</h2>
+            <p class="text-[14px] text-gray-500 leading-relaxed">Are you sure you want to delete<br/>this follow-up record?</p>
+        </div>
+      `,
       showCancelButton: true,
-      confirmButtonText: 'Yes, Delete',
+      confirmButtonText: 'Delete',
       cancelButtonText: 'Cancel',
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#6D7A86',
+      buttonsStyling: false,
+      background: '#ffffff',
+      width: '340px',
+      padding: '24px',
+      backdrop: 'rgba(0,0,0,0.5)',
+      customClass: {
+        popup: 'rounded-[24px] shadow-2xl border border-gray-100',
+        htmlContainer: 'm-0 p-0',
+        actions: 'flex w-full gap-3 mt-6 mb-0 p-0',
+        confirmButton: 'flex-1 bg-[#A63C71] text-white font-semibold rounded-xl px-4 py-2.5 hover:bg-[#8f325f] transition-all m-0 outline-none focus:ring-2 focus:ring-[#A63C71]/50 focus:ring-offset-1 border-0',
+        cancelButton: 'flex-1 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl px-4 py-2.5 hover:bg-gray-50 transition-all m-0 outline-none focus:ring-2 focus:ring-gray-200'
+      }
     });
 
     if (!result.isConfirmed) return;
@@ -798,14 +841,36 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
 
   const handleDeleteAttachment = async (attachment: any) => {
     const result = await Swal.fire({
-      title: 'Delete Attachment?',
-      text: `Are you sure you want to delete "${attachment.originalName}"?`,
-      icon: 'warning',
+      html: `
+        <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-[#A63C71]/10 text-[#A63C71] mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+            </div>
+            <h2 class="text-lg font-bold text-[#1f2937] mb-1">Delete Attachment?</h2>
+            <p class="text-[14px] text-gray-500 leading-relaxed">Are you sure you want to delete<br/>the attachment?</p>
+        </div>
+      `,
       showCancelButton: true,
-      confirmButtonText: 'Yes, Delete',
+      confirmButtonText: 'Delete',
       cancelButtonText: 'Cancel',
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#6D7A86',
+      buttonsStyling: false,
+      background: '#ffffff',
+      width: '340px',
+      padding: '24px',
+      backdrop: 'rgba(0,0,0,0.5)',
+      customClass: {
+        popup: 'rounded-[24px] shadow-2xl border border-gray-100',
+        htmlContainer: 'm-0 p-0',
+        actions: 'flex w-full gap-3 mt-6 mb-0 p-0',
+        confirmButton: 'flex-1 bg-[#A63C71] text-white font-semibold rounded-xl px-4 py-2.5 hover:bg-[#8f325f] transition-all m-0 outline-none focus:ring-2 focus:ring-[#A63C71]/50 focus:ring-offset-1 border-0',
+        cancelButton: 'flex-1 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl px-4 py-2.5 hover:bg-gray-50 transition-all m-0 outline-none focus:ring-2 focus:ring-gray-200'
+      }
     });
 
     if (!result.isConfirmed) return;
@@ -825,31 +890,124 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
 
   const handleDeleteQuotation = async (indexToDelete: number) => {
     if (!lead) return;
+    const quotation = localQuotations[indexToDelete];
     const result = await Swal.fire({
-      title: 'Delete Quotation?',
-      text: 'Are you sure you want to delete this quotation?',
-      icon: 'warning',
+      html: `
+        <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-[#A63C71]/10 text-[#A63C71] mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+            </div>
+            <h2 class="text-lg font-bold text-[#1f2937] mb-1">Delete Quotation?</h2>
+            <p class="text-[14px] text-gray-500 leading-relaxed">Are you sure you want to delete the quotation<br/>for <b>${quotation.kw || lead.kwRequirement || 'this lead'}</b>?</p>
+        </div>
+      `,
       showCancelButton: true,
-      confirmButtonText: 'Yes, Delete',
+      confirmButtonText: 'Delete',
       cancelButtonText: 'Cancel',
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#6D7A86',
+      buttonsStyling: false,
+      background: '#ffffff',
+      width: '340px',
+      padding: '24px',
+      backdrop: 'rgba(0,0,0,0.5)',
+      customClass: {
+        popup: 'rounded-[24px] shadow-2xl border border-gray-100',
+        htmlContainer: 'm-0 p-0',
+        actions: 'flex w-full gap-3 mt-6 mb-0 p-0',
+        confirmButton: 'flex-1 bg-[#A63C71] text-white font-semibold rounded-xl px-4 py-2.5 hover:bg-[#8f325f] transition-all m-0 outline-none focus:ring-2 focus:ring-[#A63C71]/50 focus:ring-offset-1 border-0',
+        cancelButton: 'flex-1 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl px-4 py-2.5 hover:bg-gray-50 transition-all m-0 outline-none focus:ring-2 focus:ring-gray-200'
+      }
     });
 
     if (!result.isConfirmed) return;
 
     try {
+      if (quotation._id) {
+        await axios.delete(
+          `${baseUrl.updateLead}/${lead._id}/quotation/${quotation._id}`,
+          { headers: { Authorization: `Bearer ${getAuthToken()}` } }
+        );
+      } else {
+        const updatedQuotations = (localQuotations || []).filter((_, i) => i !== indexToDelete);
+        await axios.put(
+          `${baseUrl.updateLead}/${lead._id}`,
+          { quotations: updatedQuotations },
+          { headers: { Authorization: `Bearer ${getAuthToken()}` } }
+        );
+      }
+      
       const updatedQuotations = (localQuotations || []).filter((_, i) => i !== indexToDelete);
-      await axios.put(
-        `${baseUrl.updateLead}/${lead._id}`,
-        { quotations: updatedQuotations },
-        { headers: { Authorization: `Bearer ${getAuthToken()}` } }
-      );
       setLocalQuotations(updatedQuotations);
       toast.success('Quotation deleted successfully');
       onRefresh();
     } catch (e: any) {
       toast.error(e?.response?.data?.message || 'Failed to delete quotation');
+    }
+  };
+
+  const handleDownloadQuotation = async (index: number) => {
+    if (!lead) return;
+    const quotation = localQuotations[index];
+    
+    const toastId = toast.loading('Downloading PDF...');
+    try {
+      let qData = quotation;
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
+      const response = await axios.post(`${apiUrl}quotation/generate`, {
+        quotation: qData,
+        fullName: lead.fullName
+      }, {
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${getAuthToken()}` }
+      });
+      
+      const blobUrl = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const clientName = (lead.fullName || lead.leadrefrance || 'Client').replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
+      const d = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const dateStr = `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+      link.download = `Quotation_${clientName}_${dateStr}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast.update(toastId, { render: 'PDF Downloaded!', type: 'success', isLoading: false, autoClose: 3000 });
+    } catch (e: any) {
+      toast.update(toastId, { render: 'Failed to download PDF', type: 'error', isLoading: false, autoClose: 3000 });
+    }
+  };
+
+  const handleSendWhatsApp = async (index: number) => {
+    if (!lead) return;
+    const quotation = localQuotations[index];
+    
+    const toastId = toast.loading('Sending Quotation via WhatsApp...');
+    try {
+      let qData = quotation;
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
+      const response = await axios.post(`${apiUrl}quotation/whatsapp`, {
+        quotation: qData,
+        lead: lead
+      }, {
+        headers: { Authorization: `Bearer ${getAuthToken()}` }
+      });
+      
+      if (response.data.success) {
+        toast.update(toastId, { render: 'WhatsApp Sent Successfully!', type: 'success', isLoading: false, autoClose: 3000 });
+      } else {
+        toast.update(toastId, { render: response.data.message || 'Failed to send WhatsApp', type: 'error', isLoading: false, autoClose: 3000 });
+      }
+    } catch (e: any) {
+      toast.update(toastId, { render: 'Failed to send WhatsApp', type: 'error', isLoading: false, autoClose: 3000 });
     }
   };
 
@@ -910,32 +1068,21 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
   const handleDownload = async (attachment: any) => {
     try {
       const fileUrl = attachment.path?.startsWith('http') ? attachment.path : `${process.env.NEXT_PUBLIC_IMAGE_URL}${attachment.path}`;
+      const token = getAuthToken() || '';
       
-      // External URLs block CORS on fetch, so just open in new tab for them
-      if (attachment.path?.startsWith('http')) {
-        window.open(fileUrl, '_blank');
-        return;
-      }
-
-      const response = await fetch(fileUrl, {
-        headers: { Authorization: `Bearer ${getAuthToken()}` }
-      });
-
-      if (!response.ok) throw new Error('Download failed');
-
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
+      // Use the proxy API route to guarantee a forced download
+      const proxyUrl = `/api/download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(attachment.originalName || 'download')}&token=${encodeURIComponent(token)}`;
+      
       const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = attachment.originalName;
+      link.href = proxyUrl;
+      link.download = attachment.originalName || 'download';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-      toast.success('Download started');
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Failed to download file');
+      const fileUrl = attachment.path?.startsWith('http') ? attachment.path : `${process.env.NEXT_PUBLIC_IMAGE_URL}${attachment.path}`;
+      window.open(fileUrl, '_blank');
     }
   };
 
@@ -1019,7 +1166,39 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                 )}
               </div>
             </div>
-            <div className="rounded-lg bg-gray-50 p-4">
+
+            {/* Visit Section */}
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+              <div className="mb-3 text-sm font-bold text-gray-800">Visit</div>
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="visit"
+                    checked={visitDone === true}
+                    onChange={() => handleVisitChange(true)}
+                    className="w-4 h-4 accent-[#a63c71] cursor-pointer"
+                    disabled={!canUpdateLead}
+                  />
+                  <span className="text-sm font-medium text-gray-700">Yes</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="visit"
+                    checked={visitDone === false}
+                    onChange={() => handleVisitChange(false)}
+                    className="w-4 h-4 accent-[#a63c71] cursor-pointer"
+                    disabled={!canUpdateLead}
+                  />
+                  <span className="text-sm font-medium text-gray-700">No</span>
+                </label>
+              </div>
+            </div>
+
+            {visitDone !== null && (
+              <>
+                <div className="rounded-lg bg-gray-50 p-4">
               <div className="mb-3 text-sm font-medium text-gray-600">Status</div>
               <div className="flex flex-wrap gap-2">
                 {statuses.map((s) => (
@@ -1056,7 +1235,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                       <label className="text-xs font-medium text-gray-500">Date</label>
                       <DatePicker
                         selected={editNextDate ? new Date(editNextDate) : null}
-                        onChange={(date) => setEditNextDate(date ? date.toISOString().split('T')[0] : '')}
+                        onChange={(date: Date | null) => setEditNextDate(date ? date.toISOString().split('T')[0] : '')}
                         placeholderText="mm/dd/yyyy"
                         dateFormat="MM/dd/yyyy"
                         className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-secondary transition-all outline-none cursor-pointer"
@@ -1079,13 +1258,13 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                       onChange={(e) => setFollowupNote(e.target.value)}
                       placeholder="Describe the interaction..."
                       rows={3}
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 transition-all outline-none resize-none"
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-[#A63C71] focus:border-[#A63C71] transition-all outline-none resize-none"
                     />
                   </div>
                   <button
                     onClick={handleAddFollowup}
                     disabled={!editNextDate || !followupNote || addingFollowup}
-                    className="mt-3 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    className="mt-3 w-full rounded-lg bg-[#A63C71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
                   >
                     {addingFollowup ? (
                       <span className="flex items-center justify-center gap-2">
@@ -1202,7 +1381,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
               <div className="rounded-lg bg-gray-50 p-4">
                 <div className="mb-2 text-sm font-medium text-gray-600">Labels</div>
                 <div className="flex flex-wrap gap-2">
-                  {lead.leadLabel.map((l) => (
+                  {Array.isArray(lead.leadLabel) && lead.leadLabel.map((l: any) => (
                     <span
                       key={l._id}
                       style={{ backgroundColor: l.color }}
@@ -1322,6 +1501,8 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                 </div>
               )}
             </div>
+          </>
+        )}
 
             {/* Lost info */}
             {lead.isLost && (
@@ -1392,11 +1573,20 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                             <div className="inline-flex gap-2">
                               <button
                                 type="button"
-                                onClick={() => generateQuotationPDF({ ...lead, quotation: q })}
+                                onClick={() => handleDownloadQuotation(idx)}
                                 className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                                 title="Download PDF"
                               >
                                 <Download className="h-4 w-4" />
+                              </button>
+                              
+                              <button
+                                type="button"
+                                onClick={() => handleSendWhatsApp(idx)}
+                                className="p-1 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                                title="Send via WhatsApp"
+                              >
+                                <MessageCircle className="h-4 w-4" />
                               </button>
                               {canUpdateLead && (
                                 <>

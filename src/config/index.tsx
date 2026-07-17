@@ -65,13 +65,18 @@ export const baseUrl = {
   category: `${API}category`,
   product: `${API}product`,
   stock: `${API}stock`,
+  city: `${API}city`,
   getBaseUrl: API,
   projectDetail: `${API}project-detail`,
   leadPayments: `${API}lead`,
   deletePayment: `${API}lead`,
   kwGrowth: `${API}analytics/kw-growth`,
+  revenueGrowth: `${API}analytics/revenue-growth`,
   salesWinRate: `${API}analytics/sales-win-rate`,
   leadsBySourceAnalytics: `${API}analytics/leads-by-source`,
+  dashboardStats: `${API}lead/dashboard-stats`,
+  assignStock: (id: string) => `${API}lead/${id}/assign-stock`,
+  exportStockInReport: `${API}stock/export`,
 };
 
 const TOKEN_COOKIE_NAME = "crm_token";

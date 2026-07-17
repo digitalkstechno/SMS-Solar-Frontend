@@ -229,20 +229,6 @@
 //   };
 
 //   return (
-//     <div className="w-full mb-4">
-//       {/* Label */}
-//       {label && (
-//         <div className="flex items-center justify-between mb-2">
-//           <label className="text-sm font-semibold text-gray-700">
-//             {label}
-//             {required && <span className="text-red-700 ml-1">*</span>}
-//           </label>
-//           {helperText && !hasError && (
-//             <span className="text-xs text-gray-500">{helperText}</span>
-//           )}
-//         </div>
-//       )}
-
 //       <div className="relative">
 //         {/* Left Icon */}
 //         {icon && (
@@ -336,10 +322,10 @@ import React, { useState } from "react";
 import { Eye, EyeOff, AlertCircle, CheckCircle, Check } from "lucide-react";
 
 interface FormInputProps {
-  label?: string;
+  label?: string | React.ReactNode;
   name: string;
   type?: string;
-  value: any;
+  value?: any;
   onChange: (e: any) => void;
   onBlur?: (e: any) => void;
   error?: string;
@@ -354,6 +340,8 @@ interface FormInputProps {
   className?: string;
   checked?: boolean; // For checkbox
   checkboxColor?: string; // Custom color for checkbox
+  labelClassName?: string;
+  compact?: boolean;
 }
 
 const FormInput: React.FC<FormInputProps> = ({
@@ -375,6 +363,7 @@ const FormInput: React.FC<FormInputProps> = ({
   className = "",
   checked,
   checkboxColor = "#1e40af", // Default dark blue color
+  labelClassName = "",
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -537,7 +526,7 @@ const FormInput: React.FC<FormInputProps> = ({
             {label && (
               <div className="flex items-center justify-between">
                 <label
-                  className="text-sm font-semibold text-gray-700 cursor-pointer"
+                  className={`text-sm font-semibold text-gray-700 cursor-pointer ${labelClassName}`}
                   onClick={() => {
                     if (!disabled) {
                       const newChecked = !(checked || value);
@@ -585,7 +574,7 @@ const FormInput: React.FC<FormInputProps> = ({
       {/* Label */}
       {label && (
         <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-semibold text-gray-700">
+          <label className={`text-sm font-semibold text-gray-700 ${labelClassName}`}>
             {label}
             {required && <span className="text-red-700 ml-1">*</span>}
           </label>

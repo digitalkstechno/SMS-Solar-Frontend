@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Dialog from '@/components/Dialog';
+import { toast } from 'react-toastify';
 import DataTable, { Column } from '@/components/DataTable';
 import axios from 'axios';
 import { baseUrl, getAuthToken } from '@/config';
@@ -50,6 +51,7 @@ export function CategoryContent() {
   const [allData, setAllData] = useState<CategoryItem[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const debouncedSearch = useDebounce(search, 600);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -60,6 +62,15 @@ export function CategoryContent() {
 
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const role: any = currentStaff?.role || {};
+  const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+  const categoryPerms = rawPerms.category || {};
+  const isAdmin = role.roleName?.toLowerCase() === 'admin';
+  const canCreate = isAdmin || !!categoryPerms.create;
+  const canUpdate = isAdmin || !!categoryPerms.update;
+  const canDeleteCategory = isAdmin || !!categoryPerms.delete;
 
   // Initialize formik
   const formik = useFormik({
@@ -85,7 +96,8 @@ export function CategoryContent() {
     }
   }, [reduxStatus, dispatch]);
 
-  const fetchData = async (signal?: AbortSignal) => {
+  const fetchData = async () => {
+    setIsLoading(true);
     try {
       const res = await axios.get(baseUrl.category, {
         headers,
@@ -94,7 +106,6 @@ export function CategoryContent() {
           page: currentPage,
           limit: pageSize,
         },
-        signal,
       });
       const data = (res.data?.data as any[]) ?? [];
       const pagination = res.data?.pagination || {};
@@ -111,12 +122,12 @@ export function CategoryContent() {
       console.error('Failed to load categories', err);
       setAllData([]);
     }
-  };
+   finally {
+      setIsLoading(false);
+    }};
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchData(controller.signal);
-    return () => controller.abort();
+    fetchData();
   }, [debouncedSearch, currentPage, pageSize]);
 
   /* ================= SAVE (ADD / EDIT) ================= */
@@ -128,18 +139,31 @@ export function CategoryContent() {
     const payload = { name: values.name.trim() };
 
     try {
+      let res;
       if (values._id) {
-        await axios.patch(`${baseUrl.category}/${values._id}`, payload, { headers });
+        res = await axios.patch(`${baseUrl.category}/${values._id}`, payload, { headers, validateStatus: (s) => s < 500 });
       } else {
-        await axios.post(baseUrl.category, payload, { headers });
+        res = await axios.post(baseUrl.category, payload, { headers, validateStatus: (s) => s < 500 });
+      }
+
+      if (res.status >= 400) {
+        toast.error(res.data?.message || 'Operation failed');
+        return;
+      }
+
+      if (values._id) {
+        toast.success('Category updated successfully');
+      } else {
+        toast.success('Category created successfully');
       }
       await dispatch(fetchCategories());
+      await fetchData(); // Refresh table data
       
       setIsDialogOpen(false);
       formik.resetForm();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save category', err);
-      alert('Operation failed');
+      toast.error(err?.response?.data?.message || err?.message || 'Operation failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -154,15 +178,23 @@ export function CategoryContent() {
     if (!categoryToDelete) return;
 
     try {
-      await axios.delete(`${baseUrl.category}/${categoryToDelete._id}`, { headers });
+      const res = await axios.delete(`${baseUrl.category}/${categoryToDelete._id}`, { headers, validateStatus: (s) => s < 500 });
+      if (res.status >= 400) {
+        toast.error(res.data?.message || 'Delete failed');
+        return;
+      }
+      
+      toast.success('Category deleted successfully');
       await dispatch(fetchCategories());
+      await fetchData(); // Refresh table data
       setShowDeleteDialog(false);
       setCategoryToDelete(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete', err);
-      alert('Delete failed');
+      toast.error(err?.response?.data?.message || err?.message || 'Delete failed');
     }
   };
+
 
   const columns: Column<CategoryItem>[] = [
     { key: 'name', label: 'CATEGORY NAME' },
@@ -180,6 +212,7 @@ export function CategoryContent() {
         totalPages={Math.ceil(totalRecords / pageSize)}
         totalRecords={totalRecords}
         pageSize={pageSize}
+        loading={isLoading}
         onSearch={(v) => {
           setSearch(v);
           setCurrentPage(1);
@@ -189,21 +222,28 @@ export function CategoryContent() {
           setPageSize(s);
           setCurrentPage(1);
         }}
-        onEdit={(row) => {
-          formik.setValues({
-            _id: row._id,
-            name: row.name,
-          });
-          setIsDialogOpen(true);
-        }}
-        onDelete={handleDeleteClick}
-        addButton={{
+        onEdit={canUpdate ? async (row) => {
+          try {
+            const res = await axios.get(`${baseUrl.category}/${row._id}`, { headers });
+            const data = res.data.data;
+            formik.setValues({
+              _id: data._id,
+              name: data.name,
+            });
+            setIsDialogOpen(true);
+          } catch (err) {
+            console.error('Failed to fetch by id', err);
+            toast.error('Failed to fetch data');
+          }
+        } : undefined}
+        onDelete={canDeleteCategory ? handleDeleteClick : undefined}
+        addButton={canCreate ? {
           label: 'Add Category',
           onClick: () => {
             formik.resetForm();
             setIsDialogOpen(true);
           },
-        }}
+        } : undefined}
       />
 
       <DeleteDialog

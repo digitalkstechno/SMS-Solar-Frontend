@@ -52,7 +52,7 @@ const normalizeCaps = (caps?: CapabilityPartial) => ({
 
 // FIXED: Added all features here
 const normalizeRole = (r: BackendRole): Role => {
-  const features = ['lead', 'task', 'taskStatus', 'staff', 'role', 'leadStatus', 'leadSource', 'leadLabel', 'teams', 'organizations', 'category', 'product', 'stock'];
+  const features = ['lead', 'task', 'taskStatus', 'staff', 'role', 'leadStatus', 'leadSource', 'leadLabel', 'teams', 'organizations', 'category', 'product', 'stock', 'city', 'report'];
   const rawPerms = r?.permissions;
   const srcPerms = Array.isArray(rawPerms) ? rawPerms[0] : rawPerms || {};
 
@@ -97,6 +97,8 @@ const toBackendRole = (r: Role): BackendRole => {
   const category = serializeCaps(r.permissions?.category);
   const product = serializeCaps(r.permissions?.product);
   const stock = serializeCaps(r.permissions?.stock);
+  const city = serializeCaps(r.permissions?.city);
+  const report = serializeCaps(r.permissions?.report);
   
   return {
     roleName: r.roleName,
@@ -113,7 +115,9 @@ const toBackendRole = (r: Role): BackendRole => {
       organizations,
       category,
       product,
-      stock
+      stock,
+      city,
+      report
     }],
   };
 };
@@ -167,13 +171,14 @@ export function RolesContent() {
     const token = getAuthToken();
     if (!token || !currentStaff) return;
     const role: any = currentStaff.role || {};
+    const isAdmin = role.roleName?.toLowerCase() === 'admin';
     const rawPerms = Array.isArray(role.permissions)
       ? role.permissions[0]
       : role.permissions || {};
-    setSetupPermissions(rawPerms.role || null);
+    setSetupPermissions(isAdmin ? { create: true, readAll: true, update: true, delete: true } : rawPerms.role || null);
   }, [currentStaff]);
 
-  const fetchRoles = useCallback(async (signal?: AbortSignal) => {
+  const fetchRoles = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = {
@@ -184,7 +189,6 @@ export function RolesContent() {
 
       const res = await axios.get(baseUrl.getAllRoles, {
         params,
-        signal,
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
 
@@ -212,9 +216,7 @@ export function RolesContent() {
   }, [currentPage, pageSize, debouncedSearch, token]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchRoles(controller.signal);
-    return () => controller.abort();
+    fetchRoles();
   }, [fetchRoles]);
 
   const refreshAfterMutation = () => {
@@ -326,6 +328,7 @@ export function RolesContent() {
           totalRecords={totalRecords}
           pageSize={pageSize}
           onPageChange={setCurrentPage}
+          loading={isLoading}
           onPageSizeChange={(size) => {
             setPageSize(size);
             setCurrentPage(1);

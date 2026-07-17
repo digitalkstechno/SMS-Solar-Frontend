@@ -15,6 +15,7 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchCategories } from '@/redux/slices/categorySlice';
 import { fetchProducts } from '@/redux/slices/productSlice';
 import { useRef } from 'react';
+import { toast } from 'react-toastify';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -35,6 +36,7 @@ type TransactionType = {
   productName: string;
   type: string;
   quantity: number;
+  clientName?: string;
   note: string;
   createdAt: string;
 };
@@ -46,6 +48,7 @@ export function StockOutContent() {
   const { data: products, status: prodStatus } = useAppSelector((state) => state.product);
   const [totalRecords, setTotalRecords] = useState(0);
   const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const debouncedSearch = useDebounce(search, 600);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -56,6 +59,15 @@ export function StockOutContent() {
 
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const role: any = currentStaff?.role || {};
+  const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+  const stockPerms = rawPerms.stock || {};
+  const isAdmin = role.roleName?.toLowerCase() === 'admin';
+  const canCreate = isAdmin || !!stockPerms.create;
+  const canUpdate = isAdmin || !!stockPerms.update;
+  const canDeleteStock = isAdmin || !!stockPerms.delete;
 
   const availableProducts = useMemo(() => {
     return products.filter((p) => {
@@ -106,21 +118,32 @@ export function StockOutContent() {
     }
   }, [catStatus, prodStatus, dispatch]);
 
-  const fetchData = async (signal?: AbortSignal) => {
+  const fetchData = async () => {
+    setIsLoading(true);
     try {
-      const res = await axios.get(`${baseUrl.stock}?type=OUT`, { headers, signal });
+      const res = await axios.get(`${baseUrl.stock}?type=OUT`, { headers });
       const data = (res.data?.data as any[]) ?? [];
-      const items: TransactionType[] = data.map((i) => ({
-        _id: i._id,
-        categoryId: i.categoryId?._id || '',
-        categoryName: i.categoryId?.name || '-',
-        productId: i.productId?._id || '',
-        productName: i.productId?.name || '-',
-        type: i.type,
-        quantity: i.quantity,
-        note: i.note || '-',
-        createdAt: i.createdAt ? new Date(i.createdAt).toLocaleDateString() : '-',
-      }));
+      
+      const groupedData = data.reduce((acc: any, i: any) => {
+        const prodId = i.productId?._id || 'unknown';
+        if (!acc[prodId]) {
+          acc[prodId] = {
+            _id: prodId, // Use productId as the unique key for the aggregated row
+            categoryId: i.categoryId?._id || '',
+            categoryName: i.categoryId?.name || '-',
+            productId: prodId,
+            productName: i.productId?.name || '-',
+            type: i.type,
+            quantity: 0,
+            note: '-', // Aggregated rows don't have a single note
+            createdAt: '-' // Nor a single date
+          };
+        }
+        acc[prodId].quantity += (i.quantity || 0);
+        return acc;
+      }, {});
+
+      const items: TransactionType[] = Object.values(groupedData);
 
       let filteredItems = items;
       if (debouncedSearch) {
@@ -136,20 +159,20 @@ export function StockOutContent() {
       console.error('Failed to load stock-out records', err);
       setAllData([]);
     }
-  };
+   finally {
+      setIsLoading(false);
+    }};
 
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchData(controller.signal);
-    return () => controller.abort();
+    fetchData();
   }, [debouncedSearch, currentPage, pageSize]);
 
   const saveTransaction = async (values: any) => {
     setIsSubmitting(true);
 
     if (Number(values.quantity) > selectedProductCurrentStock && !values._id) {
-       alert('Quantity cannot exceed current stock');
+       toast.error('Quantity cannot exceed current stock');
        setIsSubmitting(false);
        return;
     }
@@ -173,7 +196,7 @@ export function StockOutContent() {
       setIsDialogOpen(false);
       formik.resetForm();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Operation failed');
+      toast.error(err.response?.data?.message || 'Operation failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -193,16 +216,14 @@ export function StockOutContent() {
       setShowDeleteDialog(false);
       setTransactionToDelete(null);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Delete failed');
+      toast.error(err.response?.data?.message || 'Delete failed');
     }
   };
 
   const columns: Column<TransactionType>[] = [
     { key: 'categoryName', label: 'CATEGORY' },
     { key: 'productName', label: 'PRODUCT NAME' },
-    { key: 'quantity', label: 'QUANTITY' },
-    { key: 'note', label: 'NOTE' },
-    { key: 'createdAt', label: 'DATE' },
+    { key: 'quantity', label: 'TOTAL STOCK OUT' },
   ];
 
   return (
@@ -219,10 +240,11 @@ export function StockOutContent() {
         totalPages={Math.ceil(totalRecords / pageSize)}
         totalRecords={totalRecords}
         pageSize={pageSize}
+        loading={isLoading}
         onSearch={(v) => { setSearch(v); setCurrentPage(1); }}
         onPageChange={setCurrentPage}
         onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
-        onEdit={(row) => {
+        onEdit={canUpdate ? (row) => {
           formik.setValues({
             _id: row._id,
             categoryId: row.categoryId,
@@ -231,12 +253,12 @@ export function StockOutContent() {
             note: row.note === '-' ? '' : row.note,
           });
           setIsDialogOpen(true);
-        }}
-        onDelete={handleDeleteClick}
-        addButton={{
+        } : undefined}
+        onDelete={canDeleteStock ? handleDeleteClick : undefined}
+        addButton={canCreate ? {
           label: 'Add Stock Out',
           onClick: () => { formik.resetForm(); setIsDialogOpen(true); },
-        }}
+        } : undefined}
       />
 
       <DeleteDialog

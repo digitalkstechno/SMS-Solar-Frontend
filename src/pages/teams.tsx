@@ -37,6 +37,7 @@ export function TeamsContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const debouncedSearch = useDebounce(search);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -89,6 +90,7 @@ export function TeamsContent() {
   }, [token]);
 
   const fetchData = async () => {
+    setIsLoading(true);
     try {
       const res = await axios.get(baseUrl.teams, {
         headers,
@@ -101,7 +103,9 @@ export function TeamsContent() {
       setData([]);
       toast.error(err?.response?.data?.message || 'Failed to load teams');
     }
-  };
+   finally {
+      setIsLoading(false);
+    }};
 
   useEffect(() => { fetchData(); }, [debouncedSearch, currentPage, pageSize]);
 
@@ -199,6 +203,7 @@ export function TeamsContent() {
         totalPages={Math.ceil(totalRecords / pageSize) || 1}
         totalRecords={totalRecords}
         pageSize={pageSize}
+        loading={isLoading}
         onSearch={(v) => { setSearch(v); setCurrentPage(1); }}
         onPageChange={setCurrentPage}
         onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}

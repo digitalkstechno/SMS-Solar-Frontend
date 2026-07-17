@@ -15,6 +15,8 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchCategories } from '@/redux/slices/categorySlice';
 import { fetchProducts } from '@/redux/slices/productSlice';
 import { useRef } from 'react';
+import { toast } from 'react-toastify';
+
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
@@ -34,7 +36,9 @@ type TransactionType = {
   productName: string;
   type: string;
   quantity: number;
+  clientName?: string;
   note: string;
+  unit?: string;
   createdAt: string;
 };
 
@@ -57,6 +61,7 @@ export function StockInContent() {
 
   const [totalRecords, setTotalRecords] = useState(0);
   const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const debouncedSearch = useDebounce(search, 600);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -68,8 +73,17 @@ export function StockInContent() {
   const token = typeof window !== 'undefined' ? getAuthToken() : null;
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
+  const currentStaff = useAppSelector((state) => state.auth.currentStaff);
+  const role: any = currentStaff?.role || {};
+  const rawPerms = Array.isArray(role.permissions) ? role.permissions[0] : role.permissions || {};
+  const stockPerms = rawPerms.stock || {};
+  const isAdmin = role.roleName?.toLowerCase() === 'admin';
+  const canCreate = isAdmin || !!stockPerms.create;
+  const canUpdate = isAdmin || !!stockPerms.update;
+  const canDeleteStock = isAdmin || !!stockPerms.delete;
+
   const formik = useFormik({
-    initialValues: { _id: '', categoryId: '', productId: '', quantity: '' as any, note: '' },
+    initialValues: { _id: '', categoryId: '', productId: '', quantity: '' as any, note: '', unit: '' },
     validationSchema,
     validateOnChange: true,
     validateOnBlur: true,
@@ -82,14 +96,15 @@ export function StockInContent() {
   useEffect(() => {
     if (!hasDispatchedRef.current) {
       hasDispatchedRef.current = true;
-      if (catStatus === 'idle') dispatch(fetchCategories());
-      if (prodStatus === 'idle') dispatch(fetchProducts());
+      dispatch(fetchCategories());
+      dispatch(fetchProducts());
     }
-  }, [catStatus, prodStatus, dispatch]);
+  }, [dispatch]);
 
-  const fetchData = async (signal?: AbortSignal) => {
+  const fetchData = async () => {
+    setIsLoading(true);
     try {
-      const res = await axios.get(`${baseUrl.stock}?type=IN`, { headers, signal });
+      const res = await axios.get(`${baseUrl.stock}?type=IN`, { headers });
       const data = (res.data?.data as any[]) ?? [];
       const items: TransactionType[] = data.map((i) => ({
         _id: i._id,
@@ -99,7 +114,9 @@ export function StockInContent() {
         productName: i.productId?.name || '-',
         type: i.type,
         quantity: i.quantity,
+        clientName: i.issuedTo || (i.leadId ? (i.leadId.fullName || i.leadId.leadrefrance || '-') : '-'),
         note: i.note || '-',
+        unit: i.unit || '',
         createdAt: i.createdAt ? new Date(i.createdAt).toLocaleDateString() : '-',
       }));
 
@@ -117,13 +134,13 @@ export function StockInContent() {
       console.error('Failed to load stock-in records', err);
       setAllData([]);
     }
-  };
+   finally {
+      setIsLoading(false);
+    }};
 
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchData(controller.signal);
-    return () => controller.abort();
+    fetchData();
   }, [debouncedSearch, currentPage, pageSize]);
 
   const saveTransaction = async (values: any) => {
@@ -133,7 +150,8 @@ export function StockInContent() {
       productId: values.productId, 
       type: 'IN', 
       quantity: Number(values.quantity), 
-      note: values.note 
+      note: values.note,
+      unit: values.unit
     };
 
     try {
@@ -147,7 +165,7 @@ export function StockInContent() {
       setIsDialogOpen(false);
       formik.resetForm();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Operation failed');
+      toast.error(err.response?.data?.message || 'Operation failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -167,7 +185,7 @@ export function StockInContent() {
       setShowDeleteDialog(false);
       setTransactionToDelete(null);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Delete failed');
+      toast.error(err.response?.data?.message || 'Delete failed');
     }
   };
 
@@ -190,6 +208,7 @@ export function StockInContent() {
     { key: 'categoryName', label: 'CATEGORY' },
     { key: 'productName', label: 'PRODUCT NAME' },
     { key: 'quantity', label: 'QUANTITY' },
+    { key: 'unit', label: 'UNIT' },
     { key: 'note', label: 'NOTE' },
     { key: 'createdAt', label: 'DATE' },
   ];
@@ -208,24 +227,34 @@ export function StockInContent() {
         totalPages={Math.ceil(totalRecords / pageSize)}
         totalRecords={totalRecords}
         pageSize={pageSize}
+        loading={isLoading}
         onSearch={(v) => { setSearch(v); setCurrentPage(1); }}
         onPageChange={setCurrentPage}
         onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
-        onEdit={(row) => {
+        onEdit={canUpdate ? (row) => {
+          const product = availableProducts.find(p => p._id === row.productId);
           formik.setValues({
             _id: row._id,
             categoryId: row.categoryId,
             productId: row.productId,
             quantity: row.quantity,
             note: row.note === '-' ? '' : row.note,
+            unit: row.unit || product?.unit || '', 
           });
           setIsDialogOpen(true);
+        } : undefined}
+        canDelete={(row) => {
+          if (!canDeleteStock) return false;
+          const product = products.find(p => p._id === row.productId);
+          if (!product) return true;
+          // If quantity is greater than current stock, it means some of it was consumed
+          return row.quantity <= product.currentStock;
         }}
         onDelete={handleDeleteClick}
-        addButton={{
+        addButton={canCreate ? {
           label: 'Add Stock In',
           onClick: () => { formik.resetForm(); setIsDialogOpen(true); },
-        }}
+        } : undefined}
       />
 
       <DeleteDialog
@@ -298,7 +327,13 @@ export function StockInContent() {
             required
             name="productId"
             value={formik.values.productId}
-            onChange={(e) => { formik.setFieldValue('productId', e); }}
+            onChange={(e) => { 
+              formik.setFieldValue('productId', e);
+              const prod = availableProducts.find(p => p._id === e);
+              if (prod && prod.unit) {
+                formik.setFieldValue('unit', prod.unit);
+              }
+            }}
             onBlur={() => formik.setFieldTouched('productId', true)}
             options={availableProducts.map((prod) => ({ value: prod._id, label: prod.name }))}
             placeholder="-- Select Product --"
@@ -306,21 +341,13 @@ export function StockInContent() {
           />
 
           {formik.values.productId && (
-            <div className="space-y-1">
-              <label className="block text-sm font-semibold text-gray-700">Current Stock</label>
-              <div className="flex items-center rounded border border-green-200 bg-green-50 overflow-hidden">
-                <div className="bg-[#16A34A] text-white p-3">
-                  <PackageOpen size={20} />
-                </div>
-                <div className="px-4 font-bold text-lg text-green-700">
-                  {selectedProductCurrentStock}
-                </div>
-              </div>
+            <div className="text-sm font-semibold text-[#A63C71] bg-[#A63C71]/10 p-2 rounded-md inline-block mb-2">
+              Current Stock: {selectedProductCurrentStock}
             </div>
           )}
 
           <FormInput
-            label="Quantity"
+            label="Quantity *"
             required
             name="quantity"
             type="number"
@@ -329,6 +356,23 @@ export function StockInContent() {
             onBlur={formik.handleBlur}
             error={formik.touched.quantity && formik.errors.quantity ? String(formik.errors.quantity) : undefined}
             placeholder="Enter quantity to add"
+          />
+
+          <FormSelect
+            label="Unit"
+            name="unit"
+            value={formik.values.unit}
+            onChange={(e) => { formik.setFieldValue('unit', e); }}
+            onBlur={() => formik.setFieldTouched('unit', true)}
+            options={[
+              { value: 'Qty', label: 'Qty' },
+              { value: 'Meter (m)', label: 'Meter (m)' },
+              { value: 'Kg', label: 'Kg' },
+              { value: 'Liter', label: 'Liter' },
+              { value: 'Pieces', label: 'Pieces' },
+              { value: 'Box', label: 'Box' }
+            ]}
+            placeholder="-- Default (Qty) --"
           />
 
           <div className="space-y-1">

@@ -7,7 +7,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { Provider } from "react-redux";
 import { store } from "@/redux/store";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { toggleSidebar } from "@/redux/slices/appSlice";
+import { toggleSidebar, setSidebarOpen } from "@/redux/slices/appSlice";
 import Sidebar from "@/components/Sidebar";
 import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
@@ -15,7 +15,6 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { fetchCurrentStaff } from "@/redux/slices/authSlice";
 import { fetchLeadStatuses } from "@/redux/slices/leadStatusSlice";
-import { fetchLeadLabels } from "@/redux/slices/leadLabelSlice";
 import PremiumLoader from "@/components/ui/PremiumLoader";
 
 const poppins = Poppins({
@@ -26,14 +25,13 @@ const poppins = Poppins({
 
 function AppContent({ Component, pageProps }: AppProps) {
   const isSidebarOpen = useAppSelector((state) => state.app.isSidebarOpen);
+  const globalLoading = useAppSelector((state) => state.app.globalLoading);
   const dispatch = useAppDispatch();
   const router = useRouter();
   const pathName = usePathname();
   const isLoginPage = pathName === "/login";
   const authStatus = useAppSelector((state) => state.auth.status);
   const leadStatusStatus = useAppSelector((state) => state.leadStatus.status);
-  const leadLabelStatus = useAppSelector((state) => state.leadLabel.status);
-  
   const hasDispatched = useRef(false);
 
   useEffect(() => {
@@ -41,9 +39,19 @@ function AppContent({ Component, pageProps }: AppProps) {
       hasDispatched.current = true;
       if (authStatus === 'idle') dispatch(fetchCurrentStaff());
       if (leadStatusStatus === 'idle') dispatch(fetchLeadStatuses());
-      if (leadLabelStatus === 'idle') dispatch(fetchLeadLabels());
     }
-  }, [authStatus, leadStatusStatus, leadLabelStatus, dispatch, isLoginPage]);
+  }, [authStatus, leadStatusStatus, dispatch, isLoginPage]);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem('isSidebarOpen');
+    if (saved !== null) {
+      dispatch(setSidebarOpen(saved === 'true'));
+    } else if (window.innerWidth >= 768) {
+      dispatch(setSidebarOpen(true));
+    }
+  }, [dispatch]);
 
   // Page transition loader state
   const [isNavigating, setIsNavigating] = useState(false);
@@ -83,7 +91,7 @@ function AppContent({ Component, pageProps }: AppProps) {
           />
         )}
         <div
-          className={`flex-1 min-w-0 transition-all duration-300 ease-in-out ${
+          className={`flex-1 min-w-0 ${mounted ? 'transition-all duration-300 ease-in-out' : ''} ${
             !isLoginPage ? (isSidebarOpen ? 'md:ml-64' : 'md:ml-20') : ''
           }`}
         >
@@ -93,7 +101,6 @@ function AppContent({ Component, pageProps }: AppProps) {
               <Header toggleSidebar={() => dispatch(toggleSidebar())} />
             ) : null}
             <div className={isLoginPage ? "p-0" : "p-4 md:p-6 relative min-h-[calc(100vh-80px)]"}>
-              {isNavigating && <PremiumLoader text="Loading" isFullScreen={true} />}
               <Component {...pageProps} />
             </div>
           </main>
@@ -114,10 +121,10 @@ function AppContent({ Component, pageProps }: AppProps) {
   );
 }
 
-export default function App({ Component, pageProps }: AppProps) {
+export default function App({ Component, pageProps, router }: AppProps) {
   return (
     <Provider store={store}>
-      <AppContent Component={Component} pageProps={pageProps} />
+      <AppContent Component={Component} pageProps={pageProps} router={router} />
     </Provider>
   );
 }
