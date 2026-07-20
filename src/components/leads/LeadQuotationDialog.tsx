@@ -239,7 +239,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                 const blobUrl = window.URL.createObjectURL(response.data);
                 const link = document.createElement('a');
                 link.href = blobUrl;
-                const clientName = (lead?.fullName || lead?.leadrefrance || 'Client').replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
+                const clientName = (lead?.fullName || lead?.leadrefranceName || lead?.leadrefrance || 'Client').replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
                 const d = new Date();
                 const pad = (n: number) => String(n).padStart(2, '0');
                 const dateStr = `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;

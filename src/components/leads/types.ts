@@ -42,6 +42,7 @@ export type ApiLead = {
   kwRequirement?: string;
   discomName?: string;
   leadrefrance?: string;
+  leadrefranceName?: string;
   projecttype?: string;
   address?: string;
   locationLink?: string;
