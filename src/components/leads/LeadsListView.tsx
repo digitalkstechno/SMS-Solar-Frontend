@@ -41,6 +41,7 @@ type TableLead = {
   isActive?: boolean;
   paymentAmount?: number;
   sourceId?: any;
+  isVisitDone?: boolean;
   _raw?: any;
 };
 
@@ -121,6 +122,7 @@ function mapLead(item: any, staffMembers?: any[]): TableLead {
     email: item.email,
     kwRequirement: item.kwRequirement || '-',
     discomName: item.discomName || '-',
+    isVisitDone: item.isVisitDone,
     address: item.address,
     locationLink: item.locationLink,
     status: item.leadStatus?.name || item.status?.name || '-',
@@ -192,6 +194,15 @@ export default function LeadsListView({
     },
     { key: 'kwRequirement', label: 'KW REQ' },
     { key: 'discomName', label: 'DISCOM' },
+    {
+      key: 'isVisitDone',
+      label: 'VISIT',
+      render: (v) => v ? (
+        <span className="text-emerald-600 font-medium text-xs bg-emerald-50 px-2 py-1 rounded-md">Done</span>
+      ) : (
+        <span className="text-amber-600 font-medium text-xs bg-amber-50 px-2 py-1 rounded-md">Pending</span>
+      )
+    },
     { 
       key: 'sourceId', 
       label: 'SOURCE',
