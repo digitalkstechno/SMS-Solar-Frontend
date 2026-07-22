@@ -625,6 +625,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
         {
           leadStatus: editStatus,
           isVisitDone: visitDone,
+          visitDate: visitDone ? localVisitDate : null,
         },
         { headers: { Authorization: `Bearer ${getAuthToken()}` } }
       );
@@ -641,45 +642,19 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
     }
   };
 
-  const handleVisitChange = async (value: boolean) => {
+  const handleVisitChange = (value: boolean) => {
     if (!lead || !canUpdateLead) return;
     setVisitDone(value);
     
     // If setting to false, clear the visit date
-    const payload: any = { isVisitDone: value };
     if (!value) {
-      payload.visitDate = null;
       setLocalVisitDate('');
-    }
-
-    try {
-      await axios.put(
-        `${baseUrl.updateLead}/${lead._id}/visit`,
-        payload,
-        { headers: { Authorization: `Bearer ${getAuthToken()}` } }
-      );
-      toast.success('Visit status updated');
-      onRefresh();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || 'Failed to update visit status');
-      setVisitDone(lead.isVisitDone ?? null);
     }
   };
 
-  const handleVisitDateChange = async (dateStr: string) => {
+  const handleVisitDateChange = (dateStr: string) => {
     if (!lead || !canUpdateLead) return;
     setLocalVisitDate(dateStr);
-    try {
-      await axios.put(
-        `${baseUrl.updateLead}/${lead._id}/visit`,
-        { isVisitDone: true, visitDate: dateStr },
-        { headers: { Authorization: `Bearer ${getAuthToken()}` } }
-      );
-      toast.success('Visit date saved');
-      onRefresh();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || 'Failed to save visit date');
-    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

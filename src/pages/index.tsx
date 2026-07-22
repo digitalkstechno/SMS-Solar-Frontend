@@ -260,7 +260,7 @@ export default function Dashboard() {
   const [followupChartData, setFollowupChartData] = useState<any[]>([]);
   const [leadSourceChartData, setLeadSourceChartData] = useState<any[]>([]);
   const [visitChartData, setVisitChartData] = useState<any[]>([]);
-  const [visitFilter, setVisitFilter] = useState<"all" | "today" | "this week" | "this month">("today");
+  const [visitFilter, setVisitFilter] = useState<"today" | "this week" | "this month">("today");
 
   const [visitConfirmOpen, setVisitConfirmOpen] = useState(false);
   const [visitConfirmLeadId, setVisitConfirmLeadId] = useState<string | null>(null);
@@ -752,7 +752,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             {isVisitTable && (
               <div className="flex bg-gray-100 p-1 rounded-lg">
-                {["all", "today", "this week", "this month"].map((f) => (
+                {["today", "this week", "this month"].map((f) => (
                   <button
                     key={f}
                     onClick={() => setVisitFilter(f as any)}
@@ -785,7 +785,7 @@ export default function Dashboard() {
             <div className="p-3 bg-gray-50 rounded-full">
               <CheckCircle2 className="h-8 w-8 text-gray-400" />
             </div>
-            <p className="text-sm text-gray-500">No follow-ups found</p>
+            <p className="text-sm text-gray-500">{isVisitTable ? 'No visits found' : 'No follow-ups found'}</p>
           </div>
         </div>
       ) : (
@@ -1306,6 +1306,23 @@ export default function Dashboard() {
                   if (p >= 1 && p <= upcomingTotalPages) fetchUpcomingFollowups(p);
                 },
                 "Follow up Date",
+              )}
+            </div>
+
+            {/* Visit Leads Table */}
+            <div className="h-full min-h-[450px]">
+              {renderFollowupTable(
+                "Scheduled Visits",
+                visitLeads,
+                visitLeadsLoading,
+                visitPage,
+                visitTotalPages,
+                (p) => {
+                  if (p >= 1 && p <= visitTotalPages) setVisitPage(p);
+                },
+                "Visit Date",
+                "visitDate",
+                true
               )}
             </div>
 

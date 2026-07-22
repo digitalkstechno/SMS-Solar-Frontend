@@ -13,6 +13,7 @@ type Filters = {
   staff?: string;
   from?: string;
   to?: string;
+  visit?: string;
 };
 
 export function useLeadsData(
@@ -106,6 +107,7 @@ export function useLeadsData(
             status: f.status || undefined,
             source: f.source || undefined,
             staff: f.staff || undefined,
+            visit: f.visit || undefined,
             from: f.from || undefined,
             to: f.to || undefined,
             limit,
@@ -160,6 +162,7 @@ export function useLeadsData(
           status: f.status || undefined,
           source: f.source || undefined,
           staff: f.staff || undefined,
+          visit: f.visit || undefined,
           from: f.from || undefined,
           to: f.to || undefined,
           page,
@@ -192,6 +195,7 @@ export function useLeadsData(
           status: f.status || undefined,
           source: f.source || undefined,
           staff: f.staff || undefined,
+          visit: f.visit || undefined,
           from: f.from || undefined,
           to: f.to || undefined,
           page,
@@ -225,6 +229,7 @@ export function useLeadsData(
           status: f.status || undefined,
           source: f.source || undefined,
           staff: f.staff || undefined,
+          visit: f.visit || undefined,
           from: f.from || undefined,
           to: f.to || undefined,
           page,
@@ -256,6 +261,7 @@ export function useLeadsData(
           status: f.status || undefined,
           source: f.source || undefined,
           staff: f.staff || undefined,
+          visit: f.visit || undefined,
           from: f.from || undefined,
           to: f.to || undefined,
         },
