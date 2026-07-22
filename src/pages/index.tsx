@@ -43,6 +43,7 @@ import { useAppSelector } from '@/redux/hooks';
 import DashboardLeadUpdateDialog from "@/components/leads/DashboardLeadUpdateDialog";
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
+import { toast } from 'react-toastify';
 
 
 interface StatusCount {
@@ -258,6 +259,16 @@ export default function Dashboard() {
   const [isKwYearClicked, setIsKwYearClicked] = useState(false);
   const [followupChartData, setFollowupChartData] = useState<any[]>([]);
   const [leadSourceChartData, setLeadSourceChartData] = useState<any[]>([]);
+  const [visitChartData, setVisitChartData] = useState<any[]>([]);
+  const [visitFilter, setVisitFilter] = useState<"all" | "today" | "this week" | "this month">("today");
+
+  const [visitConfirmOpen, setVisitConfirmOpen] = useState(false);
+  const [visitConfirmLeadId, setVisitConfirmLeadId] = useState<string | null>(null);
+
+  const [visitLeads, setVisitLeads] = useState<any[]>([]);
+  const [visitLeadsLoading, setVisitLeadsLoading] = useState(false);
+  const [visitPage, setVisitPage] = useState(1);
+  const [visitTotalPages, setVisitTotalPages] = useState(1);
 
   const [isUpdateLeadDialogOpen, setIsUpdateLeadDialogOpen] = useState(false);
   const [selectedLeadForUpdate, setSelectedLeadForUpdate] = useState<any>(null);
@@ -364,6 +375,9 @@ export default function Dashboard() {
       if (data?.charts?.salesWinRate) {
         setSalesWinRateData(data.charts.salesWinRate);
       }
+      if (data?.charts?.visits) {
+        setVisitChartData(data.charts.visits);
+      }
     } catch (err) {
       console.error("Dashboard stats error:", err);
     }
@@ -421,6 +435,61 @@ export default function Dashboard() {
   useEffect(() => {
     fetchRevenueGrowth();
   }, [revenueFilter, isRevenueYearClicked, token]);
+
+  const fetchVisitStats = async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(`${baseUrl.updateLead}/visit-stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: visitFilter !== "all" ? { filter: visitFilter } : {}
+      });
+      if (res.data?.data) {
+        setVisitChartData(res.data.data);
+      }
+    } catch (err) {
+      console.error("Visit stats error:", err);
+    }
+  };
+
+  const fetchVisitLeads = async (page: number) => {
+    if (!token) return;
+    setVisitLeadsLoading(true);
+    try {
+      const res = await axios.get(`${baseUrl.updateLead}/visit-leads`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { page, limit: 10, filter: visitFilter !== "all" ? visitFilter : "today" }
+      });
+      setVisitLeads(res.data.data || []);
+      setVisitTotalPages(res.data.pagination?.totalPages || 1);
+    } catch (error) {
+      console.error("Error fetching visit leads:", error);
+    } finally {
+      setVisitLeadsLoading(false);
+    }
+  };
+
+  const markVisitDone = async () => {
+    if (visitConfirmLeadId) {
+      try {
+        await axios.put(`${baseUrl.updateLead}/${visitConfirmLeadId}/visit`, { isVisitCompleted: true }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success("Visit marked as done!");
+        fetchVisitLeads(visitPage);
+        fetchVisitStats();
+      } catch (err) {
+        toast.error("Failed to update visit status");
+      } finally {
+        setVisitConfirmOpen(false);
+        setVisitConfirmLeadId(null);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchVisitStats();
+    fetchVisitLeads(visitPage);
+  }, [visitFilter, visitPage, token]);
 
   const fetchUpcomingFollowups = async (page: number) => {
     if (!token) return;
@@ -662,26 +731,47 @@ export default function Dashboard() {
     totalPages: number,
     setPage: (p: number) => void,
     dateHeader: string = "Follow up Date",
+    dateField: "nextFollowupDate" | "visitDate" = "nextFollowupDate",
+    isVisitTable: boolean = false
   ) => (
     <div className="rounded-3xl bg-white border border-gray-200 overflow-hidden h-full flex flex-col transition-all hover:shadow-md">
       <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${dateHeader === "Follow up Date" ? "bg-blue-50" : "bg-red-50"}`}>
+            <div className={`p-2 rounded-lg ${dateHeader === "Follow up Date" ? "bg-blue-50" : (dateHeader === "Visit Date" ? "bg-emerald-50" : "bg-red-50")}`}>
               {dateHeader === "Follow up Date" ? (
                 <Clock className="h-5 w-5 text-blue-600" />
+              ) : dateHeader === "Visit Date" ? (
+                <Clock className="h-5 w-5 text-emerald-600" />
               ) : (
                 <AlertCircle className="h-5 w-5 text-red-500" />
               )}
             </div>
             <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           </div>
-          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${dateHeader === "Follow up Date"
-            ? "bg-blue-100 text-blue-700"
-            : "bg-red-100 text-red-700"
-            }`}>
-            {items.length} {items.length === 1 ? 'Lead' : 'Leads'}
-          </span>
+          <div className="flex items-center gap-4">
+            {isVisitTable && (
+              <div className="flex bg-gray-100 p-1 rounded-lg">
+                {["all", "today", "this week", "this month"].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setVisitFilter(f as any)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md capitalize transition-colors ${
+                      visitFilter === f ? 'bg-white text-[#a63c71] shadow-sm' : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            )}
+            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${dateHeader === "Follow up Date"
+              ? "bg-blue-100 text-blue-700"
+              : (dateHeader === "Visit Date" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700")
+              }`}>
+              {items.length} {items.length === 1 ? 'Lead' : 'Leads'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -730,11 +820,13 @@ export default function Dashboard() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-xs sm:text-sm font-bold text-gray-900">
-                        {lead.nextFollowupDate ? moment(lead.nextFollowupDate).format("DD-MM-YYYY") : "-"}
+                        {lead[dateField] ? moment(lead[dateField]).format("DD-MM-YYYY") : "-"}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1 font-medium">
-                        {lead.nextFollowupTime || "-"}
-                      </div>
+                      {dateField === "nextFollowupDate" && (
+                        <div className="text-xs text-gray-500 mt-1 font-medium">
+                          {lead.nextFollowupTime || "-"}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${getStatusColor(lead.leadStatus?.name || "")}`}>
@@ -742,16 +834,29 @@ export default function Dashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedLeadForUpdate(lead);
-                          setIsUpdateLeadDialogOpen(true);
-                        }}
-                        className="px-3 py-1 rounded-lg bg-[#a63c71]/10 hover:bg-[#a63c71]/20 text-[#a63c71] border border-[#a63c71]/20 text-xs font-semibold transition-colors cursor-pointer"
-                      >
-                        Pending
-                      </button>
+                      {isVisitTable ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setVisitConfirmLeadId(lead._id);
+                            setVisitConfirmOpen(true);
+                          }}
+                          className="px-3 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          Mark Done
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedLeadForUpdate(lead);
+                            setIsUpdateLeadDialogOpen(true);
+                          }}
+                          className="px-3 py-1 rounded-lg bg-[#a63c71]/10 hover:bg-[#a63c71]/20 text-[#a63c71] border border-[#a63c71]/20 text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          Pending
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -1295,7 +1400,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Follow-up Analysis Chart */}
+
             <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-2">
                 <div>
@@ -1340,6 +1445,7 @@ export default function Dashboard() {
               </div>
             </div>
 
+
             {/* Upcoming Follow-ups */}
             <div className="h-full min-h-[450px]">
               {renderFollowupTable(
@@ -1352,6 +1458,23 @@ export default function Dashboard() {
                   if (p >= 1 && p <= upcomingTotalPages) fetchUpcomingFollowups(p);
                 },
                 "Follow up Date",
+              )}
+            </div>
+
+            {/* Visit Leads Table */}
+            <div className="h-full min-h-[450px]">
+              {renderFollowupTable(
+                "Scheduled Visits",
+                visitLeads,
+                visitLeadsLoading,
+                visitPage,
+                visitTotalPages,
+                (p) => {
+                  if (p >= 1 && p <= visitTotalPages) setVisitPage(p);
+                },
+                "Visit Date",
+                "visitDate",
+                true
               )}
             </div>
 
@@ -1623,6 +1746,7 @@ export default function Dashboard() {
               </div>
             </div>
 
+
             {/* Upcoming Follow-ups */}
             <div className="h-full min-h-[450px]">
               {renderFollowupTable(
@@ -1635,6 +1759,23 @@ export default function Dashboard() {
                   if (p >= 1 && p <= upcomingTotalPages) fetchUpcomingFollowups(p);
                 },
                 "Follow up Date",
+              )}
+            </div>
+
+            {/* Visit Leads Table */}
+            <div className="h-full min-h-[450px]">
+              {renderFollowupTable(
+                "Scheduled Visits",
+                visitLeads,
+                visitLeadsLoading,
+                visitPage,
+                visitTotalPages,
+                (p) => {
+                  if (p >= 1 && p <= visitTotalPages) setVisitPage(p);
+                },
+                "Visit Date",
+                "visitDate",
+                true
               )}
             </div>
 
@@ -1670,6 +1811,32 @@ export default function Dashboard() {
           }}
           fetchApi={fetchDueFollowups}
         />
+      )}
+
+      {visitConfirmOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="mb-2 text-lg font-bold text-gray-900">Mark Visit as Done?</h3>
+            <p className="mb-6 text-sm text-gray-500">Are you sure you have completed this visit? This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setVisitConfirmOpen(false);
+                  setVisitConfirmLeadId(null);
+                }}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={markVisitDone}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 cursor-pointer"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
