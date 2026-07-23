@@ -274,6 +274,10 @@ export default function Dashboard() {
   const [selectedLeadForUpdate, setSelectedLeadForUpdate] = useState<any>(null);
 
   const [permissions, setPermissions] = useState<{ readAll: boolean; readOwn: boolean; viewStaff: boolean }>({ readAll: false, readOwn: false, viewStaff: false });
+  const [activeTab, setActiveTab] = useState<'overview' | 'stock'>('overview');
+  const [stockProducts, setStockProducts] = useState<any[]>([]);
+  const [stockSearch, setStockSearch] = useState("");
+  const [isStockLoading, setIsStockLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const isTelecaller =
     user?.role?.roleName?.toUpperCase() === "TELECALLING" ||
@@ -564,6 +568,32 @@ export default function Dashboard() {
       }
     }
   }, [token, permissions, user]);
+
+  const fetchStockData = async () => {
+    if (!token) return;
+    setIsStockLoading(true);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.get(baseUrl.product, {
+        headers,
+        params: { limit: 1000 }
+      });
+      if (res.data?.data) {
+        setStockProducts(res.data.data);
+      }
+    } catch (err) {
+      console.error("Failed to load stock data", err);
+      toast.error("Failed to refresh stock sheet");
+    } finally {
+      setIsStockLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'stock' && token) {
+      fetchStockData();
+    }
+  }, [activeTab, token]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -888,6 +918,24 @@ export default function Dashboard() {
     </div>
   );
 
+  // Group products by category
+  const filteredProducts = stockProducts.filter((prod: any) => {
+    const nameMatches = prod.name?.toLowerCase().includes(stockSearch.toLowerCase());
+    const categoryMatches = (prod.categoryId?.name || prod.category?.name || "").toLowerCase().includes(stockSearch.toLowerCase());
+    return nameMatches || categoryMatches;
+  });
+
+  const groupedStock = filteredProducts.reduce((acc: any, prod: any) => {
+    const categoryName = prod.categoryId?.name || prod.category?.name || "Uncategorized";
+    const unit = prod.unit || "NOS";
+    const catKey = `${categoryName} (${unit})`;
+    if (!acc[catKey]) {
+      acc[catKey] = [];
+    }
+    acc[catKey].push(prod);
+    return acc;
+  }, {});
+
   return (
     <div className="flex flex-col min-h-screen">
       <div className="space-y-8 w-full">
@@ -995,6 +1043,33 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-gray-200 my-4">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`pb-4 px-6 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+              activeTab === 'overview'
+                ? 'border-[#a63c71] text-[#a63c71]'
+                : 'border-transparent text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('stock')}
+            className={`pb-4 px-6 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+              activeTab === 'stock'
+                ? 'border-[#a63c71] text-[#a63c71]'
+                : 'border-transparent text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            Live Stock Sheet
+          </button>
+        </div>
+
+        {activeTab === 'overview' ? (
+          <>
 
         {/* Stats Grid */}
         <div className={`grid grid-cols-2 md:grid-cols-3 ${isTelecaller ? 'xl:grid-cols-5' : 'xl:grid-cols-6'} gap-4`}>
@@ -1812,6 +1887,100 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+        </>
+      ) : (
+        <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 tracking-tight">Live Stock Sheet</h3>
+              {/* <p className="text-sm text-gray-500 mt-1">Real-time inventory levels grouped by category</p> */}
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search product..."
+                  value={stockSearch}
+                  onChange={(e) => setStockSearch(e.target.value)}
+                  className="w-[240px] rounded-xl border border-gray-200 px-4 py-2 text-sm text-gray-700 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#a63c71] focus:border-[#a63c71]"
+                />
+                {stockSearch && (
+                  <button 
+                    onClick={() => setStockSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-semibold"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={fetchStockData}
+                disabled={isStockLoading}
+                className="flex items-center gap-2 rounded-xl bg-[#a63c71] hover:bg-[#8d295b] text-white font-semibold text-sm px-4 py-2 shadow-sm transition-all duration-200 cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${isStockLoading ? "animate-spin" : ""}`} />
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {isStockLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="relative flex h-14 w-14 items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-[3px] border-[#a63c71]/10"></div>
+                <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-[#a63c71] animate-spin" style={{ animationDuration: '0.8s' }}></div>
+                <div className="h-2 w-2 rounded-full bg-[#a63c71] animate-pulse"></div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {Object.keys(groupedStock).length === 0 ? (
+                <div className="text-center py-16 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                  <p className="text-gray-500 font-medium">No stock products found</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {Object.entries(groupedStock).map(([catKey, products]: [string, any]) => (
+                    <div 
+                      key={catKey}
+                      className="bg-white rounded-2xl border border-[#a63c71]/20 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col min-h-[180px]"
+                    >
+                      {/* Category Header */}
+                      <div className="bg-[#a63c71] py-2 px-4 text-center">
+                        <span className="text-xs sm:text-sm font-extrabold text-white uppercase tracking-wider block truncate" title={catKey}>
+                          {catKey}
+                        </span>
+                      </div>
+                      
+                      {/* Products List */}
+                      <div className="flex-1 overflow-y-auto">
+                        {products.map((prod: any) => (
+                          <div 
+                            key={prod._id}
+                            className="flex hover:bg-[#a63c71]/10 transition-colors border-b border-gray-100 odd:bg-gray-50/50 even:bg-white"
+                          >
+                            <div className="flex-1 p-3 text-xs font-bold text-gray-700 uppercase flex items-center">
+                              {prod.name}
+                            </div>
+                            <div 
+                              className={`w-16 p-3 text-sm font-bold text-center flex items-center justify-center ${
+                                (prod.currentStock || 0) > 0 ? "text-gray-900" : "text-red-500 font-extrabold"
+                              }`}
+                            >
+                              {prod.currentStock || 0}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
       </div>
 
       {isUpdateLeadDialogOpen && (
