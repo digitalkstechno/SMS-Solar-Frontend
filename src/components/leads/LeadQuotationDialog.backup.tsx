@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Dialog from '@/components/Dialog';
 import { baseUrl, getAuthToken } from '@/config';
 import { toast } from 'react-toastify';
 import { ApiLead } from './types';
 import FormInput from '../ui/Input';
+import DropdownWithAdd from '../ui/DropdownWithAdd';
 import { Trash2, X, Download } from 'lucide-react';
-import CreatableSelect from 'react-select/creatable';
 
 interface Props {
   isOpen: boolean;
@@ -15,58 +15,6 @@ interface Props {
   onRefresh: () => void;
   editIndex?: number | null;
 }
-
-const DEFAULT_ROWS = [
-  { title: 'Size kW', values: [''] },
-  { title: 'Module W', values: [''] },
-  { title: 'Solar module product', values: [''] },
-  { title: 'Inverter product', values: [''] },
-  { title: 'Structure product', values: [''] },
-  { title: 'DC protection', values: [''] },
-  { title: 'AC protection', values: [''] },
-  { title: 'Solar cable product', values: [''] },
-  { title: 'Roof type', values: [''] },
-  { title: 'Gross ₹', values: [''] },
-  { title: 'Subsidy ₹', values: [''] },
-  { title: 'Net Payable ₹', values: [''] },
-  { title: 'Electricity ₹/unit', values: [''] },
-  { title: 'Loan ₹', values: [''] },
-];
-
-const DROPDOWN_FIELDS = [
-  'solar module product',
-  'inverter product',
-  'structure product',
-  'dc protection',
-  'ac protection',
-  'solar cable product',
-  'roof type'
-];
-
-const PREDEFINED_OPTIONS: Record<string, { label: string, value: string }[]> = {
-  'solar module product': [
-    { label: 'Adani - N-Type TOPCon Bifacial - 540 W', value: 'Adani - N-Type TOPCon Bifacial - 540 W' }
-  ],
-  'inverter product': [
-    { label: 'Velox - On-Grid Inverter', value: 'Velox - On-Grid Inverter' }
-  ],
-  'structure product': [
-    { label: 'Hindustaar Solar Mounting Structure', value: 'Hindustaar Solar Mounting Structure' }
-  ],
-  'dc protection': [
-    { label: 'Simens DCDB', value: 'Simens DCDB' }
-  ],
-  'ac protection': [
-    { label: 'Simens ACDB', value: 'Simens ACDB' }
-  ],
-  'solar cable product': [
-    { label: 'Polycab Solar DC Cable & AC Cable', value: 'Polycab Solar DC Cable & AC Cable' }
-  ],
-  'roof type': [
-    { label: 'Flat Roof', value: 'Flat Roof' },
-    { label: 'Tin Shed', value: 'Tin Shed' }
-  ]
-};
 
 export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, editIndex }: Props) {
   const getLocalDatetimeString = (dateObj: Date = new Date()) => {
@@ -83,32 +31,17 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
   const [solarModule, setSolarModule] = useState('');
   const [inverter, setInverter] = useState('');
   const [options, setOptions] = useState<string[]>(['OPTION 1']);
-  const [rows, setRows] = useState(DEFAULT_ROWS);
+  const [rows, setRows] = useState([
+    { title: 'No. of Panel', values: [''] },
+    { title: 'WP', values: [''] },
+    { title: 'SYSTEM CAPACITY', values: [''] },
+    { title: 'METER CHARGES REGISTRATION', values: [''] },
+    { title: 'CUSTOMER PAYABLE AMOUNT', values: [''] },
+    { title: 'SUBSIDY', values: [''] },
+    { title: 'EFFECTIVE PRICE', values: [''] },
+  ]);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [apiOptions, setApiOptions] = useState<Record<string, { label: string, value: string }[]>>({});
-
-  useEffect(() => {
-    const fetchOptions = async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
-        const res = await axios.get(`${apiUrl}quotation-options`, {
-          headers: { Authorization: `Bearer ${getAuthToken()}` }
-        });
-        if (res.data?.success) {
-          const grouped: Record<string, { label: string, value: string }[]> = {};
-          res.data.data.forEach((opt: any) => {
-            if (!grouped[opt.key]) grouped[opt.key] = [];
-            grouped[opt.key].push({ label: opt.label, value: opt.value });
-          });
-          setApiOptions(grouped);
-        }
-      } catch (e) {
-        console.error('Failed to fetch quotation options', e);
-      }
-    };
-    fetchOptions();
-  }, []);
 
   useEffect(() => {
     if (isOpen && lead?._id) {
@@ -130,7 +63,15 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
         if (qData.rows && qData.rows.length > 0) {
           setRows(qData.rows);
         } else {
-          setRows(DEFAULT_ROWS.map(r => ({ ...r, values: Array(qData.options?.length || 1).fill('') })));
+          setRows([
+            { title: 'No. of Panel', values: [''] },
+            { title: 'WP', values: [''] },
+            { title: 'SYSTEM CAPACITY', values: [''] },
+            { title: 'METER CHARGES REGISTRATION', values: [''] },
+            { title: 'CUSTOMER PAYABLE AMOUNT', values: [''] },
+            { title: 'SUBSIDY', values: [''] },
+            { title: 'EFFECTIVE PRICE', values: [''] },
+          ]);
         }
       } else {
         // Reset for new quotation
@@ -138,7 +79,15 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
         setSolarModule('');
         setInverter('');
         setOptions(['OPTION 1']);
-        setRows([...DEFAULT_ROWS]);
+        setRows([
+          { title: 'No. of Panel', values: [''] },
+          { title: 'WP', values: [''] },
+          { title: 'SYSTEM CAPACITY', values: [''] },
+          { title: 'METER CHARGES REGISTRATION', values: [''] },
+          { title: 'CUSTOMER PAYABLE AMOUNT', values: [''] },
+          { title: 'SUBSIDY', values: [''] },
+          { title: 'EFFECTIVE PRICE', values: [''] },
+        ]);
       }
     }
   }, [isOpen, lead, editIndex]);
@@ -217,61 +166,18 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
     const newRows = [...rows];
     newRows[rowIndex].values[colIndex] = val;
 
-    const grossIdx = newRows.findIndex(r => r.title.trim().toUpperCase() === 'GROSS ₹');
-    const subsidyIdx = newRows.findIndex(r => r.title.trim().toUpperCase() === 'SUBSIDY ₹');
-    const netIdx = newRows.findIndex(r => r.title.trim().toUpperCase() === 'NET PAYABLE ₹');
-
-    if (grossIdx !== -1 && subsidyIdx !== -1 && netIdx !== -1) {
-      const grossVal = parseFloat(newRows[grossIdx].values[colIndex]) || 0;
-      let subsidyVal = parseFloat(newRows[subsidyIdx].values[colIndex]) || 0;
-      
-      if (subsidyVal > grossVal) {
-        subsidyVal = grossVal;
-        if (rowIndex === subsidyIdx) {
-          toast.warning('Subsidy cannot be greater than Gross');
-          newRows[subsidyIdx].values[colIndex] = subsidyVal.toString();
-        }
-      }
-
-      const netVal = grossVal - subsidyVal;
-      newRows[netIdx].values[colIndex] = Math.max(0, netVal).toString();
-    }
-
-    // Keep old behavior just in case they revert row titles
+    // Automatically calculate EFFECTIVE PRICE = CUSTOMER PAYABLE AMOUNT - SUBSIDY
     const customerPayableIdx = newRows.findIndex(r => r.title.trim().toUpperCase() === 'CUSTOMER PAYABLE AMOUNT');
-    const oldSubsidyIdx = newRows.findIndex(r => r.title.trim().toUpperCase() === 'SUBSIDY');
+    const subsidyIdx = newRows.findIndex(r => r.title.trim().toUpperCase() === 'SUBSIDY');
     const effectivePriceIdx = newRows.findIndex(r => r.title.trim().toUpperCase() === 'EFFECTIVE PRICE');
 
-    if (effectivePriceIdx !== -1 && customerPayableIdx !== -1 && oldSubsidyIdx !== -1) {
+    if (effectivePriceIdx !== -1 && customerPayableIdx !== -1 && subsidyIdx !== -1) {
       const payableVal = parseFloat(newRows[customerPayableIdx].values[colIndex]) || 0;
-      const subVal = parseFloat(newRows[oldSubsidyIdx].values[colIndex]) || 0;
-      newRows[effectivePriceIdx].values[colIndex] = (payableVal - subVal).toString();
+      const subsidyVal = parseFloat(newRows[subsidyIdx].values[colIndex]) || 0;
+      newRows[effectivePriceIdx].values[colIndex] = (payableVal - subsidyVal).toString();
     }
 
     setRows(newRows);
-  };
-
-  const handleCreateOption = async (inputValue: string, rowKey: string, rIdx: number, cIdx: number) => {
-    handleRowValueChange(rIdx, cIdx, inputValue);
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
-      const res = await axios.post(`${apiUrl}quotation-options`, {
-        key: rowKey,
-        label: inputValue,
-        value: inputValue
-      }, {
-        headers: { Authorization: `Bearer ${getAuthToken()}` }
-      });
-      
-      if (res.data?.success) {
-        setApiOptions(prev => {
-          const current = prev[rowKey] || [];
-          return { ...prev, [rowKey]: [...current, { label: inputValue, value: inputValue }] };
-        });
-      }
-    } catch (e) {
-      console.error('Failed to save option', e);
-    }
   };
 
   const handleOptionNameChange = (index: number, val: string) => {
@@ -364,7 +270,14 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
       }
     >
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <FormInput
+            label="Customer Name"
+            name="customerName"
+            type="text"
+            value={lead?.fullName || ''}
+            disabled={true}
+          />
           <FormInput
             label="Date"
             required={true}
@@ -373,33 +286,19 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
-          <FormInput
+          <DropdownWithAdd
             label="Solar Module"
+            type="solar_module"
             required={true}
-            name="solarModule"
-            type="text"
             value={solarModule}
-            onChange={(e) => {
-              setSolarModule(e.target.value);
-              if (errors.solarModule) {
-                setErrors(prev => ({ ...prev, solarModule: '' }));
-              }
-            }}
-            error={errors.solarModule}
+            onChange={setSolarModule}
           />
-          <FormInput
+          <DropdownWithAdd
             label="Inverter"
+            type="inverter"
             required={true}
-            name="inverter"
-            type="text"
             value={inverter}
-            onChange={(e) => {
-              setInverter(e.target.value);
-              if (errors.inverter) {
-                setErrors(prev => ({ ...prev, inverter: '' }));
-              }
-            }}
-            error={errors.inverter}
+            onChange={setInverter}
           />
         </div>
 
@@ -458,60 +357,17 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                         placeholder="Row Title"
                       />
                     </td>
-                    {row.values.map((val, cIdx) => {
-                      const rowKey = row.title.toLowerCase().trim();
-                      const isDropdown = DROPDOWN_FIELDS.includes(rowKey);
-                      const staticOptions = PREDEFINED_OPTIONS[rowKey] || [];
-                      const dynamicOptions = apiOptions[rowKey] || [];
-                      
-                      // Merge and remove duplicates by value
-                      const allOptions = [...staticOptions, ...dynamicOptions];
-                      const uniqueOptions = Array.from(new Map(allOptions.map(item => [item.value, item])).values());
-
-                      return (
-                        <td key={cIdx} className="p-1 border-r border-gray-200">
-                          {isDropdown ? (
-                            <div className="w-full [&_input]:!border-none [&_input]:!shadow-none [&_input]:!ring-0 [&_input]:!outline-none [&_input]:!bg-transparent [&_input]:!m-0 [&_input]:!p-0 [&_input]:focus:!ring-0">
-                              <CreatableSelect
-                                isClearable
-                                value={val ? { label: val, value: val } : null}
-                                onChange={(newValue) => handleRowValueChange(rIdx, cIdx, newValue ? newValue.value : '')}
-                                onCreateOption={(inputValue) => handleCreateOption(inputValue, rowKey, rIdx, cIdx)}
-                                options={uniqueOptions}
-                                placeholder="Select or type..."
-                                styles={{
-                                  control: (base) => ({
-                                    ...base,
-                                    fontSize: '0.875rem',
-                                    minHeight: '30px',
-                                    border: '1px solid transparent',
-                                    backgroundColor: '#f9fafb',
-                                    boxShadow: 'none',
-                                    '&:hover': {
-                                      borderColor: '#d1d5db'
-                                    }
-                                  }),
-                                  menu: (base) => ({
-                                    ...base,
-                                    zIndex: 9999
-                                  }),
-                                  menuPortal: base => ({ ...base, zIndex: 9999 })
-                                }}
-                                menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
-                              />
-                            </div>
-                          ) : (
-                            <input
-                              type="text"
-                              value={val}
-                              onChange={(e) => handleRowValueChange(rIdx, cIdx, e.target.value)}
-                              className="w-full text-sm px-2 py-1 outline-none border border-transparent focus:border-gray-300 focus:bg-white bg-gray-50 rounded"
-                              placeholder="Value"
-                            />
-                          )}
-                        </td>
-                      );
-                    })}
+                    {row.values.map((val, cIdx) => (
+                      <td key={cIdx} className="p-1 border-r border-gray-200">
+                        <input
+                          type="text"
+                          value={val}
+                          onChange={(e) => handleRowValueChange(rIdx, cIdx, e.target.value)}
+                          className="w-full text-sm px-2 py-1 outline-none border border-transparent focus:border-gray-300 focus:bg-white bg-gray-50 rounded"
+                          placeholder="Value"
+                        />
+                      </td>
+                    ))}
                     <td className="p-1 text-center">
                       <button
                         type="button"

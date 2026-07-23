@@ -964,7 +964,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
       const response = await axios.post(`${apiUrl}quotation/generate`, {
         quotation: qData,
-        fullName: lead.fullName
+        lead: lead
       }, {
         responseType: 'blob',
         headers: { Authorization: `Bearer ${getAuthToken()}` }
@@ -1283,7 +1283,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                         dateFormat="MM/dd/yyyy"
                         className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-secondary transition-all outline-none cursor-pointer"
                         wrapperClassName="w-full"
-                        popperProps={{ strategy: 'fixed' }}
+                        popperPlacement="bottom-start"
                       />
                     </div>
                     <div className="space-y-1">

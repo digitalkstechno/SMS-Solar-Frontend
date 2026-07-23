@@ -56,7 +56,7 @@ export default function DateRangePicker({
                 dateFormat="MM/dd/yyyy"
                 className="pl-3 pr-8 py-2 !rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all cursor-pointer min-w-[130px] w-full"
                 wrapperClassName="w-full"
-                popperProps={{ strategy: 'fixed' }}
+                popperPlacement="bottom-start"
               />
               <Calendar className="absolute right-2.5 h-4 w-4 text-gray-400 pointer-events-none z-10" />
             </div>
@@ -77,7 +77,7 @@ export default function DateRangePicker({
                 dateFormat="MM/dd/yyyy"
                 className="pl-3 pr-8 py-2 !rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all cursor-pointer min-w-[130px] w-full"
                 wrapperClassName="w-full"
-                popperProps={{ strategy: 'fixed' }}
+                popperPlacement="bottom-start"
               />
               <Calendar className="absolute right-2.5 h-4 w-4 text-gray-400 pointer-events-none z-10" />
             </div>
@@ -105,7 +105,7 @@ export default function DateRangePicker({
               dateFormat="MM/dd/yyyy"
               className="w-full pl-3 pr-10 !rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 outline-none focus:border-black hover:border-gray-400 shadow-sm transition-all cursor-pointer h-[46px]"
               wrapperClassName="w-full"
-              popperProps={{ strategy: 'fixed' }}
+              popperPlacement="bottom-start"
             />
             <Calendar className="absolute right-3.5 h-4 w-4 text-gray-500 pointer-events-none z-10" />
           </div>
@@ -127,7 +127,7 @@ export default function DateRangePicker({
               dateFormat="MM/dd/yyyy"
               className="w-full pl-3 pr-10 !rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 outline-none focus:border-black hover:border-gray-400 shadow-sm transition-all cursor-pointer h-[46px]"
               wrapperClassName="w-full"
-              popperProps={{ strategy: 'fixed' }}
+              popperPlacement="bottom-start"
             />
             <Calendar className="absolute right-3.5 h-4 w-4 text-gray-500 pointer-events-none z-10" />
           </div>
