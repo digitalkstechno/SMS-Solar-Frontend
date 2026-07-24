@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import { ApiLead } from './types';
 import FormInput from '../ui/Input';
 import { Trash2, X, Download } from 'lucide-react';
-import CreatableSelect from 'react-select/creatable';
+import Select from 'react-select';
 
 interface Props {
   isOpen: boolean;
@@ -43,31 +43,6 @@ const DROPDOWN_FIELDS = [
   'roof type'
 ];
 
-const PREDEFINED_OPTIONS: Record<string, { label: string, value: string }[]> = {
-  'solar module product': [
-    { label: 'Adani - N-Type TOPCon Bifacial - 540 W', value: 'Adani - N-Type TOPCon Bifacial - 540 W' }
-  ],
-  'inverter product': [
-    { label: 'Velox - On-Grid Inverter', value: 'Velox - On-Grid Inverter' }
-  ],
-  'structure product': [
-    { label: 'Hindustaar Solar Mounting Structure', value: 'Hindustaar Solar Mounting Structure' }
-  ],
-  'dc protection': [
-    { label: 'Simens DCDB', value: 'Simens DCDB' }
-  ],
-  'ac protection': [
-    { label: 'Simens ACDB', value: 'Simens ACDB' }
-  ],
-  'solar cable product': [
-    { label: 'Polycab Solar DC Cable & AC Cable', value: 'Polycab Solar DC Cable & AC Cable' }
-  ],
-  'roof type': [
-    { label: 'Flat Roof', value: 'Flat Roof' },
-    { label: 'Tin Shed', value: 'Tin Shed' }
-  ]
-};
-
 export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, editIndex }: Props) {
   const getLocalDatetimeString = (dateObj: Date = new Date()) => {
     const pad = (num: number) => String(num).padStart(2, '0');
@@ -91,15 +66,27 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
-        const res = await axios.get(`${apiUrl}quotation-options`, {
+        const res = await axios.get(`${baseUrl.getBaseUrl}quotation-options`, {
           headers: { Authorization: `Bearer ${getAuthToken()}` }
         });
         if (res.data?.success) {
           const grouped: Record<string, { label: string, value: string }[]> = {};
+          
+          // Map backend keys to dropdown row keys
+          const keyMap: Record<string, string> = {
+            'module': 'solar module product',
+            'inverter': 'inverter product',
+            'structure': 'structure product',
+            'dcdb': 'dc protection',
+            'acdb': 'ac protection',
+            'cables': 'solar cable product',
+            'roof': 'roof type'
+          };
+
           res.data.data.forEach((opt: any) => {
-            if (!grouped[opt.key]) grouped[opt.key] = [];
-            grouped[opt.key].push({ label: opt.label, value: opt.value });
+            const rowKey = keyMap[opt.key] || opt.key;
+            if (!grouped[rowKey]) grouped[rowKey] = [];
+            grouped[rowKey].push({ label: opt.label, value: opt.value });
           });
           setApiOptions(grouped);
         }
@@ -461,35 +448,45 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                     {row.values.map((val, cIdx) => {
                       const rowKey = row.title.toLowerCase().trim();
                       const isDropdown = DROPDOWN_FIELDS.includes(rowKey);
-                      const staticOptions = PREDEFINED_OPTIONS[rowKey] || [];
-                      const dynamicOptions = apiOptions[rowKey] || [];
-                      
-                      // Merge and remove duplicates by value
-                      const allOptions = [...staticOptions, ...dynamicOptions];
-                      const uniqueOptions = Array.from(new Map(allOptions.map(item => [item.value, item])).values());
+                      const uniqueOptions = apiOptions[rowKey] || [];
 
                       return (
                         <td key={cIdx} className="p-1 border-r border-gray-200">
                           {isDropdown ? (
-                            <div className="w-full [&_input]:!border-none [&_input]:!shadow-none [&_input]:!ring-0 [&_input]:!outline-none [&_input]:!bg-transparent [&_input]:!m-0 [&_input]:!p-0 [&_input]:focus:!ring-0">
-                              <CreatableSelect
+                            <div className="w-full">
+                              <Select
                                 isClearable
                                 value={val ? { label: val, value: val } : null}
                                 onChange={(newValue) => handleRowValueChange(rIdx, cIdx, newValue ? newValue.value : '')}
-                                onCreateOption={(inputValue) => handleCreateOption(inputValue, rowKey, rIdx, cIdx)}
                                 options={uniqueOptions}
-                                placeholder="Select or type..."
+                                placeholder="Select option..."
                                 styles={{
-                                  control: (base) => ({
+                                  control: (base, state) => ({
                                     ...base,
                                     fontSize: '0.875rem',
                                     minHeight: '30px',
-                                    border: '1px solid transparent',
-                                    backgroundColor: '#f9fafb',
-                                    boxShadow: 'none',
+                                    height: '100%',
+                                    border: '1px solid #e5e7eb',
+                                    backgroundColor: '#ffffff',
+                                    borderRadius: '0.375rem',
+                                    boxShadow: state.isFocused ? '0 0 0 1px #d1d5db' : 'none',
+                                    padding: '0',
                                     '&:hover': {
                                       borderColor: '#d1d5db'
                                     }
+                                  }),
+                                  valueContainer: (base) => ({
+                                    ...base,
+                                    padding: '0 8px'
+                                  }),
+                                  input: (base) => ({
+                                    ...base,
+                                    margin: '0',
+                                    padding: '0'
+                                  }),
+                                  indicatorsContainer: (base) => ({
+                                    ...base,
+                                    height: '30px'
                                   }),
                                   menu: (base) => ({
                                     ...base,
@@ -505,8 +502,8 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                               type="text"
                               value={val}
                               onChange={(e) => handleRowValueChange(rIdx, cIdx, e.target.value)}
-                              className="w-full text-sm px-2 py-1 outline-none border border-transparent focus:border-gray-300 focus:bg-white bg-gray-50 rounded"
                               placeholder="Value"
+                              className="w-full text-sm px-2 py-1 outline-none border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 bg-white rounded-md"
                             />
                           )}
                         </td>
