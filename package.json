@@ -16,6 +16,7 @@
     "axios": "^1.13.4",
     "formik": "^2.4.9",
     "html2canvas": "^1.4.1",
+    "html2pdf.js": "^0.14.0",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.563.0",
     "moment": "^2.30.1",
