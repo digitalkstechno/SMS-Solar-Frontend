@@ -341,6 +341,34 @@ button {
   z-index: 9999 !important;
 }
 
+/* Fix react-datepicker header styling */
+.react-datepicker__header {
+  background-color: #f3f4f6 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  border-top-left-radius: 0.375rem !important;
+  border-top-right-radius: 0.375rem !important;
+  padding-top: 8px !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header {
+  color: #111827 !important;
+  font-weight: 600 !important;
+}
+
+.react-datepicker__day-name {
+  color: #4b5563 !important;
+  font-weight: 500 !important;
+}
+
+.react-datepicker {
+  font-family: inherit !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.375rem !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
 /* Date picker input field focus style: normal black border instead of the theme purple/pink border */
 .react-datepicker-wrapper input:focus {
   border-color: #000000 !important;

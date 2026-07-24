@@ -173,7 +173,7 @@ export default function LeadAssignStockDialog({ isOpen, onClose, lead, onSuccess
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900">Assign Stock to Lead</h2>
-              <p className="text-sm text-gray-500">{lead?.fullName} {lead?.leadrefrance ? `(${lead.leadrefrance})` : ''}</p>
+              <p className="text-sm text-gray-500">{lead?.fullName} {lead?.leadrefrance ? `(${lead.leadrefranceName || lead.leadrefrance})` : ''}</p>
             </div>
           </div>
           <button

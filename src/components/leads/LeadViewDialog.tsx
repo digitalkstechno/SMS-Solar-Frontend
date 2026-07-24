@@ -478,14 +478,14 @@ import { baseUrl, getAuthToken } from '@/config';
 import { ApiLead, ApiStatus } from './types';
 import { FiPhone, FiMail, FiMapPin, FiCalendar, FiClock, FiCheckSquare, FiMessageSquare, FiList, FiEdit2, FiX, FiCheck, FiFileText } from 'react-icons/fi';
 import CustomTimePicker from '../ui/CustomTimePicker';
-import { Eye, Download, FileText, Image, File, FileSpreadsheet, Search, Trash2, MessageCircle } from 'lucide-react';
+import { Eye, Download, FileText, Image, File, FileSpreadsheet, Search, Trash2, MessageCircle, CheckCircle2 } from 'lucide-react';
 import { getFileIcon } from '@/utills/utill';
 import LeadQuotationDialog from './LeadQuotationDialog';
 import { FormSelect } from '../ui/FormSelect';
 import { generateQuotationPDF } from '@/utills/quotationPdfGenerator';
 import DatePicker from 'react-datepicker';
 import Swal from 'sweetalert2';
-
+import moment from 'moment';
 interface Props {
   lead: ApiLead | null;
   statuses: ApiStatus[];
@@ -541,7 +541,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
   const [localAssignedTo, setLocalAssignedTo] = useState<any>(null);
   const [departments, setDepartments] = useState<any[]>([]);
   const [visitDone, setVisitDone] = useState<boolean | null>(null);
-
+  const [localVisitDate, setLocalVisitDate] = useState<string>('');
   const canUpdateLead = useMemo(() => {
     if (isAdmin) return true;
     if (!permissions?.update) return false;
@@ -569,6 +569,11 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
       setLocalAssignedTo(lead.assignedTo || null);
       setLocalQuotations(lead.quotations || []);
       setVisitDone(lead.isVisitDone ?? null);
+      if (lead.visitDate) {
+        setLocalVisitDate(lead.visitDate.toString().split('T')[0]);
+      } else {
+        setLocalVisitDate('');
+      }
     }
   }, [lead]);
 
@@ -620,6 +625,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
         {
           leadStatus: editStatus,
           isVisitDone: visitDone,
+          visitDate: visitDone ? localVisitDate : null,
         },
         { headers: { Authorization: `Bearer ${getAuthToken()}` } }
       );
@@ -636,22 +642,19 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
     }
   };
 
-  const handleVisitChange = async (value: boolean) => {
+  const handleVisitChange = (value: boolean) => {
     if (!lead || !canUpdateLead) return;
     setVisitDone(value);
-    try {
-      await axios.put(
-        `${baseUrl.updateLead}/${lead._id}/visit`,
-        { isVisitDone: value },
-        { headers: { Authorization: `Bearer ${getAuthToken()}` } }
-      );
-      toast.success('Visit status updated');
-      onRefresh();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || 'Failed to update visit status');
-      // Revert if failed
-      setVisitDone(lead.isVisitDone ?? null);
+    
+    // If setting to false, clear the visit date
+    if (!value) {
+      setLocalVisitDate('');
     }
+  };
+
+  const handleVisitDateChange = (dateStr: string) => {
+    if (!lead || !canUpdateLead) return;
+    setLocalVisitDate(dateStr);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -961,7 +964,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
       const response = await axios.post(`${apiUrl}quotation/generate`, {
         quotation: qData,
-        fullName: lead.fullName
+        lead: lead
       }, {
         responseType: 'blob',
         headers: { Authorization: `Bearer ${getAuthToken()}` }
@@ -970,7 +973,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
       const blobUrl = window.URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = blobUrl;
-      const clientName = (lead.fullName || lead.leadrefrance || 'Client').replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
+      const clientName = (lead.fullName || lead.leadrefranceName || lead.leadrefrance || 'Client').replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
       const d = new Date();
       const pad = (n: number) => String(n).padStart(2, '0');
       const dateStr = `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
@@ -1123,7 +1126,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
               <InfoCard label="Phone" value={lead.contact} />
               <InfoCard label="Email" value={lead.email} />
               <InfoCard label="Discom Name" value={lead.discomName} />
-              <InfoCard label="Lead Reference" value={lead.leadrefrance} />
+              <InfoCard label="Lead Reference" value={lead.leadrefranceName || lead.leadrefrance} />
               <InfoCard label="Project Type" value={lead.projecttype} />
               <InfoCard label="Last Follow-Up" value={lead.lastFollowUp} />
               <InfoCard label="Active" value={lead.isActive ? 'Yes' : 'No'} />
@@ -1170,30 +1173,70 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
             {/* Visit Section */}
             <div className="rounded-lg border border-gray-200 bg-white p-4">
               <div className="mb-3 text-sm font-bold text-gray-800">Visit</div>
-              <div className="flex items-center gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="visit"
-                    checked={visitDone === true}
-                    onChange={() => handleVisitChange(true)}
-                    className="w-4 h-4 accent-[#a63c71] cursor-pointer"
-                    disabled={!canUpdateLead}
-                  />
-                  <span className="text-sm font-medium text-gray-700">Yes</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="visit"
-                    checked={visitDone === false}
-                    onChange={() => handleVisitChange(false)}
-                    className="w-4 h-4 accent-[#a63c71] cursor-pointer"
-                    disabled={!canUpdateLead}
-                  />
-                  <span className="text-sm font-medium text-gray-700">No</span>
-                </label>
-              </div>
+              {lead?.isVisitCompleted ? (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg text-sm font-bold">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Visit Done
+                  </div>
+                  {localVisitDate && (
+                    <div className="text-sm font-bold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg">
+                      Date: {moment(localVisitDate).format("DD-MM-YYYY")}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="visit"
+                        checked={visitDone === true}
+                        onChange={() => handleVisitChange(true)}
+                        className="w-4 h-4 accent-[#a63c71] cursor-pointer"
+                        disabled={!canUpdateLead}
+                      />
+                      <span className="text-sm font-medium text-gray-700">Yes</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="visit"
+                        checked={visitDone === false}
+                        onChange={() => handleVisitChange(false)}
+                        className="w-4 h-4 accent-[#a63c71] cursor-pointer"
+                        disabled={!canUpdateLead}
+                      />
+                      <span className="text-sm font-medium text-gray-700">No</span>
+                    </label>
+                  </div>
+                  {visitDone === true && (
+                    <div className="flex items-center gap-3 border-l border-gray-200 pl-6">
+                      <span className="text-sm font-bold text-gray-700">Date:</span>
+                      <DatePicker
+                        selected={localVisitDate ? new Date(localVisitDate) : null}
+                        onChange={(date: Date | null) => {
+                          if (!date) {
+                            handleVisitDateChange('');
+                            return;
+                          }
+                          const year = date.getFullYear();
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const day = String(date.getDate()).padStart(2, '0');
+                          handleVisitDateChange(`${year}-${month}-${day}`);
+                        }}
+                        placeholderText="mm/dd/yyyy"
+                        dateFormat="MM/dd/yyyy"
+                        className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white focus:outline-none focus:border-[#a63c71] cursor-pointer"
+                        wrapperClassName="w-[140px]"
+                        popperPlacement="bottom-start"
+                        disabled={!canUpdateLead}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {visitDone !== null && (
@@ -1240,7 +1283,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                         dateFormat="MM/dd/yyyy"
                         className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-secondary transition-all outline-none cursor-pointer"
                         wrapperClassName="w-full"
-                        popperProps={{ strategy: 'fixed' }}
+                        popperPlacement="bottom-start"
                       />
                     </div>
                     <div className="space-y-1">

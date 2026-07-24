@@ -284,7 +284,7 @@ export default function DataTable<T extends Record<string, any>>({
       </div>
 
       {/* Table - Modern Design */}
-      <div className="border-t border-gray-100 overflow-auto max-h-[550px]">
+      <div className="border-t border-gray-100 overflow-auto max-h-[calc(100vh-280px)]">
         <table className="w-full divide-y divide-gray-100 relative">
           <thead className="bg-gray-100 sticky top-0 z-20 shadow-sm">
             <tr>

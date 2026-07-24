@@ -27,7 +27,7 @@ import {
 // ── Hooks / Config ───────────────────────────────────────────────────────────
 import { useLeadsData } from '@/components/leads/useLeadsData';
 import FormInput from '@/components/ui/Input';
-import { FormMultiSelect } from '@/components/ui/FormSelect';
+import { FormMultiSelect, FormSelect } from '@/components/ui/FormSelect';
 import DateRangePicker from '@/components/ui/DateRangePicker';
 
 export type ViewMode = 'list' | 'kanban';
@@ -60,6 +60,7 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [staffFilter, setStaffFilter] = useState<string[]>([]);
   const [sourceFilter, setSourceFilter] = useState<string[]>([]);
+  const [visitFilter, setVisitFilter] = useState<string>('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
@@ -126,10 +127,11 @@ export default function LeadsPage() {
       status: statusFilter.length > 0 ? statusFilter.join(',') : '',
       source: sourceFilter.length > 0 ? sourceFilter.join(',') : '',
       staff: staffFilter.length > 0 ? staffFilter.join(',') : '',
+      visit: visitFilter,
       from: fromDate,
       to: toDate,
     }),
-    [debouncedSearch, statusFilter, sourceFilter, staffFilter, fromDate, toDate]
+    [debouncedSearch, statusFilter, sourceFilter, staffFilter, visitFilter, fromDate, toDate]
   );
 
   // ── Data — pass kanbanSubView so hook fetches only what's needed ──────────
@@ -245,6 +247,7 @@ export default function LeadsPage() {
     setStatusFilter([]);
     setSourceFilter([]);
     setStaffFilter([]);
+    setVisitFilter('');
     setFromDate('');
     setToDate('');
     setSearch('');
@@ -396,7 +399,7 @@ export default function LeadsPage() {
           }`}
         >
           <div className="overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
               <div className="space-y-2">
                 <FormMultiSelect
                   label="Lead Status"
@@ -423,6 +426,19 @@ export default function LeadsPage() {
                   value={sourceFilter}
                   onChange={(e) => setSourceFilter(e)}
                   options={sources.map((s) => ({ value: s._id, label: s.name }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <FormSelect
+                  label="Visit Status"
+                  value={visitFilter}
+                  onChange={(val) => setVisitFilter(val)}
+                  options={[
+                    { value: '', label: 'All' },
+                    { value: 'scheduled', label: 'Pending' },
+                    { value: 'completed', label: 'Visit Done' }
+                  ]}
                 />
               </div>
 

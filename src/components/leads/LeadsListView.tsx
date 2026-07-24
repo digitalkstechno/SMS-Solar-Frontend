@@ -42,6 +42,7 @@ type TableLead = {
   paymentAmount?: number;
   sourceId?: any;
   isVisitDone?: boolean;
+  visitDate?: string;
   _raw?: any;
 };
 
@@ -122,7 +123,8 @@ function mapLead(item: any, staffMembers?: any[]): TableLead {
     email: item.email,
     kwRequirement: item.kwRequirement || '-',
     discomName: item.discomName || '-',
-    isVisitDone: item.isVisitDone,
+    isVisitDone: item.isVisitCompleted,
+    visitDate: item.visitDate,
     address: item.address,
     locationLink: item.locationLink,
     status: item.leadStatus?.name || item.status?.name || '-',
@@ -202,6 +204,11 @@ export default function LeadsListView({
       ) : (
         <span className="text-amber-600 font-medium text-xs bg-amber-50 px-2 py-1 rounded-md">Pending</span>
       )
+    },
+    {
+      key: 'visitDate',
+      label: 'VISIT DATE',
+      render: (v) => v ? new Date(v).toLocaleDateString() : '-',
     },
     { 
       key: 'sourceId', 
