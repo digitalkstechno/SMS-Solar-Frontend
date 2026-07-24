@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import {
   LayoutDashboard,
   Settings,
+  Settings2,
   Users,
   LogOut,
   RefreshCw,
@@ -137,6 +138,12 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
         ]
       });
     }
+
+    menuItems.push({
+      icon: Settings2,
+      label: "Quotation Master",
+      path: "/quotation-master",
+    });
 
     menuItems.push({
       icon: Settings,
