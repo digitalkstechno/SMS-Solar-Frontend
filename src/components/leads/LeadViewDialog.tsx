@@ -1126,7 +1126,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
               <InfoCard label="Phone" value={lead.contact} />
               <InfoCard label="Email" value={lead.email} />
               <InfoCard label="Discom Name" value={lead.discomName} />
-              <InfoCard label="Lead Reference" value={lead.leadrefranceName || lead.leadrefrance} />
+              <InfoCard label="Lead Reference" value={lead.leadrefranceName || (lead.leadrefrance && !/^[a-fA-F0-9]{24}$/.test(lead.leadrefrance) ? lead.leadrefrance : '-')} />
               <InfoCard label="Project Type" value={lead.projecttype} />
               <InfoCard label="Last Follow-Up" value={lead.lastFollowUp} />
               <InfoCard label="Active" value={lead.isActive ? 'Yes' : 'No'} />

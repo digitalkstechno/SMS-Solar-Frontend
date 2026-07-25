@@ -441,7 +441,8 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                         type="text"
                         value={row.title}
                         onChange={(e) => handleRowTitleChange(rIdx, e.target.value)}
-                        className="w-full uppercase text-xs font-semibold text-gray-700 px-2 py-1 outline-none border border-transparent focus:border-gray-300 focus:bg-white bg-gray-50 rounded"
+                        readOnly={DEFAULT_ROWS.some(r => r.title.toLowerCase() === row.title.toLowerCase())}
+                        className={`w-full uppercase text-xs font-semibold text-gray-700 px-2 py-1 outline-none border ${DEFAULT_ROWS.some(r => r.title.toLowerCase() === row.title.toLowerCase()) ? 'border-transparent bg-transparent cursor-default focus:border-transparent focus:bg-transparent' : 'border-transparent focus:border-gray-300 focus:bg-white bg-gray-50'} rounded`}
                         placeholder="Row Title"
                       />
                     </td>
