@@ -461,21 +461,23 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                                 onChange={(newValue) => handleRowValueChange(rIdx, cIdx, newValue ? newValue.value : '')}
                                 options={uniqueOptions}
                                 placeholder="Select option..."
-                                classNames={{
-                                  control: () => "!border !border-gray-200 hover:!border-gray-300 !rounded-md"
-                                }}
                                 styles={{
                                   control: (base, state) => ({
                                     ...base,
                                     fontSize: '0.875rem',
                                     minHeight: '38px',
                                     height: '38px',
+                                    border: state.isFocused ? '1px solid #d1d5db' : '1px solid #e5e7eb',
                                     backgroundColor: '#ffffff',
+                                    borderRadius: '0.375rem',
                                     boxShadow: 'none',
                                     outline: 'none',
                                     padding: '0',
                                     cursor: 'pointer',
                                     transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                      borderColor: '#d1d5db'
+                                    }
                                   }),
                                   valueContainer: (base) => ({
                                     ...base,
