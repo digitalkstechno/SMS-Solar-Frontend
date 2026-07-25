@@ -76,7 +76,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
           
           // Map backend keys to dropdown row keys
           const keyMap: Record<string, string> = {
-            'module': 'solar module product',
+            'module': '45',
             'inverter': 'inverter product',
             'structure': 'structure product',
             'dcdb': 'dc protection',

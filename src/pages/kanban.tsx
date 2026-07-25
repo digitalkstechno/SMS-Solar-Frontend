@@ -710,7 +710,7 @@ export default function LeadsPage() {
                     <div className="bg-secondary rounded-t-xl px-6 py-4">
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-white capitalize">
-                          {status.title}
+                          {status.title.toLowerCase() === 'visit complete' ? 'Visit Done' : status.title}
                         </h3>
                         <span className="rounded-full bg-[#ffffff] px-3 py-1 text-sm font-medium text-[#0a2352]">
                           {status.leads.length}
@@ -815,12 +815,21 @@ export default function LeadsPage() {
                                     </div>
                                   </div>
 
-                                  {/* Priority Right */}
-                                  {lead.priority && (
-                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-600 capitalize whitespace-nowrap">
-                                      {lead.priority}
+                                  {/* Right side tags */}
+                                  <div className="flex flex-col gap-1 items-end">
+                                    {lead.priority && (
+                                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-600 capitalize whitespace-nowrap">
+                                        {lead.priority}
+                                      </span>
+                                    )}
+                                    <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full whitespace-nowrap border ${
+                                      lead.isVisitCompleted
+                                        ? 'bg-green-50 text-green-700 border-green-200'
+                                        : 'bg-orange-50 text-orange-700 border-orange-200'
+                                    }`}>
+                                      {lead.isVisitCompleted ? 'VISIT DONE' : 'VISIT PENDING'}
                                     </span>
-                                  )}
+                                  </div>
                                 </div>
                               </div>
 
