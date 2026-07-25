@@ -294,7 +294,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      title={editIndex !== null && editIndex !== undefined ? 'Edit Quotation' : 'Add Quotation'}
+      title={editIndex !== null && editIndex !== undefined ? 'Edit Quotation' : 'Add Quotations'}
       footer={
         <>
           <button
@@ -442,7 +442,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                         value={row.title}
                         onChange={(e) => handleRowTitleChange(rIdx, e.target.value)}
                         readOnly={DEFAULT_ROWS.some(r => r.title.toLowerCase() === row.title.toLowerCase())}
-                        className={`w-full uppercase text-xs font-semibold text-gray-700 px-2 py-1 outline-none border ${DEFAULT_ROWS.some(r => r.title.toLowerCase() === row.title.toLowerCase()) ? 'border-transparent bg-transparent cursor-default focus:border-transparent focus:bg-transparent' : 'border-transparent focus:border-gray-300 focus:bg-white bg-gray-50'} rounded`}
+                        className={`w-full uppercase text-xs font-semibold text-gray-700 px-2 py-1 outline-none border ${DEFAULT_ROWS.some(r => r.title.toLowerCase() === row.title.toLowerCase()) ? '!border-transparent !bg-transparent cursor-default !border-0 !shadow-none' : 'border-transparent focus:border-gray-300 focus:bg-white bg-gray-50'} rounded`}
                         placeholder="Row Title"
                       />
                     </td>
@@ -457,6 +457,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                             <div className="w-full">
                               <Select
                                 isClearable
+                                classNamePrefix="react-select"
                                 value={val ? { label: val, value: val } : null}
                                 onChange={(newValue) => handleRowValueChange(rIdx, cIdx, newValue ? newValue.value : '')}
                                 options={uniqueOptions}
@@ -500,7 +501,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                                     height: '36px'
                                   }),
                                   indicatorSeparator: () => ({
-                                    display: 'none' // Remove the vertical line
+                                    display: 'none'
                                   }),
                                   dropdownIndicator: (base) => ({
                                     ...base,
