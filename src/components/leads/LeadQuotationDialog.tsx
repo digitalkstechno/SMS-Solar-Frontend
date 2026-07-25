@@ -464,33 +464,76 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                                   control: (base, state) => ({
                                     ...base,
                                     fontSize: '0.875rem',
-                                    minHeight: '30px',
-                                    height: '100%',
-                                    border: '1px solid #e5e7eb',
+                                    minHeight: '38px',
+                                    height: '38px',
+                                    border: state.isFocused ? '1px solid #d1d5db' : '1px solid #e5e7eb',
                                     backgroundColor: '#ffffff',
                                     borderRadius: '0.375rem',
-                                    boxShadow: state.isFocused ? '0 0 0 1px #d1d5db' : 'none',
+                                    boxShadow: 'none',
+                                    outline: 'none',
                                     padding: '0',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
                                     '&:hover': {
                                       borderColor: '#d1d5db'
                                     }
                                   }),
                                   valueContainer: (base) => ({
                                     ...base,
-                                    padding: '0 8px'
+                                    padding: '0 8px',
+                                    height: '36px',
+                                    lineHeight: '36px'
                                   }),
                                   input: (base) => ({
                                     ...base,
                                     margin: '0',
-                                    padding: '0'
+                                    padding: '0',
+                                    '& input': {
+                                      outline: 'none !important',
+                                      boxShadow: 'none !important',
+                                      border: 'none !important'
+                                    }
                                   }),
                                   indicatorsContainer: (base) => ({
                                     ...base,
-                                    height: '30px'
+                                    height: '36px'
+                                  }),
+                                  indicatorSeparator: () => ({
+                                    display: 'none' // Remove the vertical line
+                                  }),
+                                  dropdownIndicator: (base) => ({
+                                    ...base,
+                                    padding: '4px 8px',
+                                    color: '#9ca3af',
+                                    '&:hover': {
+                                      color: '#6b7280'
+                                    }
+                                  }),
+                                  clearIndicator: (base) => ({
+                                    ...base,
+                                    padding: '4px',
+                                    color: '#9ca3af',
+                                    '&:hover': {
+                                      color: '#ef4444'
+                                    }
+                                  }),
+                                  option: (base, state) => ({
+                                    ...base,
+                                    fontSize: '0.875rem',
+                                    backgroundColor: state.isSelected ? '#eff6ff' : state.isFocused ? '#f9fafb' : '#ffffff',
+                                    color: state.isSelected ? '#1d4ed8' : '#374151',
+                                    cursor: 'pointer',
+                                    padding: '8px 12px',
+                                    '&:active': {
+                                      backgroundColor: '#dbeafe'
+                                    }
                                   }),
                                   menu: (base) => ({
                                     ...base,
-                                    zIndex: 9999
+                                    zIndex: 9999,
+                                    borderRadius: '0.375rem',
+                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                                    border: '1px solid #e5e7eb'
                                   }),
                                   menuPortal: base => ({ ...base, zIndex: 9999 })
                                 }}
