@@ -462,6 +462,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                                 onChange={(newValue) => handleRowValueChange(rIdx, cIdx, newValue ? newValue.value : '')}
                                 options={uniqueOptions}
                                 placeholder="Select option..."
+                                menuPosition="fixed"
                                 styles={{
                                   control: (base, state) => ({
                                     ...base,
