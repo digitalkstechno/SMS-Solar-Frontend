@@ -1614,7 +1614,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                           <td className="px-4 py-3 text-gray-700 truncate max-w-[150px]" title={q.inverter}>{q.inverter || '-'}</td>
                           <td className="px-4 py-3 text-right pr-6 whitespace-nowrap">
                             <div className="inline-flex gap-2">
-                              <button
+                              {/* <button
                                 type="button"
                                 onClick={() => handleDownloadQuotation(idx)}
                                 className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
@@ -1630,7 +1630,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                                 title="Send via WhatsApp"
                               >
                                 <MessageCircle className="h-4 w-4" />
-                              </button>
+                              </button> */}
                               {canUpdateLead && (
                                 <>
                                   <button
