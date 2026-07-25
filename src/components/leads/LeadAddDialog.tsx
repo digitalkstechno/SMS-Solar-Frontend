@@ -406,7 +406,10 @@ export default function LeadAddDialog({
                 name="kwRequirement"
                 type="text"
                 value={formik.values.kwRequirement}
-                onChange={formik.handleChange}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const numericOnly = e.target.value.replace(/\D/g, '');
+                  formik.setFieldValue('kwRequirement', numericOnly);
+                }}
                 onBlur={formik.handleBlur}
                 error={getFieldError('kwRequirement')}
                 required={requiredFields.includes('kwRequirement')}
