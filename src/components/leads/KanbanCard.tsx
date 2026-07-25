@@ -115,11 +115,11 @@ export default function KanbanCard({
                         )}
                     </div>
                     <div className={`px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wide flex-shrink-0 border ${
-                        lead.isVisitCompleted || (lead as any).isVisitDone
+                        lead.isVisitCompleted
                             ? 'bg-green-50 text-green-700 border-green-200'
                             : 'bg-orange-50 text-orange-700 border-orange-200'
                     }`}>
-                        {lead.isVisitCompleted || (lead as any).isVisitDone ? 'VISIT DONE' : 'VISIT PENDING'}
+                        {lead.isVisitCompleted ? 'VISIT DONE' : 'VISIT PENDING'}
                     </div>
                 </div>
                 <div className="flex items-center gap-1.5 min-w-0">
