@@ -507,7 +507,9 @@ export default function LeadsKanbanView({
                             <div key={group.id} className="w-80 flex-shrink-0 flex flex-col">
                                 <div className="rounded-t-xl bg-secondary px-5 py-3">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="font-semibold text-white capitalize">{group.title}</h3>
+                                        <h3 className="font-semibold text-white capitalize">
+                                            {group.title.toLowerCase() === 'visit complete' ? 'Visit Done' : group.title}
+                                        </h3>
                                         <span className="rounded-full bg-white px-3 py-0.5 text-sm font-semibold text-secondary">
                                             {group.count}
                                         </span>
