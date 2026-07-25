@@ -2,8 +2,7 @@ import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { Poppins } from "next/font/google";
 import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import "react-datepicker/dist/react-datepicker.css";
+import { Toaster } from "react-hot-toast";
 import { Provider } from "react-redux";
 import { store } from "@/redux/store";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -117,6 +116,7 @@ function AppContent({ Component, pageProps }: AppProps) {
         pauseOnHover
         theme="colored"
       />
+      <Toaster position="top-right" reverseOrder={false} />
     </div>
   );
 }
