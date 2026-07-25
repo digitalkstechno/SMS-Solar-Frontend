@@ -6,7 +6,9 @@ import { toast } from 'react-toastify';
 import { ApiLead } from './types';
 import FormInput from '../ui/Input';
 import { Trash2, X, Download } from 'lucide-react';
-import Select from 'react-select';
+import { TableSelect } from '../ui/TableSelect';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 interface Props {
   isOpen: boolean;
@@ -352,14 +354,32 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
     >
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormInput
-            label="Date"
-            required={true}
-            name="date"
-            type="datetime-local"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
+          <div className="w-full">
+            <label className="block mb-1.5 text-sm font-medium text-gray-700">
+              Date <span className="text-red-500 ml-1">*</span>
+            </label>
+            <DatePicker
+              selected={date ? new Date(date) : null}
+              onChange={(d: Date | null) => {
+                if (d) {
+                  const pad = (num: number) => String(num).padStart(2, '0');
+                  const year = d.getFullYear();
+                  const month = pad(d.getMonth() + 1);
+                  const day = pad(d.getDate());
+                  const hours = pad(d.getHours());
+                  const minutes = pad(d.getMinutes());
+                  setDate(`${year}-${month}-${day}T${hours}:${minutes}`);
+                }
+              }}
+              showTimeSelect
+              timeFormat="hh:mm aa"
+              timeIntervals={15}
+              timeCaption="Time"
+              dateFormat="dd-MM-yyyy hh:mm aa"
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-300 bg-white/80 backdrop-blur-sm text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+              wrapperClassName="w-full"
+            />
+          </div>
           <FormInput
             label="Solar Module"
             required={true}
@@ -414,7 +434,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                           type="text" 
                           value={opt} 
                           onChange={(e) => handleOptionNameChange(i, e.target.value)}
-                          className="bg-transparent border-none text-white font-bold uppercase text-xs outline-none w-full placeholder-orange-200"
+                          className="bg-white border border-gray-200 text-gray-800 font-bold uppercase text-xs outline-none w-full placeholder-gray-400 px-2 py-1.5 rounded"
                           placeholder={`OPTION ${i+1}`}
                         />
                         {options.length > 1 && (
@@ -455,92 +475,11 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                         <td key={cIdx} className="p-1 border-r border-gray-200">
                           {isDropdown ? (
                             <div className="w-full">
-                              <Select
-                                isClearable
-                                classNamePrefix="react-select"
-                                value={val ? { label: val, value: val } : null}
-                                onChange={(newValue) => handleRowValueChange(rIdx, cIdx, newValue ? newValue.value : '')}
+                              <TableSelect
+                                value={val}
+                                onChange={(newValue) => handleRowValueChange(rIdx, cIdx, newValue)}
                                 options={uniqueOptions}
                                 placeholder="Select option..."
-                                menuPosition="fixed"
-                                styles={{
-                                  control: (base, state) => ({
-                                    ...base,
-                                    fontSize: '0.875rem',
-                                    minHeight: '38px',
-                                    height: '38px',
-                                    border: state.isFocused ? '1px solid #d1d5db' : '1px solid #e5e7eb',
-                                    backgroundColor: '#ffffff',
-                                    borderRadius: '0.375rem',
-                                    boxShadow: 'none',
-                                    outline: 'none',
-                                    padding: '0',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s ease',
-                                    '&:hover': {
-                                      borderColor: '#d1d5db'
-                                    }
-                                  }),
-                                  valueContainer: (base) => ({
-                                    ...base,
-                                    padding: '0 8px',
-                                    height: '36px',
-                                    lineHeight: '36px'
-                                  }),
-                                  input: (base) => ({
-                                    ...base,
-                                    margin: '0',
-                                    padding: '0',
-                                    '& input': {
-                                      outline: 'none !important',
-                                      boxShadow: 'none !important',
-                                      border: 'none !important'
-                                    }
-                                  }),
-                                  indicatorsContainer: (base) => ({
-                                    ...base,
-                                    height: '36px'
-                                  }),
-                                  indicatorSeparator: () => ({
-                                    display: 'none'
-                                  }),
-                                  dropdownIndicator: (base) => ({
-                                    ...base,
-                                    padding: '4px 8px',
-                                    color: '#9ca3af',
-                                    '&:hover': {
-                                      color: '#6b7280'
-                                    }
-                                  }),
-                                  clearIndicator: (base) => ({
-                                    ...base,
-                                    padding: '4px',
-                                    color: '#9ca3af',
-                                    '&:hover': {
-                                      color: '#ef4444'
-                                    }
-                                  }),
-                                  option: (base, state) => ({
-                                    ...base,
-                                    fontSize: '0.875rem',
-                                    backgroundColor: state.isSelected ? '#eff6ff' : state.isFocused ? '#f9fafb' : '#ffffff',
-                                    color: state.isSelected ? '#1d4ed8' : '#374151',
-                                    cursor: 'pointer',
-                                    padding: '8px 12px',
-                                    '&:active': {
-                                      backgroundColor: '#dbeafe'
-                                    }
-                                  }),
-                                  menu: (base) => ({
-                                    ...base,
-                                    zIndex: 9999,
-                                    borderRadius: '0.375rem',
-                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                                    border: '1px solid #e5e7eb'
-                                  }),
-                                  menuPortal: base => ({ ...base, zIndex: 9999 })
-                                }}
-                                menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
                               />
                             </div>
                           ) : (
@@ -549,7 +488,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                               value={val}
                               onChange={(e) => handleRowValueChange(rIdx, cIdx, e.target.value)}
                               placeholder="Value"
-                              className="w-full text-sm px-2 py-1 outline-none border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 bg-white rounded-md"
+                              className="w-full text-sm px-3 py-2 min-h-[38px] outline-none border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 bg-white rounded-md transition-colors"
                             />
                           )}
                         </td>
