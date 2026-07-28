@@ -420,16 +420,15 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                   const year = d.getFullYear();
                   const month = pad(d.getMonth() + 1);
                   const day = pad(d.getDate());
-                  const hours = pad(d.getHours());
-                  const minutes = pad(d.getMinutes());
+                  
+                  const now = new Date();
+                  const hours = pad(now.getHours());
+                  const minutes = pad(now.getMinutes());
+                  
                   setDate(`${year}-${month}-${day}T${hours}:${minutes}`);
                 }
               }}
-              showTimeSelect
-              timeFormat="hh:mm aa"
-              timeIntervals={15}
-              timeCaption="Time"
-              dateFormat="dd-MM-yyyy hh:mm aa"
+              dateFormat="dd-MM-yyyy"
               className="w-full px-3 py-2.5 rounded-xl border border-gray-300 bg-white/80 backdrop-blur-sm text-sm outline-none transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
               wrapperClassName="w-full"
             />
