@@ -226,7 +226,6 @@ export const FormSelect: React.FC<FormSelectProps> = ({
   );
 };
 
-// ─── FormMultiSelect ───────────────────────────────────────────────────────────
 
 interface FormMultiSelectProps {
   label?: string;

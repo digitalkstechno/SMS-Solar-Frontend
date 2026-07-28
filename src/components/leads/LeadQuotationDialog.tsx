@@ -117,12 +117,66 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
           setOptions(['OPTION 1']);
         }
         if (qData.rows && qData.rows.length > 0) {
-          setRows(qData.rows);
+          const numOptions = qData.options?.length || 1;
+          const titleMap: Record<string, string> = {
+            'system capacity': 'size kw',
+            'subsidy': 'subsidy ₹',
+            'effective price': 'net payable ₹',
+            'customer payable amount': 'gross ₹',
+          };
+
+          const legacyRows = [
+            'no. of panel', 
+            'wp', 
+            'system capacity', 
+            'meter charges registration', 
+            'customer payable amount', 
+            'subsidy', 
+            'effective price'
+          ];
+
+          const newRows = DEFAULT_ROWS.map(defRow => {
+            const defTitleLower = defRow.title.toLowerCase();
+            let oldRow = qData.rows.find((r: any) => r.title.toLowerCase() === defTitleLower);
+            
+            if (!oldRow) {
+              const oldTitleEquiv = Object.keys(titleMap).find(k => titleMap[k] === defTitleLower);
+              if (oldTitleEquiv) {
+                oldRow = qData.rows.find((r: any) => r.title.toLowerCase() === oldTitleEquiv);
+              }
+            }
+
+            const values = Array(numOptions).fill('');
+            if (oldRow && Array.isArray(oldRow.values)) {
+              for (let i = 0; i < Math.min(numOptions, oldRow.values.length); i++) {
+                values[i] = oldRow.values[i];
+              }
+            }
+
+            return { ...defRow, values };
+          });
+
+          qData.rows.forEach((r: any) => {
+            const rTitle = r.title.toLowerCase().trim();
+            const inDefault = DEFAULT_ROWS.some(dr => dr.title.toLowerCase().trim() === rTitle);
+            const inLegacy = legacyRows.includes(rTitle);
+            
+            if (!inDefault && !inLegacy) {
+              const values = Array(numOptions).fill('');
+              if (Array.isArray(r.values)) {
+                for (let i = 0; i < Math.min(numOptions, r.values.length); i++) {
+                  values[i] = r.values[i];
+                }
+              }
+              newRows.push({ title: r.title, values });
+            }
+          });
+
+          setRows(newRows);
         } else {
           setRows(DEFAULT_ROWS.map(r => ({ ...r, values: Array(qData.options?.length || 1).fill('') })));
         }
       } else {
-        // Reset for new quotation
         setDate(getLocalDatetimeString());
         setSolarModule('');
         setInverter('');

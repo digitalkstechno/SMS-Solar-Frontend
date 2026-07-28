@@ -14,7 +14,6 @@ import PaymentModal from './PaymentModal';
 import LeadAssignStockDialog from './LeadAssignStockDialog';
 import { Package } from 'lucide-react';
 
-// ── Debounce helper ──────────────────────────────────────────────────────────
 function useDebounce<T>(value: T, delay = 500): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -24,7 +23,6 @@ function useDebounce<T>(value: T, delay = 500): T {
   return debounced;
 }
 
-// ── Table row type ───────────────────────────────────────────────────────────
 type TableLead = {
   id: string;
   name: string;
@@ -73,7 +71,7 @@ interface Props {
   };
   externalLeads?: ApiLead[];
   loading?: boolean;
-  // Add pagination props from parent
+
   pagination?: {
     currentPage: number;
     rowsPerPage: number;
@@ -87,7 +85,7 @@ interface Props {
 }
 
 function mapLead(item: any, staffMembers?: any[]): TableLead {
-  // Extract quotation amount if available, else use paymentAmount
+
   let displayAmount = item.paymentAmount;
   if (item.quotations && Array.isArray(item.quotations) && item.quotations.length > 0) {
     const lastQuote = item.quotations[item.quotations.length - 1];
@@ -152,7 +150,7 @@ export default function LeadsListView({
   filters = {},
   externalLeads,
   loading: loadingProp,
-  pagination, // Receive pagination from parent
+  pagination, 
   onSearch,
   currentUser,
 }: Props) {
@@ -166,17 +164,17 @@ export default function LeadsListView({
   const [paymentLead, setPaymentLead] = useState<ApiLead | null>(null);
   const [stockLead, setStockLead] = useState<ApiLead | null>(null);
 
-  // Use loading from prop or local state
+  
   const loading = loadingProp !== undefined ? loadingProp : localLoading;
 
-  // Map external leads to table format when they change
+  
   useEffect(() => {
     if (externalLeads) {
       setLeads(externalLeads.map((l) => mapLead(l, staffMembers)));
     }
   }, [externalLeads, staffMembers]);
 
-  // ── Columns ──────────────────────────────────────────────────────────────
+
   const columns: Column<TableLead>[] = [
     {
       key: 'name',
@@ -251,7 +249,6 @@ export default function LeadsListView({
     },
   ];
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
   const handleView = async (row: TableLead) => {
     try {
       const res = await axios.get(`${baseUrl.findLeadById}/${row.id}`, {
@@ -260,7 +257,6 @@ export default function LeadsListView({
       const d = res.data.data;
       onView?.(d);
     } catch {
-      // fallback
       const apiLead: ApiLead = {
         _id: row.id,
         fullName: row.name,
@@ -314,14 +310,12 @@ export default function LeadsListView({
     }
   };
 
-  // Handle page change from DataTable
   const handlePageChange = (newPage: number) => {
     if (pagination) {
       pagination.handlePageChange(newPage);
     }
   };
 
-  // Handle page size change from DataTable
   const handlePageSizeChange = (newSize: number) => {
     if (pagination) {
       pagination.handleRowsPerPageChange(newSize);
@@ -330,7 +324,6 @@ export default function LeadsListView({
 
   return (
     <div className="space-y-4">
-      {/* Data table */}
       <DataTable
         data={leads}
         columns={columns}
@@ -382,7 +375,6 @@ export default function LeadsListView({
         ] : undefined}
       />
 
-      {/* Delete dialog */}
       <DeleteDialog
         isOpen={showDelete}
         onClose={() => { setShowDelete(false); setDeleteTarget(null); }}
@@ -411,7 +403,6 @@ export default function LeadsListView({
         </p>
       </DeleteDialog>
 
-      {/* Project Detail Drawer */}
       <ProjectDetailDrawer
         isOpen={!!projectDetailLead}
         lead={projectDetailLead}
@@ -419,14 +410,12 @@ export default function LeadsListView({
         onSaved={() => { onRefresh(); setProjectDetailLead(null); }}
       />
       
-      {/* Lead Documents Modal */}
       <LeadDocumentsModal
         isOpen={!!documentLead}
         onClose={() => setDocumentLead(null)}
         lead={documentLead}
       />
 
-      {/* Payment Modal */}
       <PaymentModal
         isOpen={!!paymentLead}
         lead={paymentLead}
@@ -434,7 +423,7 @@ export default function LeadsListView({
         onPaymentAdded={onRefresh}
       />
       
-      {/* Assign Stock Modal */}
+      
       <LeadAssignStockDialog
         isOpen={!!stockLead}
         lead={stockLead}
