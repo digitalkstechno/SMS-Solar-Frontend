@@ -108,7 +108,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
       }
 
       if (qData) {
-        setDate(qData.date ? getLocalDatetimeString(new Date(qData.date)) : getLocalDatetimeString());
+        setDate(getLocalDatetimeString());
         setSolarModule(qData.solarModule || '');
         setInverter(qData.inverter || '');
         if (qData.options && qData.options.length > 0) {
@@ -181,7 +181,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
         setSolarModule('');
         setInverter('');
         setOptions(['OPTION 1']);
-        setRows([...DEFAULT_ROWS]);
+        setRows(DEFAULT_ROWS.map(r => ({ ...r, values: [...r.values] })));
       }
     }
   }, [isOpen, lead, editIndex]);
@@ -252,12 +252,14 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
 
   const handleRowTitleChange = (index: number, val: string) => {
     const newRows = [...rows];
+    newRows[index] = { ...newRows[index] };
     newRows[index].title = val;
     setRows(newRows);
   };
 
   const handleRowValueChange = (rowIndex: number, colIndex: number, val: string) => {
     const newRows = [...rows];
+    newRows[rowIndex] = { ...newRows[rowIndex], values: [...newRows[rowIndex].values] };
     newRows[rowIndex].values[colIndex] = val;
 
     const grossIdx = newRows.findIndex(r => r.title.trim().toUpperCase() === 'GROSS ₹');
