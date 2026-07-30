@@ -539,7 +539,8 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                             </div>
                           ) : (
                             <input
-                              type="text"
+                              type="number"
+                              step="any"
                               value={val}
                               onChange={(e) => handleRowValueChange(rIdx, cIdx, e.target.value)}
                               placeholder="Value"
