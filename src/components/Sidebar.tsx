@@ -202,19 +202,6 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        // Show loading state
-        Swal.fire({
-          title: 'Logging out...',
-          text: 'Please wait',
-          icon: 'info',
-          showConfirmButton: false,
-          allowOutsideClick: false,
-          allowEscapeKey: false,
-          didOpen: () => {
-            Swal.showLoading();
-          }
-        });
-
         // Perform logout
         clearAuthToken();
         if (typeof window !== "undefined") {
@@ -230,7 +217,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
           timer: 1500,
           showConfirmButton: false,
         }).then(() => {
-          router.replace("/login");
+          window.location.replace("/login");
         });
       }
     });
