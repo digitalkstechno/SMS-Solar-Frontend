@@ -402,18 +402,6 @@ export default function Header({ toggleSidebar }: HeaderProps) {
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        Swal.fire({
-          title: 'Logging out...',
-          text: 'Please wait',
-          icon: 'info',
-          showConfirmButton: false,
-          allowOutsideClick: false,
-          allowEscapeKey: false,
-          didOpen: () => {
-            Swal.showLoading();
-          }
-        });
-
         clearAuthToken();
         if (typeof window !== "undefined") {
           localStorage.removeItem("token");
@@ -427,7 +415,7 @@ export default function Header({ toggleSidebar }: HeaderProps) {
           timer: 1500,
           showConfirmButton: false,
         }).then(() => {
-          window.location.href = '/login';
+          window.location.replace('/login');
         });
       }
     });
