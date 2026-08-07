@@ -313,6 +313,16 @@ export function RolesContent() {
   const canUpdate = !!setupPermissions?.update;
   const canDelete = !!setupPermissions?.delete;
 
+  const canEditRole = (row: Role) => {
+    return true;
+  };
+
+  const canDeleteRole = (row: Role) => {
+    const name = row.roleName?.toLowerCase();
+    if (name === 'admin' || name === 'sales') return false;
+    return true;
+  };
+
   return (
     <>
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -339,6 +349,8 @@ export function RolesContent() {
           }}
           onEdit={canUpdate ? handleEdit : undefined}
           onDelete={canDelete ? handleDeleteClick : undefined}
+          canEdit={canEditRole}
+          canDelete={canDeleteRole}
           actions={true}
           addButton={
             canCreate

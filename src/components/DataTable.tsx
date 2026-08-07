@@ -415,12 +415,20 @@ export default function DataTable<T extends Record<string, any>>({
                               )}
 
                               {/* EDIT */}
-                              {onEdit && isEditable && (
+                              {onEdit && (
                                 <button
-                                  onClick={() => onEdit(row)}
-                                  className="group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 text-green-600 transition-all duration-200 hover:bg-green-600 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:scale-95"
+                                  onClick={() => {
+                                    if (isEditable) onEdit(row);
+                                  }}
+                                  disabled={!isEditable}
+                                  className={`group h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 transition-all duration-200 ${
+                                    !isEditable
+                                      ? 'text-gray-300 opacity-50 cursor-not-allowed'
+                                      : 'text-green-600 hover:bg-green-600 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:scale-95'
+                                  }`}
+                                  title={!isEditable ? "Cannot edit this item" : "Edit"}
                                 >
-                                  <FiEdit className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                                  <FiEdit className={`h-4 w-4 ${isEditable ? 'group-hover:scale-110' : ''} transition-transform`} />
                                 </button>
                               )}
 

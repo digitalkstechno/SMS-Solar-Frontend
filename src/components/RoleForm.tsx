@@ -244,7 +244,7 @@ export default function RoleForm({
             error={formik.touched.roleName && formik.errors.roleName ? formik.errors.roleName : undefined}
             required
             placeholder="Enter department name (e.g., Admin, Manager, Staff)"
-            disabled={initialData && (initialData.roleName?.toLowerCase() === 'sales' || initialData.roleName?.toLowerCase() === 'telecalling')}
+            disabled={initialData && (initialData.roleName?.toLowerCase() === 'admin' || initialData.roleName?.toLowerCase() === 'sales' || initialData.roleName?.toLowerCase() === 'telecalling')}
             // helperText="Role name must be unique and descriptive"
           />
         </div>
