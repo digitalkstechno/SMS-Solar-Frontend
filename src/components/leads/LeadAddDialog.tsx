@@ -47,6 +47,7 @@ export default function LeadAddDialog({
   const [loading, setLoading] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [quotationOpen, setQuotationOpen] = useState(false);
+  const [fetchedLeadData, setFetchedLeadData] = useState<any>(null);
 
   const [requiredFields] = useState<string[]>(["fullName", "contact", "email", "leadSource", "leadStatus", "assignedTo", "kwRequirement"]);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -229,7 +230,18 @@ export default function LeadAddDialog({
           ]);
           const leadData = leadRes.data?.data;
           const dataToUse = leadData || initialData;
+          setFetchedLeadData(dataToUse);
           if (dataToUse) {
+            let defaultAssignedTo = dataToUse.assignedTo?._id || dataToUse.assignedTo || '';
+            let defaultCity = dataToUse.city || '';
+
+            if (!defaultAssignedTo && dataToUse.createdBy) {
+              defaultAssignedTo = dataToUse.createdBy?._id || dataToUse.createdBy;
+              if (!defaultCity && dataToUse.createdBy?.city && Array.isArray(dataToUse.createdBy.city) && dataToUse.createdBy.city.length === 1) {
+                defaultCity = dataToUse.createdBy.city[0];
+              }
+            }
+
             formik.setValues({
               fullName: dataToUse.fullName || '',
               contact: dataToUse.contact || '',
@@ -240,9 +252,9 @@ export default function LeadAddDialog({
               projecttype: dataToUse.projecttype || '',
               address: dataToUse.address || '',
               locationLink: dataToUse.locationLink || '',
-              city: dataToUse.city || '',
+              city: defaultCity,
               leadStatus: typeof dataToUse.leadStatus === 'string' ? dataToUse.leadStatus : (dataToUse.leadStatus?._id || ''),
-              assignedTo: dataToUse.assignedTo?._id || dataToUse.assignedTo || '',
+              assignedTo: defaultAssignedTo,
               isActive: dataToUse.isActive ?? true,
             });
           }
@@ -452,7 +464,16 @@ export default function LeadAddDialog({
                     formik.setFieldValue('city', val);
                   }}
                   onBlur={() => formik.setFieldTouched('city')}
-                  options={cities.map((c: any) => ({ value: c._id, label: c.cityName }))}
+                  options={
+                    (() => {
+                      let availableCities = cities;
+                      const creator = fetchedLeadData?.createdBy;
+                      if (creator && formik.values.assignedTo === creator._id && Array.isArray(creator.city)) {
+                        availableCities = cities.filter((c: any) => creator.city.includes(c._id));
+                      }
+                      return availableCities.map((c: any) => ({ value: c._id, label: c.cityName }));
+                    })()
+                  }
                   error={getFieldError('city')}
                   placeholder="Select City"
                   required

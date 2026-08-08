@@ -32,7 +32,8 @@ const DEFAULT_ROWS = [
   { title: 'Subsidy ₹', values: [''] },
   { title: 'Net Payable ₹', values: [''] },
   { title: 'Electricity ₹/unit', values: [''] },
-  { title: 'Loan ₹', values: [''] },
+  { title: 'GEDA Registration ₹', values: [''] },
+  { title: 'Meter Charge ₹', values: [''] },
 ];
 
 const DROPDOWN_FIELDS = [
@@ -527,9 +528,9 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                       const uniqueOptions = apiOptions[rowKey] || [];
 
                       return (
-                        <td key={cIdx} className="p-1 border-r border-gray-200">
+                        <td key={cIdx} className="p-1.5 border-r border-gray-200">
                           {isDropdown ? (
-                            <div className="w-full">
+                            <div className="w-full min-w-[160px]">
                               <TableSelect
                                 value={val}
                                 onChange={(newValue) => handleRowValueChange(rIdx, cIdx, newValue)}
@@ -539,12 +540,18 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                             </div>
                           ) : (
                             <input
-                              type="number"
-                              step="any"
+                              type="text"
+                              inputMode="numeric"
                               value={val}
-                              onChange={(e) => handleRowValueChange(rIdx, cIdx, e.target.value)}
+                              onChange={(e) => {
+                                let v = e.target.value;
+                                if (rowKey.includes('meter')) {
+                                  v = v.replace(/\D/g, ''); // Digits only
+                                }
+                                handleRowValueChange(rIdx, cIdx, v);
+                              }}
                               placeholder="Value"
-                              className="w-full text-sm px-3 py-2 min-h-[38px] outline-none border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 bg-white rounded-md transition-colors"
+                              className="w-full text-sm px-3.5 py-2.5 min-h-[42px] font-medium outline-none border border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 bg-white rounded-lg transition-all"
                             />
                           )}
                         </td>
