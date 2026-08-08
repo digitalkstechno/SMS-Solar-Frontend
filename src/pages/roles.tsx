@@ -24,11 +24,19 @@ type BackendRole = {
   roleName?: string;
   name?: string;
   permissions?: Record<string, CapabilityPartial> | Array<Record<string, CapabilityPartial>>;
+  createdBy?: any;
+  updatedBy?: any;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 interface Role {
   id: string;
   roleName: string;
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
   permissions?: Record<
     string,
     {
@@ -61,9 +69,16 @@ const normalizeRole = (r: BackendRole): Role => {
     normalizedPerms[f] = normalizeCaps(srcPerms[f]);
   }
 
+  const createdByName = typeof r?.createdBy === 'object' ? (r?.createdBy?.fullName || r?.createdBy?.name || r?.createdBy?.email) : '-';
+  const updatedByName = typeof r?.updatedBy === 'object' ? (r?.updatedBy?.fullName || r?.updatedBy?.name || r?.updatedBy?.email) : '-';
+
   return {
     id: r?._id || '',
     roleName: r?.roleName ?? r?.name ?? '',
+    createdBy: createdByName,
+    updatedBy: updatedByName,
+    createdAt: r?.createdAt ? new Date(r.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '-',
+    updatedAt: r?.updatedAt ? new Date(r.updatedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '-',
     permissions: normalizedPerms,
   };
 };
@@ -232,6 +247,11 @@ export function RolesContent() {
           <span className="font-semibold text-gray-900">{value}</span>
         </div>
       ),
+    },
+    {
+      key: 'createdAt',
+      label: 'CREATED AT',
+      render: (val) => <span className="text-xs text-gray-500">{val || '-'}</span>,
     },
   ];
 

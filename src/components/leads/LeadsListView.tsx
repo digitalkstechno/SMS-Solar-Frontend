@@ -114,6 +114,37 @@ function mapLead(item: any, staffMembers?: any[]): TableLead {
     if (found) assignedToName = found.fullName || found.name || '-';
   }
 
+  let updatedByName = item.updatedByName || '-';
+  if (updatedByName === '-' && item.updatedBy) {
+    if (typeof item.updatedBy === 'object') {
+      updatedByName = item.updatedBy.fullName || item.updatedBy.name || item.updatedBy.email || '-';
+    } else if (typeof item.updatedBy === 'string' && staffMembers) {
+      const found = staffMembers.find((s: any) => s._id === item.updatedBy);
+      if (found) updatedByName = found.fullName || found.name || '-';
+    }
+  }
+
+  // Check activities for last update action if updatedBy is not set yet
+  if (updatedByName === '-' || updatedByName === 'calling') {
+    if (item.activities && Array.isArray(item.activities) && item.activities.length > 1) {
+      // Find the last update activity (excluding creation activity at index 0)
+      const updateActivities = item.activities.filter((act: any) => 
+        act.message && !act.message.toLowerCase().includes('created')
+      );
+      if (updateActivities.length > 0) {
+        const lastAct = updateActivities[updateActivities.length - 1];
+        if (lastAct && lastAct.by) {
+          if (typeof lastAct.by === 'object') {
+            updatedByName = lastAct.by.fullName || lastAct.by.name || '-';
+          } else if (typeof lastAct.by === 'string' && staffMembers) {
+            const found = staffMembers.find((s: any) => s._id === lastAct.by);
+            if (found) updatedByName = found.fullName || found.name || '-';
+          }
+        }
+      }
+    }
+  }
+
   return {
     id: item._id,
     name: item.fullName,
@@ -128,6 +159,9 @@ function mapLead(item: any, staffMembers?: any[]): TableLead {
     status: item.leadStatus?.name || item.status?.name || '-',
     staff: staffName,
     assignedTo: assignedToName,
+    updatedBy: updatedByName,
+    createdAtDate: item.createdAt ? new Date(item.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '-',
+    updatedAtDate: item.updatedAt ? new Date(item.updatedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '-',
     lastFollowUp: item.updatedAt
       ? new Date(item.updatedAt).toLocaleDateString()
       : '-',
@@ -179,16 +213,12 @@ export default function LeadsListView({
     {
       key: 'name',
       label: 'FULL NAME',
-      render: (v) => <span className="font-semibold">{v}</span>,
-    },
-    {
-      key: 'contact',
-      label: 'CONTACT',
-      render: (_, row) => (
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center text-sm text-gray-700">
-            <span>{row.contact || '-'}</span>
-          </div>
+      render: (v, row) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-gray-900">{v}</span>
+          {row.contact && (
+            <span className="text-xs text-gray-500 font-normal">{row.contact}</span>
+          )}
         </div>
       ),
     },
@@ -220,13 +250,10 @@ export default function LeadsListView({
     },
     { key: 'status', label: 'STATUS' },
     { key: 'staff', label: 'CREATED BY' },
+    { key: 'createdAtDate', label: 'CREATED AT' },
     { key: 'assignedTo', label: 'ASSIGNED TO' },
-    { key: 'lastFollowUp', label: 'LAST FOLLOW-UP' },
-    /* { 
-      key: 'paymentAmount', 
-      label: 'AMOUNT',
-      render: (v) => (v ? <span className="font-bold text-emerald-600">₹{v.toLocaleString()}</span> : <span className="text-gray-400">-</span>)
-    }, */
+    { key: 'updatedBy', label: 'UPDATED BY' },
+    { key: 'updatedAtDate', label: 'LAST UPDATED' },
     {
       key: 'docs',
       label: 'DOCS',

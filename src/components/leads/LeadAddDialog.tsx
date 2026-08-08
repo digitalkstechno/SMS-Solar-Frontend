@@ -230,6 +230,8 @@ export default function LeadAddDialog({
           const leadData = leadRes.data?.data;
           const dataToUse = leadData || initialData;
           if (dataToUse) {
+            const leadCity = dataToUse.city || (Array.isArray(currentUser?.city) ? currentUser.city[0] : currentUser?.city) || '';
+            const leadAssigned = dataToUse.assignedTo?._id || dataToUse.assignedTo || dataToUse.createdBy?._id || dataToUse.createdBy || '';
             formik.setValues({
               fullName: dataToUse.fullName || '',
               contact: dataToUse.contact || '',
@@ -240,9 +242,9 @@ export default function LeadAddDialog({
               projecttype: dataToUse.projecttype || '',
               address: dataToUse.address || '',
               locationLink: dataToUse.locationLink || '',
-              city: dataToUse.city || '',
+              city: leadCity,
               leadStatus: typeof dataToUse.leadStatus === 'string' ? dataToUse.leadStatus : (dataToUse.leadStatus?._id || ''),
-              assignedTo: dataToUse.assignedTo?._id || dataToUse.assignedTo || '',
+              assignedTo: leadAssigned,
               isActive: dataToUse.isActive ?? true,
             });
           }
@@ -254,24 +256,26 @@ export default function LeadAddDialog({
       } else {
         formik.resetForm();
         setAttachments([]);
+        // Default city to user's first assigned city if creating
+        const userDefaultCity = (Array.isArray(currentUser?.city) ? currentUser.city[0] : currentUser?.city) || '';
+        if (userDefaultCity) {
+          formik.setFieldValue('city', userDefaultCity);
+        }
       }
     };
     fetchData();
     formik.setStatus(null);
-  }, [isOpen, mode, initialData]);
+  }, [isOpen, mode, initialData, currentUser]);
 
 
   useEffect(() => {
     if (!isOpen) return;
     const fetchStaffForCity = async () => {
-      if (!formik.values.city) {
-        setStaff([]);
-        return;
-      }
       try {
         const headers = { Authorization: `Bearer ${getAuthToken()}` };
+        // Fetch all sales executives so the creator/assigned staff is always present in dropdown
         const [staffRes, deptRes] = await Promise.all([
-          axios.get(`${baseUrl.getSalesExecutives}?city=${formik.values.city}`, { headers }),
+          axios.get(baseUrl.getSalesExecutives, { headers }),
           axios.get(baseUrl.department, { headers })
         ]);
         const depts = deptRes.data?.data || [];
@@ -281,12 +285,26 @@ export default function LeadAddDialog({
           return { ...u, departmentName: d ? (d.roleName || d.name) : '' };
         });
         setStaff(users);
+
+        // Ensure city default if empty
+        if (!formik.values.city && cities.length > 0) {
+          const userCity = (Array.isArray(currentUser?.city) ? currentUser.city[0] : currentUser?.city);
+          const defaultCity = userCity || cities[0]._id;
+          formik.setFieldValue('city', defaultCity);
+        }
+
+        // Ensure assignedTo default to creator or first sales executive
+        if (!formik.values.assignedTo && users.length > 0) {
+          const creatorId = initialData?.createdBy?._id || initialData?.createdBy || currentUser?._id;
+          const matchCreator = users.find((u: any) => u._id === creatorId);
+          formik.setFieldValue('assignedTo', matchCreator ? matchCreator._id : users[0]._id);
+        }
       } catch (err) {
-        console.error('Failed to fetch staff for city', err);
+        console.error('Failed to fetch staff', err);
       }
     };
     fetchStaffForCity();
-  }, [formik.values.city, isOpen]);
+  }, [isOpen, cities, currentUser]);
 
   const getFieldError = (fieldName: string) => {
     const isTouched = formik.touched[fieldName as keyof typeof formik.touched];
