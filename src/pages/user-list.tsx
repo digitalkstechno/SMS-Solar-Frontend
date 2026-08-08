@@ -21,6 +21,9 @@ interface StaffManagement {
   department: string;
   city?: any;
   cityDisplay?: string;
+  updatedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // ──────────────────────────────────────────────── Debounce hook
@@ -118,6 +121,9 @@ export function UserContent() {
         const dept = fetchedDepts.find((d: any) => d._id === item.department);
         const deptName = dept ? (dept.roleName || dept.name) : (typeof item.department === 'string' ? item.department : '-');
 
+        const updatedUser = typeof item.updatedBy === 'object' ? (item.updatedBy?.fullName || item.updatedBy?.email) : (item.updatedBy || '-');
+        const createdUser = typeof item.createdBy === 'object' ? (item.createdBy?.fullName || item.createdBy?.email) : (item.createdBy || '-');
+
         return {
           id: item._id,
           image: item.profileImage || '',
@@ -129,6 +135,9 @@ export function UserContent() {
           department: deptName || '-',
           cityDisplay: item.cityNames || (Array.isArray(item.city) ? item.city.join(', ') : item.city) || '-',
           city: item.city || [],
+          updatedBy: updatedUser !== '-' ? updatedUser : (createdUser !== '-' ? createdUser : '-'),
+          createdAt: item.createdAt ? new Date(item.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '-',
+          updatedAt: item.updatedAt ? new Date(item.updatedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '-',
         };
       });
 
@@ -254,6 +263,16 @@ export function UserContent() {
           </div>
         );
       },
+    },
+    {
+      key: 'updatedBy',
+      label: 'UPDATED BY',
+      render: (val) => <span className="text-sm font-medium text-gray-700">{val || '-'}</span>,
+    },
+    {
+      key: 'updatedAt',
+      label: 'LAST UPDATED',
+      render: (val) => <span className="text-xs text-gray-500">{val || '-'}</span>,
     },
   ];
 

@@ -253,6 +253,16 @@ export function RolesContent() {
       label: 'CREATED AT',
       render: (val) => <span className="text-xs text-gray-500">{val || '-'}</span>,
     },
+    {
+      key: 'updatedBy',
+      label: 'UPDATED BY',
+      render: (val) => <span className="text-sm font-medium text-gray-700">{val || '-'}</span>,
+    },
+    {
+      key: 'updatedAt',
+      label: 'LAST UPDATED',
+      render: (val) => <span className="text-xs text-gray-500">{val || '-'}</span>,
+    },
   ];
 
   const handleEdit = async (row: Role) => {
