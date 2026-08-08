@@ -145,6 +145,19 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
       path: "/quotation-master",
     });
 
+    const isUserAdmin = 
+      currentStaff?.role?.roleName?.toLowerCase() === "admin" ||
+      currentStaff?.departmentName?.toLowerCase() === "admin" ||
+      (currentStaff?.role && typeof currentStaff.role === 'string' && currentStaff.role.toLowerCase() === 'admin');
+
+    if (isUserAdmin) {
+      menuItems.push({
+        icon: RefreshCw,
+        label: "Activity Log",
+        path: "/activity-log",
+      });
+    }
+
     menuItems.push({
       icon: Settings,
       label: "Setup",
