@@ -339,11 +339,6 @@ export default function LeadAddDialog({
           </div>
         ) : (
           <form id="lead-form" onSubmit={formik.handleSubmit} className="space-y-4">
-            {formik.status && (
-              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-                {formik.status}
-              </div>
-            )}
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormInput
@@ -377,6 +372,8 @@ export default function LeadAddDialog({
                       formik.setFieldValue('contact', numericOnly);
                     }}
                     onKeyDown={(e) => {
+                      // Allow system shortcuts (copy, paste, cut, select all)
+                      if (e.ctrlKey || e.metaKey) return;
                       // Allow: backspace, delete, tab, escape, enter, arrows, home, end
                       const allowed = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
                       if (allowed.includes(e.key)) return;
