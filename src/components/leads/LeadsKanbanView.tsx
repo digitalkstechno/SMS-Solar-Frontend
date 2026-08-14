@@ -101,6 +101,12 @@ export default function LeadsKanbanView({
     // Custom Modal for Mark Lost
     const [lostModalLeadId, setLostModalLeadId] = useState<string | null>(null);
     const [lostModalData, setLostModalData] = useState({ reason: '', date: '' });
+    const [pendingStatusId, setPendingStatusId] = useState<string | null>(null);
+    const [pendingSourceStatusId, setPendingSourceStatusId] = useState<string | null>(null);
+
+    // Custom Modal for Visit Schedule
+    const [visitScheduleLeadId, setVisitScheduleLeadId] = useState<string | null>(null);
+    const [visitScheduleDate, setVisitScheduleDate] = useState<string>('');
 
     const canEditLead = (lead: ApiLead) => {
         if (isAdmin) return true;
@@ -241,6 +247,37 @@ export default function LeadsKanbanView({
 
         const targetStatus = statuses.find((s) => s._id === newStatusId);
         if (!targetStatus) return;
+
+        const targetNameLower = targetStatus.name.toLowerCase();
+
+        // 1. Visit Done Validation: must be completed first
+        if (targetNameLower === 'visit complete' || targetNameLower === 'visit done') {
+            if (!draggingLead.isVisitCompleted) {
+                toast.error('Visit must be completed before moving to Visit Done status.');
+                setDraggingId(null);
+                return;
+            }
+        }
+
+        // 2. Lost Status: Prompt for lost reason
+        if (targetNameLower.includes('lost')) {
+            setPendingSourceStatusId(sourceStatusId);
+            setPendingStatusId(newStatusId);
+            setLostModalData({ reason: '', date: new Date().toISOString().split('T')[0] });
+            setLostModalLeadId(draggingId);
+            setDraggingId(null);
+            return;
+        }
+
+        // 3. Visit Scheduled Status: Prompt for visit date if not done
+        if ((targetNameLower.includes('visit schedule') || targetNameLower.includes('visit shedule')) && !draggingLead.isVisitCompleted) {
+            setPendingSourceStatusId(sourceStatusId);
+            setPendingStatusId(newStatusId);
+            setVisitScheduleDate(new Date().toISOString().split('T')[0]);
+            setVisitScheduleLeadId(draggingId);
+            setDraggingId(null);
+            return;
+        }
         
         const currentDropId = draggingId;
         setDraggingId(null);
@@ -316,18 +353,57 @@ export default function LeadsKanbanView({
         if (!lostModalLeadId || !lostModalData.reason || !lostModalData.date) return;
         
         try {
-            const lostStatusId = statuses.find(s => s.name.match(/^lost$/i))?._id;
+            const lostStatusId = pendingStatusId || statuses.find(s => s.name.toLowerCase().includes('lost'))?._id;
             await axios.put(`${baseUrl.updateLead}/${lostModalLeadId}`, 
-                { leadStatus: lostStatusId, lostReason: lostModalData.reason, lostDate: lostModalData.date }, 
+                { leadStatus: lostStatusId, lostReason: lostModalData.reason, lostDate: lostModalData.date, isLost: true }, 
                 { headers: { Authorization: `Bearer ${token()}` } }
             );
             toast.success('Lead marked as lost');
             removeLeadFromBoard(lostModalLeadId);
+            if (pendingSourceStatusId) {
+                fetchStatusLeads(pendingSourceStatusId, 1, false, true);
+            }
+            if (lostStatusId) {
+                fetchStatusLeads(lostStatusId, 1, false, true);
+            }
             onRefresh();
-        } catch { toast.error('Failed to update lead'); }
+        } catch (error: any) { 
+            toast.error(error.response?.data?.message || 'Failed to update lead'); 
+        }
         
         setLostModalLeadId(null);
+        setPendingStatusId(null);
+        setPendingSourceStatusId(null);
     };
+
+    const confirmVisitSchedule = async () => {
+        if (!visitScheduleLeadId || !visitScheduleDate || !pendingStatusId) return;
+
+        setUpdatingId(visitScheduleLeadId);
+        try {
+            await axios.put(`${baseUrl.updateLead}/${visitScheduleLeadId}`, {
+                leadStatus: pendingStatusId,
+                isVisitDone: true,
+                visitDate: visitScheduleDate,
+            }, {
+                headers: { Authorization: `Bearer ${token()}` }
+            });
+            toast.success('Visit scheduled successfully');
+            if (pendingSourceStatusId) {
+                fetchStatusLeads(pendingSourceStatusId, 1, false, true);
+            }
+            fetchStatusLeads(pendingStatusId, 1, false, true);
+            onRefresh();
+        } catch (error) {
+            toast.error('Failed to schedule visit');
+        } finally {
+            setUpdatingId(null);
+            setVisitScheduleLeadId(null);
+            setPendingStatusId(null);
+            setPendingSourceStatusId(null);
+        }
+    };
+
 
     const markWon = async (id: string) => {
         try {
@@ -731,6 +807,49 @@ export default function LeadsKanbanView({
                             </button>
                             <button
                                 onClick={() => setLostModalLeadId(null)}
+                                className="px-6 py-2 bg-[#6D7A86] text-white font-medium rounded hover:bg-[#5b6670] transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {visitScheduleLeadId && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="p-6 text-center text-gray-800 text-2xl font-bold border-b border-gray-100">
+                            Schedule Visit
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-1 text-left">
+                                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-blue-600" /> Visit Date
+                                </label>
+                                <DatePicker
+                                    selected={visitScheduleDate ? new Date(visitScheduleDate) : null}
+                                    onChange={(date: Date | null) => setVisitScheduleDate(date ? date.toISOString().split('T')[0] : '')}
+                                    placeholderText="dd-mm-yyyy"
+                                    dateFormat="dd-MM-yyyy"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    wrapperClassName="w-full"
+                                />
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 bg-gray-50 border-t flex justify-center gap-3">
+                            <button
+                                onClick={confirmVisitSchedule}
+                                disabled={!visitScheduleDate}
+                                className="px-6 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                            >
+                                Schedule Visit
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setVisitScheduleLeadId(null);
+                                    setPendingStatusId(null);
+                                }}
                                 className="px-6 py-2 bg-[#6D7A86] text-white font-medium rounded hover:bg-[#5b6670] transition-colors"
                             >
                                 Cancel

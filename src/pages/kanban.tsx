@@ -110,6 +110,11 @@ export default function LeadsPage() {
   const [lostSearch, setLostSearch] = useState("");
   const [wonSearch, setWonSearch] = useState("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [lostModalLeadId, setLostModalLeadId] = useState<string | null>(null);
+  const [lostModalData, setLostModalData] = useState({ reason: '', date: '' });
+  const [pendingStatusId, setPendingStatusId] = useState<string | null>(null);
+  const [visitScheduleLeadId, setVisitScheduleLeadId] = useState<string | null>(null);
+  const [visitScheduleDate, setVisitScheduleDate] = useState<string>('');
   const [visibleStatusNames, setVisibleStatusNames] = useState<string[] | null>(null);
   const [pageMap, setPageMap] = useState<Record<string, number>>({});
   const [hasMoreMap, setHasMoreMap] = useState<Record<string, boolean>>({});
@@ -547,6 +552,49 @@ export default function LeadsPage() {
     e.preventDefault();
   };
 
+  const confirmMarkLost = async () => {
+    if (!lostModalLeadId || !lostModalData.reason || !lostModalData.date) return;
+    
+    try {
+      const token = getAuthToken();
+      const lostStatusId = pendingStatusId || statuses.find(s => s.name.toLowerCase().includes('lost'))?._id;
+      await axios.put(`${baseUrl.updateLead}/${lostModalLeadId}`, 
+        { leadStatus: lostStatusId, lostReason: lostModalData.reason, lostDate: lostModalData.date, isLost: true }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Lead marked as lost');
+      fetchLeads();
+      fetchLostLeads();
+    } catch (error: any) { 
+      toast.error(error.response?.data?.message || 'Failed to update lead'); 
+    }
+    
+    setLostModalLeadId(null);
+    setPendingStatusId(null);
+  };
+
+  const confirmVisitSchedule = async () => {
+    if (!visitScheduleLeadId || !visitScheduleDate || !pendingStatusId) return;
+
+    try {
+      const token = getAuthToken();
+      await axios.put(`${baseUrl.updateLead}/${visitScheduleLeadId}`, {
+        leadStatus: pendingStatusId,
+        isVisitDone: true,
+        visitDate: visitScheduleDate,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Visit scheduled successfully');
+      fetchLeads();
+    } catch (error) {
+      toast.error('Failed to schedule visit');
+    } finally {
+      setVisitScheduleLeadId(null);
+      setPendingStatusId(null);
+    }
+  };
+
   const handleDrop = (statusId: string) => {
     if (!draggingId) return;
 
@@ -555,6 +603,35 @@ export default function LeadsPage() {
 
     const status = statuses.find((s) => s._id === statusId);
     if (!status) return;
+
+    const targetNameLower = status.name.toLowerCase();
+
+    // 1. Visit Done Validation: must be completed first
+    if (targetNameLower === 'visit complete' || targetNameLower === 'visit done') {
+      if (!lead.isVisitCompleted) {
+        toast.error('Visit must be completed before moving to Visit Done status.');
+        setDraggingId(null);
+        return;
+      }
+    }
+
+    // 2. Lost Status: Prompt for lost reason
+    if (targetNameLower.includes('lost')) {
+      setPendingStatusId(statusId);
+      setLostModalData({ reason: '', date: new Date().toISOString().split('T')[0] });
+      setLostModalLeadId(draggingId);
+      setDraggingId(null);
+      return;
+    }
+
+    // 3. Visit Scheduled Status: Prompt for visit date if not done
+    if ((targetNameLower.includes('visit schedule') || targetNameLower.includes('visit shedule')) && !lead.isVisitCompleted) {
+      setPendingStatusId(statusId);
+      setVisitScheduleDate(new Date().toISOString().split('T')[0]);
+      setVisitScheduleLeadId(draggingId);
+      setDraggingId(null);
+      return;
+    }
 
     const updateLeadStatus = async () => {
       try {
@@ -1554,6 +1631,104 @@ export default function LeadsPage() {
             </div>
           )}
         </Dialog>
+
+        {lostModalLeadId && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="p-6 text-center text-gray-800 text-2xl font-bold border-b border-gray-100">
+                Mark Lead as Lost?
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="space-y-1 text-left">
+                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <span className="text-[#A63C71]">✖</span> Remove Reason
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter reason for marking lead as lost"
+                    value={lostModalData.reason}
+                    onChange={e => setLostModalData(p => ({ ...p, reason: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#A63C71] focus:border-[#A63C71]"
+                  />
+                </div>
+                <div className="space-y-1 text-left">
+                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <span>📅</span> Lost Date
+                  </label>
+                  <DatePicker
+                    selected={lostModalData.date ? new Date(lostModalData.date) : null}
+                    onChange={(date: Date | null) => setLostModalData(p => ({ ...p, date: date ? date.toISOString().split('T')[0] : '' }))}
+                    placeholderText="dd-mm-yyyy"
+                    dateFormat="dd-MM-yyyy"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#A63C71] focus:border-[#A63C71]"
+                    wrapperClassName="w-full"
+                  />
+                </div>
+              </div>
+              <div className="px-6 py-4 bg-gray-50 border-t flex justify-center gap-3">
+                <button
+                  onClick={confirmMarkLost}
+                  disabled={!lostModalData.reason || !lostModalData.date}
+                  className="px-6 py-2 bg-[#A63C71] text-white font-medium rounded hover:bg-[#8f325f] disabled:opacity-50 transition-colors"
+                >
+                  Yes, Confirm
+                </button>
+                <button
+                  onClick={() => {
+                    setLostModalLeadId(null);
+                    setPendingStatusId(null);
+                  }}
+                  className="px-6 py-2 bg-[#6D7A86] text-white font-medium rounded hover:bg-[#5b6670] transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {visitScheduleLeadId && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="p-6 text-center text-gray-800 text-2xl font-bold border-b border-gray-100">
+                Schedule Visit
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="space-y-1 text-left">
+                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <span className="text-blue-600">📅</span> Visit Date
+                  </label>
+                  <DatePicker
+                    selected={visitScheduleDate ? new Date(visitScheduleDate) : null}
+                    onChange={(date: Date | null) => setVisitScheduleDate(date ? date.toISOString().split('T')[0] : '')}
+                    placeholderText="dd-mm-yyyy"
+                    dateFormat="dd-MM-yyyy"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    wrapperClassName="w-full"
+                  />
+                </div>
+              </div>
+              <div className="px-6 py-4 bg-gray-50 border-t flex justify-center gap-3">
+                <button
+                  onClick={confirmVisitSchedule}
+                  disabled={!visitScheduleDate}
+                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  Schedule Visit
+                </button>
+                <button
+                  onClick={() => {
+                    setVisitScheduleLeadId(null);
+                    setPendingStatusId(null);
+                  }}
+                  className="px-6 py-2 bg-[#6D7A86] text-white font-medium rounded hover:bg-[#5b6670] transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
