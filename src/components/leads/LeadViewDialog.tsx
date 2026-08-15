@@ -580,7 +580,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
   const filteredFollowUps = useMemo(() => {
     if (!followUpSearch.trim()) return localFollowUps;
     const search = followUpSearch.toLowerCase();
-    return localFollowUps.filter(f => 
+    return localFollowUps.filter(f =>
       (f.note?.toLowerCase() || '').includes(search) ||
       (f.date?.toLowerCase() || '').includes(search) ||
       (f.time?.toLowerCase() || '').includes(search) ||
@@ -645,7 +645,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
   const handleVisitChange = (value: boolean) => {
     if (!lead || !canUpdateLead) return;
     setVisitDone(value);
-    
+
     // If setting to false, clear the visit date
     if (!value) {
       setLocalVisitDate('');
@@ -659,7 +659,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!lead || !e.target.files || e.target.files.length === 0) return;
-    
+
     setSaving(true);
     try {
       const formData = new FormData();
@@ -670,18 +670,18 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
       const response = await axios.put(
         `${baseUrl.updateLead}/${lead._id}`,
         formData,
-        { 
-          headers: { 
+        {
+          headers: {
             Authorization: `Bearer ${getAuthToken()}`,
             'Content-Type': 'multipart/form-data'
-          } 
+          }
         }
       );
-      
+
       if (response.data?.data?.attachments) {
         setLocalAttachments(response.data.data.attachments);
       }
-      
+
       toast.success('Attachments uploaded successfully');
       onRefresh();
     } catch (error: any) {
@@ -877,7 +877,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
     });
 
     if (!result.isConfirmed) return;
-    
+
     try {
       await axios.delete(
         `${baseUrl.getBaseUrl?.endsWith('/') ? baseUrl.getBaseUrl.slice(0, -1) : baseUrl.getBaseUrl}/lead/${lead?._id}/attachments/${attachment._id}`,
@@ -943,7 +943,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
           { headers: { Authorization: `Bearer ${getAuthToken()}` } }
         );
       }
-      
+
       const updatedQuotations = (localQuotations || []).filter((_, i) => i !== indexToDelete);
       setLocalQuotations(updatedQuotations);
       toast.success('Quotation deleted successfully');
@@ -956,11 +956,11 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
   const handleDownloadQuotation = async (index: number) => {
     if (!lead) return;
     const quotation = localQuotations[index];
-    
+
     const toastId = toast.loading('Downloading PDF...');
     try {
       let qData = quotation;
-      
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
       const response = await axios.post(`${apiUrl}quotation/generate`, {
         quotation: qData,
@@ -969,19 +969,19 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
         responseType: 'blob',
         headers: { Authorization: `Bearer ${getAuthToken()}` }
       });
-      
+
       const blobUrl = window.URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = blobUrl;
       const clientName = (lead.fullName || lead.leadrefranceName || lead.leadrefrance || 'Client').replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
       const d = new Date();
       const pad = (n: number) => String(n).padStart(2, '0');
-      const dateStr = `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+      const dateStr = `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
       link.download = `Quotation_${clientName}_${dateStr}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
-      
+
       toast.update(toastId, { render: 'PDF Downloaded!', type: 'success', isLoading: false, autoClose: 3000 });
     } catch (e: any) {
       toast.update(toastId, { render: 'Failed to download PDF', type: 'error', isLoading: false, autoClose: 3000 });
@@ -991,11 +991,11 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
   const handleSendWhatsApp = async (index: number) => {
     if (!lead) return;
     const quotation = localQuotations[index];
-    
+
     const toastId = toast.loading('Sending Quotation via WhatsApp...');
     try {
       let qData = quotation;
-      
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
       const response = await axios.post(`${apiUrl}quotation/whatsapp`, {
         quotation: qData,
@@ -1003,7 +1003,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
       }, {
         headers: { Authorization: `Bearer ${getAuthToken()}` }
       });
-      
+
       if (response.data.success) {
         toast.update(toastId, { render: 'WhatsApp Sent Successfully!', type: 'success', isLoading: false, autoClose: 3000 });
       } else {
@@ -1072,10 +1072,10 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
     try {
       const fileUrl = attachment.path?.startsWith('http') ? attachment.path : `${process.env.NEXT_PUBLIC_IMAGE_URL}${attachment.path}`;
       const token = getAuthToken() || '';
-      
+
       // Use the proxy API route to guarantee a forced download
       const proxyUrl = `/api/download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(attachment.originalName || 'download')}&token=${encodeURIComponent(token)}`;
-      
+
       const link = document.createElement('a');
       link.href = proxyUrl;
       link.download = attachment.originalName || 'download';
@@ -1137,13 +1137,13 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
 
             {/* Location Link */}
             {lead.locationLink && (
-              <InfoCard 
-                label="Location Link" 
+              <InfoCard
+                label="Location Link"
                 value={
                   <a href={lead.locationLink} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline break-all">
                     {lead.locationLink}
                   </a>
-                } 
+                }
               />
             )}
 
@@ -1242,310 +1242,310 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
             {visitDone !== null && (
               <>
                 <div className="rounded-lg bg-gray-50 p-4">
-              <div className="mb-3 text-sm font-medium text-gray-600">Status</div>
-              <div className="flex flex-wrap gap-2">
-                {statuses.map((s) => (
-                  <button
-                    key={s._id}
-                    onClick={() => (!isWon) && canUpdateLead && setEditStatus(s._id)}
-                    disabled={!canUpdateLead || isWon}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${editStatus === s._id
-                      ? 'bg-secondary text-white shadow'
-                      : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                      } ${(!canUpdateLead || isWon) ? 'opacity-60 cursor-not-allowed' : ''}`}
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Follow-up History */}
-            <div className="rounded-lg bg-gray-50 p-4">
-              <div className="mb-3 text-sm font-bold text-gray-800 flex items-center justify-between">
-                <span>Follow-Up History</span>
-                <span className="bg-gray-200 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-normal">
-                  {localFollowUps.length} Records
-                </span>
-              </div>
-
-              {/* Add New Follow-up Section */}
-              {canUpdateLead && (
-                <div className="mb-6 p-4 bg-white border border-gray-200 rounded-xl">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Add New Follow-up</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-gray-500">Date</label>
-                      <DatePicker
-                        selected={editNextDate ? new Date(editNextDate) : null}
-                        onChange={(date: Date | null) => setEditNextDate(date ? date.toISOString().split('T')[0] : '')}
-                        placeholderText="mm/dd/yyyy"
-                        dateFormat="MM/dd/yyyy"
-                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-secondary transition-all outline-none cursor-pointer"
-                        wrapperClassName="w-full"
-                        popperPlacement="bottom-start"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-gray-500">Time</label>
-                      <CustomTimePicker
-                        value={editNextTime}
-                        onChange={(val) => setEditNextTime(val)}
-                      />
-                    </div>
+                  <div className="mb-3 text-sm font-medium text-gray-600">Status</div>
+                  <div className="flex flex-wrap gap-2">
+                    {statuses.map((s) => (
+                      <button
+                        key={s._id}
+                        onClick={() => (!isWon) && canUpdateLead && setEditStatus(s._id)}
+                        disabled={!canUpdateLead || isWon}
+                        className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${editStatus === s._id
+                          ? 'bg-secondary text-white shadow'
+                          : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                          } ${(!canUpdateLead || isWon) ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
                   </div>
-                  <div className="mt-3 space-y-1">
-                    <label className="text-xs font-medium text-gray-500">Note / Summary</label>
-                    <textarea
-                      value={followupNote}
-                      onChange={(e) => setFollowupNote(e.target.value)}
-                      placeholder="Describe the interaction..."
-                      rows={3}
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-[#A63C71] focus:border-[#A63C71] transition-all outline-none resize-none"
-                    />
-                  </div>
-                  <button
-                    onClick={handleAddFollowup}
-                    disabled={!editNextDate || !followupNote || addingFollowup}
-                    className="mt-3 w-full rounded-lg bg-[#A63C71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
-                  >
-                    {addingFollowup ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Recording...
-                      </span>
-                    ) : 'Record Follow-up'}
-                  </button>
                 </div>
-              )}
 
-              {/* Follow-up Table */}
-              {localFollowUps && localFollowUps.length > 0 ? (
-                <div className="rounded-xl border border-gray-200 bg-white">
-                  {/* Search Bar */}
-                  <div className="border-b border-gray-200 px-4 py-3">
-                    <div className="relative max-w-md">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4 pointer-events-none" />
-                      <input
-                        type="text"
-                        placeholder="Search follow-ups..."
-                        value={followUpSearch}
-                        onChange={(e) => setFollowUpSearch(e.target.value)}
-                        className="w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-4 py-2 text-sm text-gray-700 placeholder:text-gray-400 transition-all duration-200 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 hover:border-gray-300"
-                      />
+                {/* Follow-up History */}
+                <div className="rounded-lg bg-gray-50 p-4">
+                  <div className="mb-3 text-sm font-bold text-gray-800 flex items-center justify-between">
+                    <span>Follow-Up History</span>
+                    <span className="bg-gray-200 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-normal">
+                      {localFollowUps.length} Records
+                    </span>
+                  </div>
+
+                  {/* Add New Follow-up Section */}
+                  {canUpdateLead && (
+                    <div className="mb-6 p-4 bg-white border border-gray-200 rounded-xl">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Add New Follow-up</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-gray-500">Date</label>
+                          <DatePicker
+                            selected={editNextDate ? new Date(editNextDate) : null}
+                            onChange={(date: Date | null) => setEditNextDate(date ? date.toISOString().split('T')[0] : '')}
+                            placeholderText="mm/dd/yyyy"
+                            dateFormat="MM/dd/yyyy"
+                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-secondary transition-all outline-none cursor-pointer"
+                            wrapperClassName="w-full"
+                            popperPlacement="bottom-start"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-gray-500">Time</label>
+                          <CustomTimePicker
+                            value={editNextTime}
+                            onChange={(val) => setEditNextTime(val)}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-3 space-y-1">
+                        <label className="text-xs font-medium text-gray-500">Note / Summary</label>
+                        <textarea
+                          value={followupNote}
+                          onChange={(e) => setFollowupNote(e.target.value)}
+                          placeholder="Describe the interaction..."
+                          rows={3}
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-[#A63C71] focus:border-[#A63C71] transition-all outline-none resize-none"
+                        />
+                      </div>
+                      <button
+                        onClick={handleAddFollowup}
+                        disabled={!editNextDate || !followupNote || addingFollowup}
+                        className="mt-3 w-full rounded-lg bg-[#A63C71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                      >
+                        {addingFollowup ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Recording...
+                          </span>
+                        ) : 'Record Follow-up'}
+                      </button>
                     </div>
-                    {followUpSearch && (
-                      <p className="mt-2 text-xs text-gray-500">
-                        Showing {filteredFollowUps.length} of {localFollowUps.length} records
-                      </p>
+                  )}
+
+                  {/* Follow-up Table */}
+                  {localFollowUps && localFollowUps.length > 0 ? (
+                    <div className="rounded-xl border border-gray-200 bg-white">
+                      {/* Search Bar */}
+                      <div className="border-b border-gray-200 px-4 py-3">
+                        <div className="relative max-w-md">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4 pointer-events-none" />
+                          <input
+                            type="text"
+                            placeholder="Search follow-ups..."
+                            value={followUpSearch}
+                            onChange={(e) => setFollowUpSearch(e.target.value)}
+                            className="w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-4 py-2 text-sm text-gray-700 placeholder:text-gray-400 transition-all duration-200 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 hover:border-gray-300"
+                          />
+                        </div>
+                        {followUpSearch && (
+                          <p className="mt-2 text-xs text-gray-500">
+                            Showing {filteredFollowUps.length} of {localFollowUps.length} records
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Table */}
+                      <div className="overflow-x-auto max-h-[300px] overflow-y-auto relative">
+                        <table className="w-full text-left text-sm border-collapse">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="px-4 py-3 font-semibold text-gray-600 bg-gray-100 sticky top-0 z-10">Date & Time</th>
+                              <th className="px-4 py-3 font-semibold text-gray-600 bg-gray-100 sticky top-0 z-10">Note</th>
+                              <th className="px-4 py-3 font-semibold text-gray-600 bg-gray-100 sticky top-0 z-10">Staff</th>
+                              {canUpdateLead && (
+                                <th className="px-4 py-3 font-semibold text-gray-600 bg-gray-100 sticky top-0 z-10 text-right pr-6">Actions</th>
+                              )}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {(followUpSearch ? filteredFollowUps : localFollowUps).map((f, i) => (
+                              <tr key={f._id || i} className={`hover:bg-gray-50/50 transition-colors ${f._id?.startsWith('temp_') ? 'animate-pulse bg-blue-50/30' : ''}`}>
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="font-medium text-gray-900">
+                                    {f.date ? new Date(f.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                                  </div>
+                                  {f.time && (
+                                    <div className="text-xs text-gray-500">{f.time}</div>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 max-w-xs overflow-hidden">
+                                  <p className="text-gray-700 break-words leading-relaxed">{f.note}</p>
+                                  {f._id?.startsWith('temp_') && (
+                                    <span className="inline-flex items-center gap-1 mt-1 text-xs text-blue-600">
+                                      <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                      </svg>
+                                      Saving...
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-6 w-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">
+                                      {f.staff?.fullName?.charAt(0) || staffInfo?.fullName?.charAt(0) || 'U'}
+                                    </div>
+                                    <span className="text-gray-600">{f.staff?.fullName || staffInfo?.fullName || 'Current User'}</span>
+                                  </div>
+                                </td>
+                                {canUpdateLead && (
+                                  <td className="px-4 py-3 text-right pr-6 whitespace-nowrap">
+                                    <button
+                                      type="button"
+                                      onClick={() => f._id && handleDeleteFollowup(f._id)}
+                                      disabled={f._id?.startsWith('temp_')}
+                                      className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-40"
+                                      title="Delete Follow-up"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </td>
+                                )}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {followUpSearch && filteredFollowUps.length === 0 && (
+                          <div className="py-8 text-center text-gray-500">
+                            <p className="text-sm">No follow-ups match your search.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center bg-white rounded-xl border border-gray-100 border-dashed">
+                      <p className="text-gray-400">No follow-up history available yet.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Labels */}
+                {lead.leadLabel && lead.leadLabel.length > 0 && (
+                  <div className="rounded-lg bg-gray-50 p-4">
+                    <div className="mb-2 text-sm font-medium text-gray-600">Labels</div>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.isArray(lead.leadLabel) && lead.leadLabel.map((l: any) => (
+                        <span
+                          key={l._id}
+                          style={{ backgroundColor: l.color }}
+                          className="rounded-md px-2 py-1 text-xs font-medium text-white"
+                        >
+                          {l.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Note */}
+                {lead.note && (
+                  <div className="rounded-lg bg-gray-50 p-4">
+                    <div className="mb-1 text-sm font-medium text-gray-600">Primary Note</div>
+                    <p className="text-gray-800 whitespace-pre-wrap">{lead.note}</p>
+                  </div>
+                )}
+
+                {/* Attachments */}
+                <div className="rounded-lg bg-gray-50 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                      <span>Attachments</span>
+                      <span className="bg-gray-200 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-normal">
+                        {localAttachments?.length || 0}
+                      </span>
+                    </div>
+                    {canUpdateLead && (
+                      <div className="relative">
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*,.pdf"
+                          onChange={handleFileUpload}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          title="Upload Attachments"
+                        />
+                        <button
+                          type="button"
+                          disabled={saving}
+                          className="rounded-lg bg-[#a63c71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] flex items-center justify-center gap-2 transition-colors pointer-events-none relative z-0"
+                        >
+                          + Add Attachments
+                        </button>
+                      </div>
                     )}
                   </div>
-                  
-                  {/* Table */}
-                  <div className="overflow-x-auto max-h-[300px] overflow-y-auto relative">
-                    <table className="w-full text-left text-sm border-collapse">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="px-4 py-3 font-semibold text-gray-600 bg-gray-100 sticky top-0 z-10">Date & Time</th>
-                          <th className="px-4 py-3 font-semibold text-gray-600 bg-gray-100 sticky top-0 z-10">Note</th>
-                          <th className="px-4 py-3 font-semibold text-gray-600 bg-gray-100 sticky top-0 z-10">Staff</th>
-                          {canUpdateLead && (
-                            <th className="px-4 py-3 font-semibold text-gray-600 bg-gray-100 sticky top-0 z-10 text-right pr-6">Actions</th>
-                          )}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {(followUpSearch ? filteredFollowUps : localFollowUps).map((f, i) => (
-                          <tr key={f._id || i} className={`hover:bg-gray-50/50 transition-colors ${f._id?.startsWith('temp_') ? 'animate-pulse bg-blue-50/30' : ''}`}>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="font-medium text-gray-900">
-                                {f.date ? new Date(f.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
-                              </div>
-                              {f.time && (
-                                <div className="text-xs text-gray-500">{f.time}</div>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 max-w-xs overflow-hidden">
-                              <p className="text-gray-700 break-words leading-relaxed">{f.note}</p>
-                              {f._id?.startsWith('temp_') && (
-                                <span className="inline-flex items-center gap-1 mt-1 text-xs text-blue-600">
-                                  <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                  </svg>
-                                  Saving...
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="flex items-center gap-2">
-                                <div className="h-6 w-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">
-                                  {f.staff?.fullName?.charAt(0) || staffInfo?.fullName?.charAt(0) || 'U'}
+
+                  {localAttachments && localAttachments.length > 0 ? (
+                    <div className="space-y-2">
+                      {localAttachments.map((att: any, idx) => {
+                        const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(att?.filename || "");
+
+                        return (
+                          <div key={idx} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-all">
+                            {/* File Icon/Thumbnail */}
+                            <div className="flex-shrink-0">
+                              {isImage ? (
+                                <div className="relative w-10 h-10 rounded overflow-hidden border border-gray-200">
+                                  <img
+                                    src={att?.path?.startsWith('http') ? att.path : `${process.env.NEXT_PUBLIC_IMAGE_URL}${att?.path}`}
+                                    alt={att?.originalName}
+                                    className="w-full h-full object-cover"
+                                  />
                                 </div>
-                                <span className="text-gray-600">{f.staff?.fullName || staffInfo?.fullName || 'Current User'}</span>
-                              </div>
-                            </td>
-                            {canUpdateLead && (
-                              <td className="px-4 py-3 text-right pr-6 whitespace-nowrap">
+                              ) : (
+                                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                  {getFileIcon(att?.filename || "")}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* File Info */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{att.originalName}</p>
+                              <p className="text-xs text-gray-500">
+                                {att.size ? `${(att.size / 1024).toFixed(1)} KB` : ''} •
+                                {att.filename?.split('.').pop()?.toUpperCase()}
+                              </p>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleView(att)}
+                                className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-gray-600 hover:text-blue-600"
+                                title="View"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDownload(att)}
+                                className="p-2 hover:bg-green-50 rounded-lg transition-colors text-gray-600 hover:text-green-600"
+                                title="Download"
+                              >
+                                <Download className="h-4 w-4" />
+                              </button>
+                              {canUpdateLead && (
                                 <button
-                                  type="button"
-                                  onClick={() => f._id && handleDeleteFollowup(f._id)}
-                                  disabled={f._id?.startsWith('temp_')}
-                                  className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-40"
-                                  title="Delete Follow-up"
+                                  onClick={() => handleDeleteAttachment(att)}
+                                  className="p-2 hover:bg-red-50 rounded-lg transition-colors text-gray-600 hover:text-red-600"
+                                  title="Delete"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {followUpSearch && filteredFollowUps.length === 0 && (
-                      <div className="py-8 text-center text-gray-500">
-                        <p className="text-sm">No follow-ups match your search.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="py-8 text-center bg-white rounded-xl border border-gray-100 border-dashed">
-                  <p className="text-gray-400">No follow-up history available yet.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Labels */}
-            {lead.leadLabel && lead.leadLabel.length > 0 && (
-              <div className="rounded-lg bg-gray-50 p-4">
-                <div className="mb-2 text-sm font-medium text-gray-600">Labels</div>
-                <div className="flex flex-wrap gap-2">
-                  {Array.isArray(lead.leadLabel) && lead.leadLabel.map((l: any) => (
-                    <span
-                      key={l._id}
-                      style={{ backgroundColor: l.color }}
-                      className="rounded-md px-2 py-1 text-xs font-medium text-white"
-                    >
-                      {l.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Note */}
-            {lead.note && (
-              <div className="rounded-lg bg-gray-50 p-4">
-                <div className="mb-1 text-sm font-medium text-gray-600">Primary Note</div>
-                <p className="text-gray-800 whitespace-pre-wrap">{lead.note}</p>
-              </div>
-            )}
-
-            {/* Attachments */}
-            <div className="rounded-lg bg-gray-50 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                  <span>Attachments</span>
-                  <span className="bg-gray-200 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-normal">
-                    {localAttachments?.length || 0}
-                  </span>
-                </div>
-                {canUpdateLead && (
-                  <div className="relative">
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*,.pdf"
-                      onChange={handleFileUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      title="Upload Attachments"
-                    />
-                    <button
-                      type="button"
-                      disabled={saving}
-                      className="rounded-lg bg-[#a63c71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] flex items-center justify-center gap-2 transition-colors pointer-events-none relative z-0"
-                    >
-                      + Add Attachments
-                    </button>
-                  </div>
-                )}
-              </div>
-              
-              {localAttachments && localAttachments.length > 0 ? (
-                <div className="space-y-2">
-                  {localAttachments.map((att: any, idx) => {
-                    const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(att?.filename || "");
-
-                    return (
-                      <div key={idx} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-all">
-                        {/* File Icon/Thumbnail */}
-                        <div className="flex-shrink-0">
-                          {isImage ? (
-                            <div className="relative w-10 h-10 rounded overflow-hidden border border-gray-200">
-                              <img
-                                src={att?.path?.startsWith('http') ? att.path : `${process.env.NEXT_PUBLIC_IMAGE_URL}${att?.path}`}
-                                alt={att?.originalName}
-                                className="w-full h-full object-cover"
-                              />
+                              )}
                             </div>
-                          ) : (
-                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                              {getFileIcon(att?.filename || "")}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* File Info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{att.originalName}</p>
-                          <p className="text-xs text-gray-500">
-                            {att.size ? `${(att.size / 1024).toFixed(1)} KB` : ''} •
-                            {att.filename?.split('.').pop()?.toUpperCase()}
-                          </p>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleView(att)}
-                            className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-gray-600 hover:text-blue-600"
-                            title="View"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDownload(att)}
-                            className="p-2 hover:bg-green-50 rounded-lg transition-colors text-gray-600 hover:text-green-600"
-                            title="Download"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                          {canUpdateLead && (
-                            <button
-                              onClick={() => handleDeleteAttachment(att)}
-                              className="p-2 hover:bg-red-50 rounded-lg transition-colors text-gray-600 hover:text-red-600"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center bg-white rounded-xl border border-gray-100 border-dashed">
+                      <p className="text-gray-400 text-sm">No attachments available.</p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="py-6 text-center bg-white rounded-xl border border-gray-100 border-dashed">
-                  <p className="text-gray-400 text-sm">No attachments available.</p>
-                </div>
-              )}
-            </div>
-          </>
-        )}
+              </>
+            )}
 
             {/* Lost info */}
             {lead.isLost && (
@@ -1622,7 +1622,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                               >
                                 <Download className="h-4 w-4" />
                               </button>
-                              
+
                               <button
                                 type="button"
                                 onClick={() => handleSendWhatsApp(idx)}

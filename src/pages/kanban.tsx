@@ -554,21 +554,21 @@ export default function LeadsPage() {
 
   const confirmMarkLost = async () => {
     if (!lostModalLeadId || !lostModalData.reason || !lostModalData.date) return;
-    
+
     try {
       const token = getAuthToken();
       const lostStatusId = pendingStatusId || statuses.find(s => s.name.toLowerCase().includes('lost'))?._id;
-      await axios.put(`${baseUrl.updateLead}/${lostModalLeadId}`, 
-        { leadStatus: lostStatusId, lostReason: lostModalData.reason, lostDate: lostModalData.date, isLost: true }, 
+      await axios.put(`${baseUrl.updateLead}/${lostModalLeadId}`,
+        { leadStatus: lostStatusId, lostReason: lostModalData.reason, lostDate: lostModalData.date, isLost: true },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success('Lead marked as lost');
       fetchLeads();
       fetchLostLeads();
-    } catch (error: any) { 
-      toast.error(error.response?.data?.message || 'Failed to update lead'); 
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update lead');
     }
-    
+
     setLostModalLeadId(null);
     setPendingStatusId(null);
   };
@@ -899,11 +899,10 @@ export default function LeadsPage() {
                                         {lead.priority}
                                       </span>
                                     )}
-                                    <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full whitespace-nowrap border ${
-                                      lead.isVisitCompleted
+                                    <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full whitespace-nowrap border ${lead.isVisitCompleted
                                         ? 'bg-green-50 text-green-700 border-green-200'
                                         : 'bg-orange-50 text-orange-700 border-orange-200'
-                                    }`}>
+                                      }`}>
                                       {lead.isVisitCompleted ? 'VISIT DONE' : 'VISIT PENDING'}
                                     </span>
                                   </div>

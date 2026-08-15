@@ -87,23 +87,23 @@ export default function LeadAddDialog({
           if (!value) return true;
           const domain = value.split('@')[1]?.toLowerCase();
           if (!domain) return false;
-          
+
           // Reject invalid variations of gmail
           if (domain !== 'gmail.com') {
-            const isGmailTypo = 
-              domain.includes('gmail') || 
-              domain.includes('gamil') || 
-              domain.includes('gmal') || 
+            const isGmailTypo =
+              domain.includes('gmail') ||
+              domain.includes('gamil') ||
+              domain.includes('gmal') ||
               domain.includes('gmai') ||
               /^g[a-z]*m[a-z]*a[a-z]*i[a-z]*l[a-z]*\.[a-z]+$/.test(domain);
-              
+
             // Allow legitimate non-gmail domains like protonmail.com, globalmail.com etc.
             // The regex ^g...$ ensures it starts with g and ends with l before the dot.
             if (isGmailTypo && domain.startsWith('g')) {
-               return false;
+              return false;
             }
           }
-          
+
           return true;
         }),
       kwRequirement: Yup.string().required('KW Requirement is required'),

@@ -90,7 +90,7 @@ function mapLead(item: any, staffMembers?: any[]): TableLead {
   if (item.quotations && Array.isArray(item.quotations) && item.quotations.length > 0) {
     const lastQuote = item.quotations[item.quotations.length - 1];
     if (lastQuote && lastQuote.rows) {
-      const payableRow = lastQuote.rows.find((r: any) => 
+      const payableRow = lastQuote.rows.find((r: any) =>
         r.title && r.title.trim().toUpperCase() === 'CUSTOMER PAYABLE AMOUNT'
       );
       if (payableRow && payableRow.values && payableRow.values.length > 0) {
@@ -150,7 +150,7 @@ export default function LeadsListView({
   filters = {},
   externalLeads,
   loading: loadingProp,
-  pagination, 
+  pagination,
   onSearch,
   currentUser,
 }: Props) {
@@ -164,10 +164,10 @@ export default function LeadsListView({
   const [paymentLead, setPaymentLead] = useState<ApiLead | null>(null);
   const [stockLead, setStockLead] = useState<ApiLead | null>(null);
 
-  
+
   const loading = loadingProp !== undefined ? loadingProp : localLoading;
 
-  
+
   useEffect(() => {
     if (externalLeads) {
       setLeads(externalLeads.map((l) => mapLead(l, staffMembers)));
@@ -208,8 +208,8 @@ export default function LeadsListView({
       label: 'VISIT DATE',
       render: (v) => v ? new Date(v).toLocaleDateString() : '-',
     },
-    { 
-      key: 'sourceId', 
+    {
+      key: 'sourceId',
       label: 'SOURCE',
       render: (v) => {
         if (!v) return '-';
@@ -235,9 +235,9 @@ export default function LeadsListView({
         const roleName = currentUser?.role?.roleName?.toLowerCase() || '';
         const isDocDept = currentUser?.department?.toLowerCase().includes('document') || roleName.includes('document');
         const isAdmin = roleName.includes('admin');
-        
+
         return isWon && (isDocDept || isAdmin) ? (
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); setDocumentLead(row._raw || row as unknown as ApiLead); }}
             className="p-1.5 text-primary hover:bg-primary/10 rounded-md transition-colors"
             title="View Documents"
@@ -409,7 +409,7 @@ export default function LeadsListView({
         onClose={() => setProjectDetailLead(null)}
         onSaved={() => { onRefresh(); setProjectDetailLead(null); }}
       />
-      
+
       <LeadDocumentsModal
         isOpen={!!documentLead}
         onClose={() => setDocumentLead(null)}
@@ -422,8 +422,8 @@ export default function LeadsListView({
         onClose={() => setPaymentLead(null)}
         onPaymentAdded={onRefresh}
       />
-      
-      
+
+
       <LeadAssignStockDialog
         isOpen={!!stockLead}
         lead={stockLead}
