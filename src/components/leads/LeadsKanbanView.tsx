@@ -97,10 +97,16 @@ export default function LeadsKanbanView({
     const [paymentLead, setPaymentLead] = useState<ApiLead | null>(null);
     const [documentLead, setDocumentLead] = useState<ApiLead | null>(null);
     const [stockLead, setStockLead] = useState<ApiLead | null>(null);
-    
+
     // Custom Modal for Mark Lost
     const [lostModalLeadId, setLostModalLeadId] = useState<string | null>(null);
     const [lostModalData, setLostModalData] = useState({ reason: '', date: '' });
+    const [pendingStatusId, setPendingStatusId] = useState<string | null>(null);
+    const [pendingSourceStatusId, setPendingSourceStatusId] = useState<string | null>(null);
+
+    // Custom Modal for Visit Schedule
+    const [visitScheduleLeadId, setVisitScheduleLeadId] = useState<string | null>(null);
+    const [visitScheduleDate, setVisitScheduleDate] = useState<string>('');
 
     const canEditLead = (lead: ApiLead) => {
         if (isAdmin) return true;
@@ -115,7 +121,7 @@ export default function LeadsKanbanView({
         }
         return false;
     };
-    
+
     // Board state
     const [boardLeads, setBoardLeads] = useState<Record<string, ApiLead[]>>({});
     const [columnLoading, setColumnLoading] = useState<Record<string, boolean>>({});
@@ -241,11 +247,42 @@ export default function LeadsKanbanView({
 
         const targetStatus = statuses.find((s) => s._id === newStatusId);
         if (!targetStatus) return;
-        
+
+        const targetNameLower = targetStatus.name.toLowerCase();
+
+        // 1. Visit Done Validation: must be completed first
+        if (targetNameLower === 'visit complete' || targetNameLower === 'visit done') {
+            if (!draggingLead.isVisitCompleted) {
+                toast.error('Visit must be completed before moving to Visit Done status.');
+                setDraggingId(null);
+                return;
+            }
+        }
+
+        // 2. Lost Status: Prompt for lost reason
+        if (targetNameLower.includes('lost')) {
+            setPendingSourceStatusId(sourceStatusId);
+            setPendingStatusId(newStatusId);
+            setLostModalData({ reason: '', date: new Date().toISOString().split('T')[0] });
+            setLostModalLeadId(draggingId);
+            setDraggingId(null);
+            return;
+        }
+
+        // 3. Visit Scheduled Status: Prompt for visit date if not done
+        if ((targetNameLower.includes('visit schedule') || targetNameLower.includes('visit shedule')) && !draggingLead.isVisitCompleted) {
+            setPendingSourceStatusId(sourceStatusId);
+            setPendingStatusId(newStatusId);
+            setVisitScheduleDate(new Date().toISOString().split('T')[0]);
+            setVisitScheduleLeadId(draggingId);
+            setDraggingId(null);
+            return;
+        }
+
         const currentDropId = draggingId;
         setDraggingId(null);
         setUpdatingId(currentDropId);
-        
+
         // Optimistic UI update
         setBoardLeads(prev => {
             const next = { ...prev };
@@ -267,11 +304,11 @@ export default function LeadsKanbanView({
                 { headers: { Authorization: `Bearer ${token()}` } }
             );
             toast.success(`Lead moved to ${targetStatus.name}`);
-            
+
             // SILENT RE-FETCH: sync counts/order etc in background without showing loaders
             fetchStatusLeads(sourceStatusId, 1, false, true);
             fetchStatusLeads(newStatusId, 1, false, true);
-            
+
             onRefresh();
         } catch {
             toast.error('Failed to update lead status');
@@ -314,20 +351,59 @@ export default function LeadsKanbanView({
 
     const confirmMarkLost = async () => {
         if (!lostModalLeadId || !lostModalData.reason || !lostModalData.date) return;
-        
+
         try {
-            const lostStatusId = statuses.find(s => s.name.match(/^lost$/i))?._id;
-            await axios.put(`${baseUrl.updateLead}/${lostModalLeadId}`, 
-                { leadStatus: lostStatusId, lostReason: lostModalData.reason, lostDate: lostModalData.date }, 
+            const lostStatusId = pendingStatusId || statuses.find(s => s.name.toLowerCase().includes('lost'))?._id;
+            await axios.put(`${baseUrl.updateLead}/${lostModalLeadId}`,
+                { leadStatus: lostStatusId, lostReason: lostModalData.reason, lostDate: lostModalData.date, isLost: true },
                 { headers: { Authorization: `Bearer ${token()}` } }
             );
             toast.success('Lead marked as lost');
             removeLeadFromBoard(lostModalLeadId);
+            if (pendingSourceStatusId) {
+                fetchStatusLeads(pendingSourceStatusId, 1, false, true);
+            }
+            if (lostStatusId) {
+                fetchStatusLeads(lostStatusId, 1, false, true);
+            }
             onRefresh();
-        } catch { toast.error('Failed to update lead'); }
-        
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to update lead');
+        }
+
         setLostModalLeadId(null);
+        setPendingStatusId(null);
+        setPendingSourceStatusId(null);
     };
+
+    const confirmVisitSchedule = async () => {
+        if (!visitScheduleLeadId || !visitScheduleDate || !pendingStatusId) return;
+
+        setUpdatingId(visitScheduleLeadId);
+        try {
+            await axios.put(`${baseUrl.updateLead}/${visitScheduleLeadId}`, {
+                leadStatus: pendingStatusId,
+                isVisitDone: true,
+                visitDate: visitScheduleDate,
+            }, {
+                headers: { Authorization: `Bearer ${token()}` }
+            });
+            toast.success('Visit scheduled successfully');
+            if (pendingSourceStatusId) {
+                fetchStatusLeads(pendingSourceStatusId, 1, false, true);
+            }
+            fetchStatusLeads(pendingStatusId, 1, false, true);
+            onRefresh();
+        } catch (error) {
+            toast.error('Failed to schedule visit');
+        } finally {
+            setUpdatingId(null);
+            setVisitScheduleLeadId(null);
+            setPendingStatusId(null);
+            setPendingSourceStatusId(null);
+        }
+    };
+
 
     const markWon = async (id: string) => {
         try {
@@ -374,12 +450,12 @@ export default function LeadsKanbanView({
                 const newLeadStatusId = statuses.find(s => s.name.match(/^new lead$/i) || s.name.match(/^new$/i))?._id || statuses[0]?._id;
                 await axios.put(`${baseUrl.updateLead}/${id}`, { leadStatus: newLeadStatusId }, { headers: { Authorization: `Bearer ${token()}` } });
                 toast.success('Lead reactivated');
-                
+
                 removeLeadFromBoard(id);
                 if (newLeadStatusId) {
                     fetchStatusLeads(newLeadStatusId, 1, false, true);
                 }
-                
+
                 onRefresh();
             } catch { toast.error('Failed to reactivate lead'); }
         }
@@ -389,29 +465,35 @@ export default function LeadsKanbanView({
         { key: 'fullName', label: 'LEAD NAME', render: (v) => (<div><div className="font-semibold text-gray-900">{v}</div><span className="text-xs text-red-500">• Lost</span></div>) },
         { key: 'kwRequirement', label: 'KW REQ', render: (v) => <span className="text-sm">{v || '-'}</span> },
         { key: 'discomName', label: 'DISCOM', render: (v) => <span className="text-sm">{v || '-'}</span> },
-        { key: 'address', label: 'LOCATION', render: (v) => (
-            <div className="group relative flex items-center">
-                <div className="text-sm max-w-[150px] truncate cursor-pointer text-gray-700">
-                    {v || '-'}
-                </div>
-                {v && (
-                    <div className="absolute bottom-full left-0 z-[9999] mb-1 hidden group-hover:block w-max max-w-[250px] whitespace-normal rounded-md bg-gray-800 px-3 py-2 text-xs leading-relaxed text-white shadow-xl">
-                        {v}
+        {
+            key: 'address', label: 'LOCATION', render: (v) => (
+                <div className="group relative flex items-center">
+                    <div className="text-sm max-w-[150px] truncate cursor-pointer text-gray-700">
+                        {v || '-'}
                     </div>
-                )}
-            </div>
-        ) },
+                    {v && (
+                        <div className="absolute bottom-full left-0 z-[9999] mb-1 hidden group-hover:block w-max max-w-[250px] whitespace-normal rounded-md bg-gray-800 px-3 py-2 text-xs leading-relaxed text-white shadow-xl">
+                            {v}
+                        </div>
+                    )}
+                </div>
+            )
+        },
         { key: 'contact', label: 'CONTACT', render: (v, row) => <ContactCell phone={v} /> },
-        { key: 'lostDate', label: 'LOST DATE', render: (v, row) => {
-            const dateStr = v || row.lostDate || row.updatedAt;
-            return dateStr ? new Date(dateStr).toLocaleDateString() : 'N/A';
-        } },
-        { key: 'createdBy', label: 'CREATED BY', render: (v, row) => {
-            if (typeof row.createdBy === 'object' && row.createdBy?.fullName) return row.createdBy.fullName;
-            if (typeof row.createdBy === 'object' && row.createdBy?.name) return row.createdBy.name;
-            const found = staffMembers?.find((s: any) => s._id === (v || row.createdBy));
-            return found?.fullName || found?.name || '-';
-        } },
+        {
+            key: 'lostDate', label: 'LOST DATE', render: (v, row) => {
+                const dateStr = v || row.lostDate || row.updatedAt;
+                return dateStr ? new Date(dateStr).toLocaleDateString() : 'N/A';
+            }
+        },
+        {
+            key: 'createdBy', label: 'CREATED BY', render: (v, row) => {
+                if (typeof row.createdBy === 'object' && row.createdBy?.fullName) return row.createdBy.fullName;
+                if (typeof row.createdBy === 'object' && row.createdBy?.name) return row.createdBy.name;
+                const found = staffMembers?.find((s: any) => s._id === (v || row.createdBy));
+                return found?.fullName || found?.name || '-';
+            }
+        },
         { key: 'lostReason', label: 'REASON', render: (v) => v || 'Not specified' },
     ];
 
@@ -419,39 +501,45 @@ export default function LeadsKanbanView({
         { key: 'fullName', label: 'LEAD NAME', render: (v) => <span className="font-semibold text-gray-900">{v}</span> },
         { key: 'kwRequirement', label: 'KW REQ', render: (v) => <span className="text-sm">{v || '-'}</span> },
         { key: 'discomName', label: 'DISCOM', render: (v) => <span className="text-sm">{v || '-'}</span> },
-        { key: 'address', label: 'LOCATION', render: (v) => (
-            <div className="group relative flex items-center">
-                <div className="text-sm max-w-[150px] truncate cursor-pointer text-gray-700">
-                    {v || '-'}
-                </div>
-                {v && (
-                    <div className="absolute bottom-full left-0 z-[9999] mb-1 hidden group-hover:block w-max max-w-[250px] whitespace-normal rounded-md bg-gray-800 px-3 py-2 text-xs leading-relaxed text-white shadow-xl">
-                        {v}
+        {
+            key: 'address', label: 'LOCATION', render: (v) => (
+                <div className="group relative flex items-center">
+                    <div className="text-sm max-w-[150px] truncate cursor-pointer text-gray-700">
+                        {v || '-'}
                     </div>
-                )}
-            </div>
-        ) },
+                    {v && (
+                        <div className="absolute bottom-full left-0 z-[9999] mb-1 hidden group-hover:block w-max max-w-[250px] whitespace-normal rounded-md bg-gray-800 px-3 py-2 text-xs leading-relaxed text-white shadow-xl">
+                            {v}
+                        </div>
+                    )}
+                </div>
+            )
+        },
         { key: 'contact', label: 'CONTACT', render: (v, row) => <ContactCell phone={v} /> },
-        { key: 'wonDate', label: 'WON DATE', render: (v, row) => {
-            const dateStr = v || row.wonDate || row.updatedAt;
-            return dateStr ? new Date(dateStr).toLocaleDateString() : 'N/A';
-        } },
-        { key: 'createdBy', label: 'CREATED BY', render: (v, row) => {
-            if (typeof row.createdBy === 'object' && row.createdBy?.fullName) return row.createdBy.fullName;
-            if (typeof row.createdBy === 'object' && row.createdBy?.name) return row.createdBy.name;
-            const found = staffMembers?.find((s: any) => s._id === (v || row.createdBy));
-            return found?.fullName || found?.name || '-';
-        } },
+        {
+            key: 'wonDate', label: 'WON DATE', render: (v, row) => {
+                const dateStr = v || row.wonDate || row.updatedAt;
+                return dateStr ? new Date(dateStr).toLocaleDateString() : 'N/A';
+            }
+        },
+        {
+            key: 'createdBy', label: 'CREATED BY', render: (v, row) => {
+                if (typeof row.createdBy === 'object' && row.createdBy?.fullName) return row.createdBy.fullName;
+                if (typeof row.createdBy === 'object' && row.createdBy?.name) return row.createdBy.name;
+                const found = staffMembers?.find((s: any) => s._id === (v || row.createdBy));
+                return found?.fullName || found?.name || '-';
+            }
+        },
         /* { key: 'paymentAmount', label: 'AMOUNT', render: (v) => (v ? `₹${v.toLocaleString()}` : '-') }, */
-        { 
-            key: 'docs', 
-            label: 'DOCS', 
+        {
+            key: 'docs',
+            label: 'DOCS',
             render: (v, row) => {
                 const roleName = currentUser?.role?.roleName?.toLowerCase() || '';
                 const isDocDept = currentUser?.department?.toLowerCase().includes('document') || roleName.includes('document');
                 const isAdmin = roleName.includes('admin');
                 return (isDocDept || isAdmin) ? (
-                    <button 
+                    <button
                         onClick={() => setDocumentLead(row)}
                         className="p-1.5 text-primary hover:bg-primary/10 rounded-md transition-colors"
                         title="View Documents"
@@ -475,26 +563,24 @@ export default function LeadsKanbanView({
                         const label = v === 'board' ? 'Kanban View' : v === 'lost' ? 'Lost Leads' : 'Won Leads';
                         const count = v === 'lost' ? lostCount : v === 'won' ? wonCount : null;
                         return (
-                        <button
-                            key={v}
-                            onClick={() => handleSubViewChange(v)}
-                            className={`flex items-center gap-2 rounded-lg cursor-pointer px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
-                                subView === v
-                                    ? 'border border-primary text-primary bg-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-transparent'
-                            }`}
-                        >
-                            {label}
-                            {count !== null && (
-                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                    v === 'lost'
-                                        ? 'bg-red-100 text-red-700'
-                                        : 'bg-green-100 text-green-700'
-                                }`}>
-                                    {count}
-                                </span>
-                            )}
-                        </button>
+                            <button
+                                key={v}
+                                onClick={() => handleSubViewChange(v)}
+                                className={`flex items-center gap-2 rounded-lg cursor-pointer px-4 py-1.5 text-sm font-medium capitalize transition-colors ${subView === v
+                                        ? 'border border-primary text-primary bg-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-transparent'
+                                    }`}
+                            >
+                                {label}
+                                {count !== null && (
+                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${v === 'lost'
+                                            ? 'bg-red-100 text-red-700'
+                                            : 'bg-green-100 text-green-700'
+                                        }`}>
+                                        {count}
+                                    </span>
+                                )}
+                            </button>
                         );
                     })}
                 </div>
@@ -731,6 +817,49 @@ export default function LeadsKanbanView({
                             </button>
                             <button
                                 onClick={() => setLostModalLeadId(null)}
+                                className="px-6 py-2 bg-[#6D7A86] text-white font-medium rounded hover:bg-[#5b6670] transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {visitScheduleLeadId && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="p-6 text-center text-gray-800 text-2xl font-bold border-b border-gray-100">
+                            Schedule Visit
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-1 text-left">
+                                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-blue-600" /> Visit Date
+                                </label>
+                                <DatePicker
+                                    selected={visitScheduleDate ? new Date(visitScheduleDate) : null}
+                                    onChange={(date: Date | null) => setVisitScheduleDate(date ? date.toISOString().split('T')[0] : '')}
+                                    placeholderText="dd-mm-yyyy"
+                                    dateFormat="dd-MM-yyyy"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    wrapperClassName="w-full"
+                                />
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 bg-gray-50 border-t flex justify-center gap-3">
+                            <button
+                                onClick={confirmVisitSchedule}
+                                disabled={!visitScheduleDate}
+                                className="px-6 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                            >
+                                Schedule Visit
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setVisitScheduleLeadId(null);
+                                    setPendingStatusId(null);
+                                }}
                                 className="px-6 py-2 bg-[#6D7A86] text-white font-medium rounded hover:bg-[#5b6670] transition-colors"
                             >
                                 Cancel

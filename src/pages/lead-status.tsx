@@ -40,7 +40,7 @@ const validationSchema = Yup.object({
     .min(2, 'Status name must be at least 2 characters')
     .max(100, 'Status name must be at most 100 characters')
     .matches(/^[a-zA-Z0-9\s&-]+$/, 'Status name can only contain letters, numbers, spaces, &, and -')
-    .test('not-reserved', 'This is a reserved status name and cannot be modified', function(value) {
+    .test('not-reserved', 'This is a reserved status name and cannot be modified', function (value) {
       const reservedNames = ['new lead', 'won', 'lost'];
       // Only validate for edit mode if the original name wasn't reserved
       const originalName = this.parent.originalName;
@@ -49,7 +49,7 @@ const validationSchema = Yup.object({
       }
       return !reservedNames.includes(value?.toLowerCase());
     }),
-  
+
   order: Yup.number()
     .required('Order is required')
     .integer('Order must be a whole number')
@@ -391,7 +391,7 @@ export function LeadStatusContent() {
             placeholder="Enter status name"
             disabled={Boolean(isSubmitting || (formik.values._id && isReserved(formik.values.originalName)))}
           />
-          
+
           <FormInput
             label="Order"
             name="order"

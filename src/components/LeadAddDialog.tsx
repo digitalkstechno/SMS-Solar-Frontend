@@ -47,7 +47,7 @@ interface LeadAddDialogProps {
   onClose: () => void;
   mode: 'add' | 'edit';
   initialData?: Partial<Lead> | null;
-  
+
   onLeadCreated?: (lead: any) => void;
   onLeadUpdated?: (lead: any) => void;
 }
@@ -132,7 +132,7 @@ export default function LeadAddDialog({
       // Extract label IDs if they exist
       let labelIds: string[] = [];
       if (initialData.labels) {
-        labelIds = initialData.labels.map(label => 
+        labelIds = initialData.labels.map(label =>
           typeof label === 'string' ? label : (label as any)._id
         );
       }
@@ -417,15 +417,15 @@ export default function LeadAddDialog({
             </div>
 
             <div>
-                <Label required>Status</Label>
-                <select
-                  name="leadStatus"
-                  value={formData.leadStatus}
-                  onChange={handleChange}
-                  required
-                  disabled={isAlreadyWon}
-                  className={`w-full border border-slate-400 rounded px-3 py-2 text-black ${isAlreadyWon ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
-                >
+              <Label required>Status</Label>
+              <select
+                name="leadStatus"
+                value={formData.leadStatus}
+                onChange={handleChange}
+                required
+                disabled={isAlreadyWon}
+                className={`w-full border border-slate-400 rounded px-3 py-2 text-black ${isAlreadyWon ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+              >
                 <option value="">— Select —</option>
                 {leadStatuses.map((item) => (
                   <option key={item._id} value={item._id}>
@@ -517,18 +517,18 @@ export default function LeadAddDialog({
                     className="w-full border border-slate-400 rounded px-3 py-2 text-black"
                   />
                 </div>
-                  <div>
-                    <Label>Next Follow-up Time</Label>
-                    <CustomTimePicker
-                      value={formData.nextFollowupTime}
-                      onChange={(val) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          nextFollowupTime: val,
-                        }))
-                      }
-                    />
-                  </div>
+                <div>
+                  <Label>Next Follow-up Time</Label>
+                  <CustomTimePicker
+                    value={formData.nextFollowupTime}
+                    onChange={(val) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        nextFollowupTime: val,
+                      }))
+                    }
+                  />
+                </div>
               </div>
 
               <div>
