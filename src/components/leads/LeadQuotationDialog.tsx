@@ -27,7 +27,6 @@ const DEFAULT_ROWS = [
   { title: 'DC protection', values: [''] },
   { title: 'AC protection', values: [''] },
   { title: 'Solar cable product', values: [''] },
-  { title: 'Roof type', values: [''] },
   { title: 'Gross ₹', values: [''] },
   { title: 'Subsidy ₹', values: [''] },
   { title: 'Net Payable ₹', values: [''] },
@@ -42,8 +41,7 @@ const DROPDOWN_FIELDS = [
   'structure product',
   'dc protection',
   'ac protection',
-  'solar cable product',
-  'roof type'
+  'solar cable product'
 ];
 
 export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, editIndex }: Props) {
@@ -77,7 +75,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
           
           // Map backend keys to dropdown row keys
           const keyMap: Record<string, string> = {
-            'module': '45',
+            'module': 'solar module product',
             'inverter': 'inverter product',
             'structure': 'structure product',
             'dcdb': 'dc protection',
@@ -87,7 +85,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
           };
 
           res.data.data.forEach((opt: any) => {
-            const rowKey = keyMap[opt.key] || opt.key;
+            const rowKey = keyMap[opt.key] || opt.key;                                 
             if (!grouped[rowKey]) grouped[rowKey] = [];
             grouped[rowKey].push({ label: opt.label, value: opt.value });
           });
@@ -202,11 +200,30 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
   };
 
   const handleSave = async () => {
+    let activeModule = solarModule.trim();
+    let activeInverter = inverter.trim();
+
+    if (!activeModule) {
+      const modRow = rows.find(r => r.title.toLowerCase().trim() === 'solar module product');
+      if (modRow && modRow.values && modRow.values[0]) {
+        activeModule = modRow.values[0];
+        setSolarModule(activeModule);
+      }
+    }
+
+    if (!activeInverter) {
+      const invRow = rows.find(r => r.title.toLowerCase().trim() === 'inverter product');
+      if (invRow && invRow.values && invRow.values[0]) {
+        activeInverter = invRow.values[0];
+        setInverter(activeInverter);
+      }
+    }
+
     const newErrors: Record<string, string> = {};
-    if (!solarModule.trim()) {
+    if (!activeModule) {
       newErrors.solarModule = 'Solar Module is required';
     }
-    if (!inverter.trim()) {
+    if (!activeInverter) {
       newErrors.inverter = 'Inverter is required';
     }
 
@@ -220,8 +237,8 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
       const oldQuotation = editIndex !== null && editIndex !== undefined && lead.quotations ? lead.quotations[editIndex] : null;
       const newQuotation = {
         date,
-        solarModule,
-        inverter,
+        solarModule: activeModule,
+        inverter: activeInverter,
         options,
         rows,
         createdAt: (oldQuotation as any)?.createdAt || new Date().toISOString()
@@ -300,7 +317,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
   const handleCreateOption = async (inputValue: string, rowKey: string, rIdx: number, cIdx: number) => {
     handleRowValueChange(rIdx, cIdx, inputValue);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
+      const apiUrl = baseUrl.getBaseUrl;
       const res = await axios.post(`${apiUrl}quotation-options`, {
         key: rowKey,
         label: inputValue,
@@ -367,7 +384,7 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
               try {
                 const toastId = toast.loading('Downloading PDF...');
                 const qData = { date, solarModule, inverter, options, rows };
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
+                const apiUrl = baseUrl.getBaseUrl;
                 
                 const response = await axios.post(`${apiUrl}quotation/generate`, {
                   quotation: qData,
