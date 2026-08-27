@@ -10,7 +10,7 @@ import { baseUrl, getAuthToken } from '@/config';
 import DeleteDialog from '@/components/DeleteDialog';
 import FormInput from '@/components/ui/Input';
 import FormSelect from '@/components/ui/FormSelect';
-import { PackageMinus, PackageOpen } from 'lucide-react';
+import { PackageMinus, PackageOpen, Download } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { fetchCategories } from '@/redux/slices/categorySlice';
 import { fetchProducts } from '@/redux/slices/productSlice';
@@ -18,6 +18,7 @@ import { useRef } from 'react';
 import { toast } from 'react-toastify';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import * as XLSX from 'xlsx';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -224,6 +225,27 @@ export function StockOutContent() {
     }
   };
 
+  const exportToExcel = () => {
+    if (allData.length === 0) {
+      toast.warning('No data to export');
+      return;
+    }
+
+    const exportData = allData.map((item, index) => ({
+      'S.No.': index + 1,
+      'Category Name': item.categoryName,
+      'Product Name': item.productName,
+      'Quantity': item.quantity,
+      'Note': item.note,
+      'Date & Time': item.createdAt,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Stock Out');
+    XLSX.writeFile(workbook, `Stock_Out_${selectedMonth || 'All'}.xlsx`);
+  };
+
   const columns: Column<TransactionType>[] = [
     { key: 'categoryName', label: 'CATEGORY' },
     { key: 'productName', label: 'PRODUCT NAME' },
@@ -244,8 +266,9 @@ export function StockOutContent() {
     <div className="space-y-6">
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-xl font-bold text-gray-800">Stock Out</h2>
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-semibold text-gray-700">Filter by Month:</label>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-semibold text-gray-700">Filter by Month:</label>
           <div className="relative">
             <DatePicker
               selected={selectedMonth ? new Date(selectedMonth) : null}
@@ -261,10 +284,18 @@ export function StockOutContent() {
               dateFormat="MMMM yyyy"
               showMonthYearPicker
               placeholderText="Select Month"
-              className="pl-3 pr-8 py-1.5 rounded-[4px] border border-gray-300 bg-white text-sm font-medium text-gray-800 !outline-none focus:!border-[#A63C71] focus:!ring-1 focus:!ring-[#A63C71] transition-all cursor-pointer w-[150px]"
+              className="pl-3 pr-8 h-[38px] rounded-[4px] border border-gray-300 bg-white text-sm font-medium text-gray-800 !outline-none focus:!border-[#A63C71] focus:!ring-1 focus:!ring-[#A63C71] transition-all cursor-pointer w-[150px]"
               isClearable
             />
           </div>
+          </div>
+          <button
+            onClick={exportToExcel}
+            className="flex items-center justify-center gap-2 h-[38px] px-4 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors font-medium text-sm shadow-sm"
+          >
+            <Download size={16} />
+            Export Excel
+          </button>
         </div>
       </div>
 
