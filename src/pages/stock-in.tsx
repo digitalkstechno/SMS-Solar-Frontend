@@ -16,6 +16,8 @@ import { fetchCategories } from '@/redux/slices/categorySlice';
 import { fetchProducts } from '@/redux/slices/productSlice';
 import { useRef } from 'react';
 import { toast } from 'react-toastify';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -61,6 +63,7 @@ export function StockInContent() {
 
   const [totalRecords, setTotalRecords] = useState(0);
   const [search, setSearch] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const debouncedSearch = useDebounce(search, 600);
   const [currentPage, setCurrentPage] = useState(1);
@@ -104,7 +107,14 @@ export function StockInContent() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const res = await axios.get(`${baseUrl.stock}?type=IN`, { headers });
+      let url = `${baseUrl.stock}?type=IN`;
+      if (selectedMonth) {
+        const [year, month] = selectedMonth.split('-');
+        const from = new Date(Number(year), Number(month) - 1, 1).toISOString();
+        const to = new Date(Number(year), Number(month), 0, 23, 59, 59, 999).toISOString();
+        url += `&from=${from}&to=${to}`;
+      }
+      const res = await axios.get(url, { headers });
       const data = (res.data?.data as any[]) ?? [];
       const items: TransactionType[] = data.map((i) => ({
         _id: i._id,
@@ -141,7 +151,7 @@ export function StockInContent() {
 
   useEffect(() => {
     fetchData();
-  }, [debouncedSearch, currentPage, pageSize]);
+  }, [debouncedSearch, currentPage, pageSize, selectedMonth]);
 
   const saveTransaction = async (values: any) => {
     setIsSubmitting(true);
@@ -216,6 +226,29 @@ export function StockInContent() {
   return (
     <div className="space-y-6">
       <div className="mb-6 flex justify-between items-center">
+        <h2 className="text-xl font-bold text-gray-800">Stock In</h2>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-semibold text-gray-700">Filter by Month:</label>
+          <div className="relative">
+            <DatePicker
+              selected={selectedMonth ? new Date(selectedMonth) : null}
+              onChange={(date: Date | null) => {
+                if (date) {
+                  const year = date.getFullYear();
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  setSelectedMonth(`${year}-${month}`);
+                } else {
+                  setSelectedMonth('');
+                }
+              }}
+              dateFormat="MMMM yyyy"
+              showMonthYearPicker
+              placeholderText="Select Month"
+              className="pl-3 pr-8 py-1.5 rounded-[4px] border border-gray-300 bg-white text-sm font-medium text-gray-800 !outline-none focus:!border-[#A63C71] focus:!ring-1 focus:!ring-[#A63C71] transition-all cursor-pointer w-[150px]"
+              isClearable
+            />
+          </div>
+        </div>
       </div>
 
       <DataTable

@@ -16,6 +16,8 @@ import { fetchCategories } from '@/redux/slices/categorySlice';
 import { fetchProducts } from '@/redux/slices/productSlice';
 import { useRef } from 'react';
 import { toast } from 'react-toastify';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -48,6 +50,7 @@ export function StockOutContent() {
   const { data: products, status: prodStatus } = useAppSelector((state) => state.product);
   const [totalRecords, setTotalRecords] = useState(0);
   const [search, setSearch] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const debouncedSearch = useDebounce(search, 600);
   const [currentPage, setCurrentPage] = useState(1);
@@ -121,29 +124,30 @@ export function StockOutContent() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const res = await axios.get(`${baseUrl.stock}?type=OUT`, { headers });
+      let url = `${baseUrl.stock}?type=OUT`;
+      if (selectedMonth) {
+        const [year, month] = selectedMonth.split('-');
+        const from = new Date(Number(year), Number(month) - 1, 1).toISOString();
+        const to = new Date(Number(year), Number(month), 0, 23, 59, 59, 999).toISOString();
+        url += `&from=${from}&to=${to}`;
+      }
+      const res = await axios.get(url, { headers });
       const data = (res.data?.data as any[]) ?? [];
       
-      const groupedData = data.reduce((acc: any, i: any) => {
-        const prodId = i.productId?._id || 'unknown';
-        if (!acc[prodId]) {
-          acc[prodId] = {
-            _id: prodId, // Use productId as the unique key for the aggregated row
-            categoryId: i.categoryId?._id || '',
-            categoryName: i.categoryId?.name || '-',
-            productId: prodId,
-            productName: i.productId?.name || '-',
-            type: i.type,
-            quantity: 0,
-            note: '-', // Aggregated rows don't have a single note
-            createdAt: '-' // Nor a single date
-          };
-        }
-        acc[prodId].quantity += (i.quantity || 0);
-        return acc;
-      }, {});
-
-      const items: TransactionType[] = Object.values(groupedData);
+      const items: TransactionType[] = data.map((i: any) => ({
+        _id: i._id,
+        categoryId: i.categoryId?._id || '',
+        categoryName: i.categoryId?.name || '-',
+        productId: i.productId?._id || '',
+        productName: i.productId?.name || '-',
+        type: i.type,
+        quantity: i.quantity || 0,
+        note: i.note || '-',
+        createdAt: i.createdAt ? new Date(i.createdAt).toLocaleString('en-IN', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', hour12: true
+        }) : '-'
+      }));
 
       let filteredItems = items;
       if (debouncedSearch) {
@@ -166,7 +170,7 @@ export function StockOutContent() {
 
   useEffect(() => {
     fetchData();
-  }, [debouncedSearch, currentPage, pageSize]);
+  }, [debouncedSearch, currentPage, pageSize, selectedMonth]);
 
   const saveTransaction = async (values: any) => {
     setIsSubmitting(true);
@@ -223,12 +227,45 @@ export function StockOutContent() {
   const columns: Column<TransactionType>[] = [
     { key: 'categoryName', label: 'CATEGORY' },
     { key: 'productName', label: 'PRODUCT NAME' },
-    { key: 'quantity', label: 'TOTAL STOCK OUT' },
+    { key: 'quantity', label: 'QUANTITY' },
+    { 
+      key: 'note', 
+      label: 'NOTE',
+      render: (val: any) => (
+        <div title={val} className="max-w-[200px] truncate">
+          {val}
+        </div>
+      )
+    },
+    { key: 'createdAt', label: 'DATE & TIME' },
   ];
 
   return (
     <div className="space-y-6">
       <div className="mb-6 flex justify-between items-center">
+        <h2 className="text-xl font-bold text-gray-800">Stock Out</h2>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-semibold text-gray-700">Filter by Month:</label>
+          <div className="relative">
+            <DatePicker
+              selected={selectedMonth ? new Date(selectedMonth) : null}
+              onChange={(date: Date | null) => {
+                if (date) {
+                  const year = date.getFullYear();
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  setSelectedMonth(`${year}-${month}`);
+                } else {
+                  setSelectedMonth('');
+                }
+              }}
+              dateFormat="MMMM yyyy"
+              showMonthYearPicker
+              placeholderText="Select Month"
+              className="pl-3 pr-8 py-1.5 rounded-[4px] border border-gray-300 bg-white text-sm font-medium text-gray-800 !outline-none focus:!border-[#A63C71] focus:!ring-1 focus:!ring-[#A63C71] transition-all cursor-pointer w-[150px]"
+              isClearable
+            />
+          </div>
+        </div>
       </div>
 
       <DataTable
