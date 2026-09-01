@@ -53,7 +53,9 @@ const validationSchema = Yup.object({
     .typeError('Quantity must be a number')
     .required('Quantity is required')
     .min(1, 'Quantity must be greater than 0'),
-  note: Yup.string().max(200, 'Note must be at most 200 characters'),
+  note: Yup.string()
+    .required('Note is required')
+    .max(200, 'Note must be at most 200 characters'),
 });
 
 export function StockInContent() {
@@ -382,7 +384,7 @@ export function StockInContent() {
           const product = products.find(p => p._id === row.productId);
           if (!product) return true;
           // If quantity is greater than current stock, it means some of it was consumed
-          return row.quantity <= product.currentStock;
+          return row.quantity <= (product.currentStock ?? 0);
         }}
         onDelete={handleDeleteClick}
         addButton={canCreate ? {
@@ -481,7 +483,7 @@ export function StockInContent() {
           )}
 
           <FormInput
-            label="Quantity *"
+            label="Quantity"
             required
             name="quantity"
             type="number"
@@ -509,21 +511,18 @@ export function StockInContent() {
             placeholder="-- Default (Qty) --"
           />
 
-          <div className="space-y-1">
-            <label className="block text-sm font-semibold text-gray-700">Note</label>
-            <textarea
-              name="note"
-              value={formik.values.note}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              placeholder="Optional (e.g. Supplier name, Invoice no.)"
-              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
-              rows={3}
-            />
-            {formik.touched.note && formik.errors.note && (
-              <p className="text-sm text-red-600">{formik.errors.note}</p>
-            )}
-          </div>
+          <FormInput
+            label="Note"
+            required
+            name="note"
+            as="textarea"
+            value={formik.values.note}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            error={formik.touched.note && formik.errors.note ? String(formik.errors.note) : undefined}
+            placeholder="Enter note (e.g. Supplier name, Invoice no.)"
+            rows={3}
+          />
         </form>
       </Dialog>
     </div>

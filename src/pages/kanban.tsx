@@ -15,6 +15,7 @@ import { useRouter } from "next/router";
 import { baseUrl, getAuthToken } from "@/config";
 import { useAppSelector } from '@/redux/hooks';
 import Dialog from "@/components/Dialog";
+import FormInput from "@/components/ui/Input";
 import { ListCollapse, Plus } from "lucide-react";
 import Select from "react-select";
 
@@ -115,6 +116,7 @@ export default function LeadsPage() {
   const [pendingStatusId, setPendingStatusId] = useState<string | null>(null);
   const [visitScheduleLeadId, setVisitScheduleLeadId] = useState<string | null>(null);
   const [visitScheduleDate, setVisitScheduleDate] = useState<string>('');
+  const [visitScheduleNote, setVisitScheduleNote] = useState<string>('');
   const [visibleStatusNames, setVisibleStatusNames] = useState<string[] | null>(null);
   const [pageMap, setPageMap] = useState<Record<string, number>>({});
   const [hasMoreMap, setHasMoreMap] = useState<Record<string, boolean>>({});
@@ -574,7 +576,10 @@ export default function LeadsPage() {
   };
 
   const confirmVisitSchedule = async () => {
-    if (!visitScheduleLeadId || !visitScheduleDate || !pendingStatusId) return;
+    if (!visitScheduleLeadId || !visitScheduleDate || !visitScheduleNote.trim() || !pendingStatusId) {
+      toast.error('Visit date and note are required');
+      return;
+    }
 
     try {
       const token = getAuthToken();
@@ -582,6 +587,7 @@ export default function LeadsPage() {
         leadStatus: pendingStatusId,
         isVisitDone: true,
         visitDate: visitScheduleDate,
+        visitNote: visitScheduleNote.trim(),
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -591,6 +597,8 @@ export default function LeadsPage() {
       toast.error('Failed to schedule visit');
     } finally {
       setVisitScheduleLeadId(null);
+      setVisitScheduleDate('');
+      setVisitScheduleNote('');
       setPendingStatusId(null);
     }
   };
@@ -1695,7 +1703,7 @@ export default function LeadsPage() {
               <div className="p-6 space-y-4">
                 <div className="space-y-1 text-left">
                   <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                    <span className="text-blue-600">📅</span> Visit Date
+                    <span className="text-blue-600">📅</span> Visit Date <span className="text-red-500">*</span>
                   </label>
                   <DatePicker
                     selected={visitScheduleDate ? new Date(visitScheduleDate) : null}
@@ -1706,21 +1714,34 @@ export default function LeadsPage() {
                     wrapperClassName="w-full"
                   />
                 </div>
+                <FormInput
+                  label="Note"
+                  required
+                  name="visitScheduleNote"
+                  as="textarea"
+                  value={visitScheduleNote}
+                  onChange={(e) => setVisitScheduleNote(e.target.value)}
+                  error={!visitScheduleNote.trim() ? "Note is required" : undefined}
+                  placeholder="Enter visit details or reason..."
+                  rows={3}
+                />
               </div>
               <div className="px-6 py-4 bg-gray-50 border-t flex justify-center gap-3">
                 <button
                   onClick={confirmVisitSchedule}
-                  disabled={!visitScheduleDate}
-                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  disabled={!visitScheduleDate || !visitScheduleNote.trim()}
+                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
                 >
                   Schedule Visit
                 </button>
                 <button
                   onClick={() => {
                     setVisitScheduleLeadId(null);
+                    setVisitScheduleDate('');
+                    setVisitScheduleNote('');
                     setPendingStatusId(null);
                   }}
-                  className="px-6 py-2 bg-[#6D7A86] text-white font-medium rounded hover:bg-[#5b6670] transition-colors"
+                  className="px-6 py-2 bg-[#6D7A86] text-white font-medium rounded hover:bg-[#5b6670] transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

@@ -57,6 +57,9 @@ export type ApiLead = {
   assignedTo?: ApiUser;
   isActive?: boolean;
   isVisitDone?: boolean;
+  isVisitCompleted?: boolean;
+  visitDate?: string;
+  visitNote?: string;
   followUps?: ApiFollowUp[];
   attachments?: {
     _id?: string;
