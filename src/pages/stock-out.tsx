@@ -90,7 +90,9 @@ export function StockOutContent() {
         .typeError('Quantity must be a number')
         .required('Quantity is required')
         .min(1, 'Quantity must be greater than 0'),
-      note: Yup.string().max(200, 'Note must be at most 200 characters'),
+      note: Yup.string()
+        .required('Note is required')
+        .max(200, 'Note must be at most 200 characters'),
     }),
     validateOnChange: true,
     validateOnBlur: true,
@@ -501,21 +503,18 @@ export function StockOutContent() {
             placeholder="Enter quantity to remove"
           />
 
-          <div className="space-y-1">
-            <label className="block text-sm font-semibold text-gray-700">Note</label>
-            <textarea
-              name="note"
-              value={formik.values.note}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              placeholder="Optional (e.g. Site name, Project code)"
-              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
-              rows={3}
-            />
-            {formik.touched.note && formik.errors.note && (
-              <p className="text-sm text-red-600">{formik.errors.note}</p>
-            )}
-          </div>
+          <FormInput
+            label="Note"
+            required
+            name="note"
+            as="textarea"
+            value={formik.values.note}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            error={formik.touched.note && formik.errors.note ? String(formik.errors.note) : undefined}
+            placeholder="Enter note (e.g. Site name, Project code)"
+            rows={3}
+          />
         </form>
       </Dialog>
     </div>

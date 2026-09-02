@@ -17,6 +17,7 @@ import ProjectDetailDrawer from './ProjectDetailDrawer';
 import PaymentModal from './PaymentModal';
 import LeadDocumentsModal from './LeadDocumentsModal';
 import LeadAssignStockDialog from './LeadAssignStockDialog';
+import FormInput from '@/components/ui/Input';
 
 type PaginationShape = {
     currentPage: number;
@@ -107,6 +108,7 @@ export default function LeadsKanbanView({
     // Custom Modal for Visit Schedule
     const [visitScheduleLeadId, setVisitScheduleLeadId] = useState<string | null>(null);
     const [visitScheduleDate, setVisitScheduleDate] = useState<string>('');
+    const [visitScheduleNote, setVisitScheduleNote] = useState<string>('');
 
     const canEditLead = (lead: ApiLead) => {
         if (isAdmin) return true;
@@ -377,7 +379,10 @@ export default function LeadsKanbanView({
     };
 
     const confirmVisitSchedule = async () => {
-        if (!visitScheduleLeadId || !visitScheduleDate || !pendingStatusId) return;
+        if (!visitScheduleLeadId || !visitScheduleDate || !visitScheduleNote.trim() || !pendingStatusId) {
+            toast.error('Visit date and note are required');
+            return;
+        }
 
         setUpdatingId(visitScheduleLeadId);
         try {
@@ -385,6 +390,7 @@ export default function LeadsKanbanView({
                 leadStatus: pendingStatusId,
                 isVisitDone: true,
                 visitDate: visitScheduleDate,
+                visitNote: visitScheduleNote.trim(),
             }, {
                 headers: { Authorization: `Bearer ${token()}` }
             });
@@ -399,6 +405,8 @@ export default function LeadsKanbanView({
         } finally {
             setUpdatingId(null);
             setVisitScheduleLeadId(null);
+            setVisitScheduleDate('');
+            setVisitScheduleNote('');
             setPendingStatusId(null);
             setPendingSourceStatusId(null);
         }
@@ -835,7 +843,7 @@ export default function LeadsKanbanView({
                         <div className="p-6 space-y-4">
                             <div className="space-y-1 text-left">
                                 <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                    <Calendar className="w-4 h-4 text-blue-600" /> Visit Date
+                                    <Calendar className="w-4 h-4 text-blue-600" /> Visit Date <span className="text-red-500">*</span>
                                 </label>
                                 <DatePicker
                                     selected={visitScheduleDate ? new Date(visitScheduleDate) : null}
@@ -846,21 +854,34 @@ export default function LeadsKanbanView({
                                     wrapperClassName="w-full"
                                 />
                             </div>
+                            <FormInput
+                                label="Note"
+                                required
+                                name="visitScheduleNote"
+                                as="textarea"
+                                value={visitScheduleNote}
+                                onChange={(e) => setVisitScheduleNote(e.target.value)}
+                                error={!visitScheduleNote.trim() ? "Note is required" : undefined}
+                                placeholder="Enter visit details or reason..."
+                                rows={3}
+                            />
                         </div>
                         <div className="px-6 py-4 bg-gray-50 border-t flex justify-center gap-3">
                             <button
                                 onClick={confirmVisitSchedule}
-                                disabled={!visitScheduleDate}
-                                className="px-6 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                disabled={!visitScheduleDate || !visitScheduleNote.trim()}
+                                className="px-6 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
                             >
                                 Schedule Visit
                             </button>
                             <button
                                 onClick={() => {
                                     setVisitScheduleLeadId(null);
+                                    setVisitScheduleDate('');
+                                    setVisitScheduleNote('');
                                     setPendingStatusId(null);
                                 }}
-                                className="px-6 py-2 bg-[#6D7A86] text-white font-medium rounded hover:bg-[#5b6670] transition-colors"
+                                className="px-6 py-2 bg-[#6D7A86] text-white font-medium rounded hover:bg-[#5b6670] transition-colors cursor-pointer"
                             >
                                 Cancel
                             </button>

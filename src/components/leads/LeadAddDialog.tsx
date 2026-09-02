@@ -416,8 +416,14 @@ export default function LeadAddDialog({
                 type="text"
                 value={formik.values.kwRequirement}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  const numericOnly = e.target.value.replace(/\D/g, '');
-                  formik.setFieldValue('kwRequirement', numericOnly);
+                  // Allow digits and one decimal point
+                  let value = e.target.value.replace(/[^0-9.]/g, '');
+                  // Prevent multiple decimal points
+                  const parts = value.split('.');
+                  if (parts.length > 2) {
+                    value = parts[0] + '.' + parts.slice(1).join('');
+                  }
+                  formik.setFieldValue('kwRequirement', value);
                 }}
                 onBlur={formik.handleBlur}
                 error={getFieldError('kwRequirement')}
