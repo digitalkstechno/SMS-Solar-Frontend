@@ -18,7 +18,6 @@ import { useRef } from 'react';
 import { toast } from 'react-toastify';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import * as XLSX from 'xlsx-js-style';
 
 function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -227,94 +226,38 @@ export function StockOutContent() {
     }
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     if (allData.length === 0) {
       toast.warning('No data to export');
       return;
     }
 
-    const exportData = allData.map((item, index) => {
-      const [datePart, timePart] = item.createdAt && item.createdAt.includes(', ')
-        ? item.createdAt.split(', ')
-        : [item.createdAt || '-', '-'];
-
-      return {
-        'S.No.': index + 1,
-        'Category Name': item.categoryName,
-        'Product Name': item.productName,
-        'Quantity': item.quantity,
-        'Note': item.note,
-        'Date': datePart,
-        'Time': timePart,
-      };
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-
-    // Apply header and row styling
-    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
-    const totalCols = range.e.c - range.s.c + 1;
-    
-    // Style headers
-    for (let col = 0; col < totalCols; col++) {
-      const cellRef = XLSX.utils.encode_cell({ r: 0, c: col });
-      if (worksheet[cellRef]) {
-        worksheet[cellRef].s = {
-          fill: {
-            fgColor: { rgb: "A63C71" } // Theme color
-          },
-          font: {
-            color: { rgb: "FFFFFF" }, // White text
-            bold: true,
-            name: "Arial",
-            sz: 11
-          },
-          alignment: {
-            vertical: "center",
-            horizontal: "center"
-          }
-        };
+    try {
+      const params: Record<string, string> = { type: 'OUT' };
+      if (selectedMonth) {
+        const [year, month] = selectedMonth.split('-');
+        params.from = new Date(Number(year), Number(month) - 1, 1).toISOString();
+        params.to = new Date(Number(year), Number(month), 0, 23, 59, 59, 999).toISOString();
       }
-    }
+      if (debouncedSearch) params.search = debouncedSearch;
 
-    // Style data rows (No background fills, just clean fonts and alignments)
-    for (let row = 1; row <= range.e.r; row++) {
-      for (let col = 0; col < totalCols; col++) {
-        const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
-        if (worksheet[cellRef]) {
-          worksheet[cellRef].s = {
-            font: {
-              name: "Arial",
-              sz: 10
-            },
-            alignment: {
-              vertical: "center",
-              // Center align S.No, Quantity, Date, Time columns
-              horizontal: (col === 0 || col === 3 || col === 5 || col === 6) ? "center" : "left"
-            }
-          };
-        }
-      }
+      const response = await axios.get(`${baseUrl.stock}/export`, {
+        headers,
+        params,
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Stock_Out_${selectedMonth || 'All'}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export stock-out records', err);
+      toast.error('Failed to export stock-out records');
     }
-
-    // Auto-fit column widths
-    const colsWidth = [];
-    for (let col = 0; col < totalCols; col++) {
-      let maxLen = 10;
-      for (let r = 0; r <= range.e.r; r++) {
-        const cellRef = XLSX.utils.encode_cell({ r, c: col });
-        const val = worksheet[cellRef] ? String(worksheet[cellRef].v) : '';
-        if (val.length > maxLen) {
-          maxLen = val.length;
-        }
-      }
-      colsWidth.push({ wch: maxLen + 3 });
-    }
-    worksheet['!cols'] = colsWidth;
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Stock Out');
-    XLSX.writeFile(workbook, `Stock_Out_${selectedMonth || 'All'}.xlsx`);
   };
 
   const columns: Column<TransactionType>[] = [

@@ -35,6 +35,7 @@ import {
   RefreshCw,
   XCircle,
   Mail as MailIcon,
+  Download,
 } from "lucide-react";
 import axios from "axios";
 import { baseUrl, getAuthToken } from "@/config";
@@ -586,6 +587,32 @@ export default function Dashboard() {
       toast.error("Failed to refresh stock sheet");
     } finally {
       setIsStockLoading(false);
+    }
+  };
+
+  const exportLiveStock = async () => {
+    if (!token || stockProducts.length === 0) {
+      toast.warning("No stock data to export");
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${baseUrl.product}/export`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { search: stockSearch || undefined },
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `live_stock_sheet_${Date.now()}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to export live stock sheet", err);
+      toast.error("Failed to export stock sheet");
     }
   };
 
@@ -1921,6 +1948,14 @@ export default function Dashboard() {
               >
                 <RefreshCw className={`h-4 w-4 ${isStockLoading ? "animate-spin" : ""}`} />
                 Refresh
+              </button>
+              <button
+                onClick={exportLiveStock}
+                disabled={isStockLoading}
+                className="flex items-center gap-2 rounded-xl border border-[#a63c71] text-[#a63c71] hover:bg-[#a63c71]/10 font-semibold text-sm px-4 py-2 transition-all duration-200 cursor-pointer disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" />
+                Export
               </button>
             </div>
           </div>

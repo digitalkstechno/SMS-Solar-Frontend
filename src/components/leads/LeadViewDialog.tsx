@@ -482,7 +482,6 @@ import { Eye, Download, FileText, Image, File, FileSpreadsheet, Search, Trash2, 
 import { getFileIcon } from '@/utills/utill';
 import LeadQuotationDialog from './LeadQuotationDialog';
 import { FormSelect } from '../ui/FormSelect';
-import { generateQuotationPDF } from '@/utills/quotationPdfGenerator';
 import DatePicker from 'react-datepicker';
 import Swal from 'sweetalert2';
 import moment from 'moment';
@@ -961,7 +960,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
     try {
       let qData = quotation;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
+      const apiUrl = baseUrl.getBaseUrl;
       const response = await axios.post(`${apiUrl}quotation/generate`, {
         quotation: qData,
         lead: lead
@@ -996,7 +995,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
     try {
       let qData = quotation;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/';
+      const apiUrl = baseUrl.getBaseUrl;
       const response = await axios.post(`${apiUrl}quotation/whatsapp`, {
         quotation: qData,
         lead: lead
