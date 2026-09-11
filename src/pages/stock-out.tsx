@@ -90,6 +90,7 @@ export function StockOutContent() {
         .required('Quantity is required')
         .min(1, 'Quantity must be greater than 0'),
       note: Yup.string()
+        .trim()
         .required('Note is required')
         .max(200, 'Note must be at most 200 characters'),
     }),
