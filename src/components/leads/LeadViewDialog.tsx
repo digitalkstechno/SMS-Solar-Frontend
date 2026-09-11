@@ -646,39 +646,40 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
 
   const handleSave = async () => {
     if (!lead) return;
+    if (!followupNote.trim()) {
+      toast.error('Note is required');
+      return;
+    }
     setSaving(true);
     try {
+      const followupDate = editNextDate || new Date().toISOString().split('T')[0];
+      const cleanLocalFollowUps = localFollowUps
+        .filter(f => !f._id?.startsWith('temp_'))
+        .map(f => ({
+          ...(f._id && !f._id.startsWith('temp_') ? { _id: f._id } : {}),
+          date: f.date,
+          time: f.time || '',
+          note: f.note,
+          staff: typeof f.staff === 'object' && f.staff?._id ? f.staff._id : f.staff
+        }));
+
+      const newFollowup = {
+        date: followupDate,
+        time: '',
+        note: followupNote.trim(),
+        staff: staffInfo ? staffInfo._id : undefined
+      };
+
       const payload: any = {
         leadStatus: editStatus,
         isVisitDone: visitDone,
         visitDate: visitDone ? localVisitDate : null,
+        followUps: [...cleanLocalFollowUps, newFollowup],
+        nextFollowupDate: followupDate,
+        nextFollowupTime: '',
+        lastFollowUp: new Date().toISOString().split('T')[0],
+        note: followupNote.trim(),
       };
-
-      if (followupNote.trim()) {
-        const followupDate = editNextDate || new Date().toISOString().split('T')[0];
-        const cleanLocalFollowUps = localFollowUps
-          .filter(f => !f._id?.startsWith('temp_'))
-          .map(f => ({
-            ...(f._id && !f._id.startsWith('temp_') ? { _id: f._id } : {}),
-            date: f.date,
-            time: f.time || '',
-            note: f.note,
-            staff: typeof f.staff === 'object' && f.staff?._id ? f.staff._id : f.staff
-          }));
-
-        const newFollowup = {
-          date: followupDate,
-          time: '',
-          note: followupNote.trim(),
-          staff: staffInfo ? staffInfo._id : undefined
-        };
-
-        payload.followUps = [...cleanLocalFollowUps, newFollowup];
-        payload.nextFollowupDate = followupDate;
-        payload.nextFollowupTime = '';
-        payload.lastFollowUp = new Date().toISOString().split('T')[0];
-        payload.note = followupNote.trim();
-      }
 
       const res = await axios.put(
         `${baseUrl.updateLead}/${lead._id}`,
@@ -1180,7 +1181,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="rounded-lg bg-[#a63c71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] disabled:opacity-50"
+                className="rounded-lg bg-[#a63c71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] disabled:opacity-50 cursor-pointer transition-all shadow-sm"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
