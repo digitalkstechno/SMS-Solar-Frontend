@@ -477,7 +477,6 @@ import Dialog, { CenterDialog } from '@/components/Dialog';
 import { baseUrl, getAuthToken } from '@/config';
 import { ApiLead, ApiStatus } from './types';
 import { FiPhone, FiMail, FiMapPin, FiCalendar, FiClock, FiCheckSquare, FiMessageSquare, FiList, FiEdit2, FiX, FiCheck, FiFileText } from 'react-icons/fi';
-import CustomTimePicker from '../ui/CustomTimePicker';
 import { Eye, Download, FileText, Image, File, FileSpreadsheet, Search, Trash2, MessageCircle, CheckCircle2 } from 'lucide-react';
 import { getFileIcon } from '@/utills/utill';
 import LeadQuotationDialog from './LeadQuotationDialog';
@@ -559,8 +558,8 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
 
   useEffect(() => {
     if (lead) {
-      setEditStatus(lead.leadStatus?._id || '');
-      setEditNextDate(lead.nextFollowupDate || '');
+      setEditStatus(lead.leadStatus?._id || lead.leadStatus || '');
+      setEditNextDate(lead.nextFollowupDate ? lead.nextFollowupDate.toString().split('T')[0] : '');
       setEditNextTime(lead.nextFollowupTime || '');
       setLocalFollowUps(lead.followUps || []);
       setLocalAttachments(lead.attachments || []);
@@ -572,6 +571,36 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
         setLocalVisitDate(lead.visitDate.toString().split('T')[0]);
       } else {
         setLocalVisitDate('');
+      }
+
+      // Fetch fresh lead details from server to ensure latest follow-up records are shown
+      if (lead._id) {
+        const fetchLatestLead = async () => {
+          try {
+            const res = await axios.get(`${baseUrl.findLeadById}/${lead._id}`, {
+              headers: { Authorization: `Bearer ${getAuthToken()}` }
+            });
+            const freshLead = res.data?.data;
+            if (freshLead) {
+              setEditStatus(freshLead.leadStatus?._id || freshLead.leadStatus || '');
+              setEditNextDate(freshLead.nextFollowupDate ? freshLead.nextFollowupDate.toString().split('T')[0] : '');
+              setLocalFollowUps(freshLead.followUps || []);
+              setLocalAttachments(freshLead.attachments || []);
+              setLocalActivities(freshLead.activities || []);
+              setLocalAssignedTo(freshLead.assignedTo || null);
+              setLocalQuotations(freshLead.quotations || []);
+              setVisitDone(freshLead.isVisitDone ?? null);
+              if (freshLead.visitDate) {
+                setLocalVisitDate(freshLead.visitDate.toString().split('T')[0]);
+              } else {
+                setLocalVisitDate('');
+              }
+            }
+          } catch (err) {
+            console.error('Failed to fetch full lead details:', err);
+          }
+        };
+        fetchLatestLead();
       }
     }
   }, [lead]);
@@ -619,19 +648,53 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
     if (!lead) return;
     setSaving(true);
     try {
+      const payload: any = {
+        leadStatus: editStatus,
+        isVisitDone: visitDone,
+        visitDate: visitDone ? localVisitDate : null,
+      };
+
+      if (followupNote.trim()) {
+        const followupDate = editNextDate || new Date().toISOString().split('T')[0];
+        const cleanLocalFollowUps = localFollowUps
+          .filter(f => !f._id?.startsWith('temp_'))
+          .map(f => ({
+            ...(f._id && !f._id.startsWith('temp_') ? { _id: f._id } : {}),
+            date: f.date,
+            time: f.time || '',
+            note: f.note,
+            staff: typeof f.staff === 'object' && f.staff?._id ? f.staff._id : f.staff
+          }));
+
+        const newFollowup = {
+          date: followupDate,
+          time: '',
+          note: followupNote.trim(),
+          staff: staffInfo ? staffInfo._id : undefined
+        };
+
+        payload.followUps = [...cleanLocalFollowUps, newFollowup];
+        payload.nextFollowupDate = followupDate;
+        payload.nextFollowupTime = '';
+        payload.lastFollowUp = new Date().toISOString().split('T')[0];
+        payload.note = followupNote.trim();
+      }
+
       const res = await axios.put(
         `${baseUrl.updateLead}/${lead._id}`,
-        {
-          leadStatus: editStatus,
-          isVisitDone: visitDone,
-          visitDate: visitDone ? localVisitDate : null,
-        },
+        payload,
         { headers: { Authorization: `Bearer ${getAuthToken()}` } }
       );
       if (res.data?.data?.activities) {
         setLocalActivities(res.data.data.activities);
       }
-      toast.success('Lead status updated');
+      if (res.data?.data?.followUps) {
+        setLocalFollowUps(res.data.data.followUps);
+      }
+      toast.success('Lead updated successfully');
+      setFollowupNote('');
+      setEditNextDate('');
+      setEditNextTime('');
       onRefresh();
       onClose();
     } catch (e: any) {
@@ -694,14 +757,18 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
   };
 
   const handleAddFollowup = async () => {
-    if (!lead || !editNextDate || !followupNote) return;
+    if (!lead || !followupNote.trim()) {
+      toast.error('Note is required');
+      return;
+    }
+    const followupDate = editNextDate || new Date().toISOString().split('T')[0];
     setAddingFollowup(true);
 
     // Create temporary follow-up object with optimistic update
     const tempFollowUp: FollowUp = {
-      date: editNextDate,
-      time: editNextTime,
-      note: followupNote,
+      date: followupDate,
+      time: '',
+      note: followupNote.trim(),
       staff: staffInfo ? {
         _id: staffInfo._id,
         fullName: staffInfo.fullName || 'Current User'
@@ -713,6 +780,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
     // Optimistically add to local state
     setLocalFollowUps(prev => [tempFollowUp, ...prev]);
 
+    const noteToSave = followupNote.trim();
     // Clear form fields
     setFollowupNote('');
     setEditNextDate('');
@@ -720,18 +788,19 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
 
     try {
       const newFollowup = {
-        date: editNextDate,
-        time: editNextTime,
-        note: followupNote,
+        date: followupDate,
+        time: '',
+        note: noteToSave,
       };
 
       const cleanLocalFollowUps = localFollowUps
         .filter(f => !f._id?.startsWith('temp_'))
         .map(f => ({
+          ...(f._id && !f._id.startsWith('temp_') ? { _id: f._id } : {}),
           date: f.date,
-          time: f.time,
+          time: f.time || '',
           note: f.note,
-          staff: f.staff?._id || f.staff
+          staff: typeof f.staff === 'object' && f.staff?._id ? f.staff._id : f.staff
         }));
 
       const updatedFollowUps = [...cleanLocalFollowUps, newFollowup];
@@ -740,9 +809,10 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
         `${baseUrl.updateLead}/${lead._id}`,
         {
           followUps: updatedFollowUps,
-          nextFollowupDate: editNextDate,
-          nextFollowupTime: editNextTime,
-          lastFollowUp: new Date().toISOString().split('T')[0]
+          nextFollowupDate: followupDate,
+          nextFollowupTime: '',
+          lastFollowUp: new Date().toISOString().split('T')[0],
+          note: noteToSave
         },
         { headers: { Authorization: `Bearer ${getAuthToken()}` } }
       );
@@ -750,6 +820,9 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
       // Update with actual data from server
       if (response.data?.data?.followUps) {
         setLocalFollowUps(response.data.data.followUps);
+      }
+      if (response.data?.data?.activities) {
+        setLocalActivities(response.data.data.activities);
       }
 
       toast.success('Follow-up recorded successfully');
@@ -1272,29 +1345,22 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                   {canUpdateLead && (
                     <div className="mb-6 p-4 bg-white border border-gray-200 rounded-xl">
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">Add New Follow-up</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <label className="text-xs font-medium text-gray-500">Date</label>
-                          <DatePicker
-                            selected={editNextDate ? new Date(editNextDate) : null}
-                            onChange={(date: Date | null) => setEditNextDate(date ? date.toISOString().split('T')[0] : '')}
-                            placeholderText="mm/dd/yyyy"
-                            dateFormat="MM/dd/yyyy"
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-secondary transition-all outline-none cursor-pointer"
-                            wrapperClassName="w-full"
-                            popperPlacement="bottom-start"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-medium text-gray-500">Time</label>
-                          <CustomTimePicker
-                            value={editNextTime}
-                            onChange={(val) => setEditNextTime(val)}
-                          />
-                        </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-gray-500">Date</label>
+                        <DatePicker
+                          selected={editNextDate ? new Date(editNextDate) : null}
+                          onChange={(date: Date | null) => setEditNextDate(date ? date.toISOString().split('T')[0] : '')}
+                          placeholderText="mm/dd/yyyy"
+                          dateFormat="MM/dd/yyyy"
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-1 focus:ring-secondary transition-all outline-none cursor-pointer"
+                          wrapperClassName="w-full"
+                          popperPlacement="bottom-start"
+                        />
                       </div>
                       <div className="mt-3 space-y-1">
-                        <label className="text-xs font-medium text-gray-500">Note / Summary</label>
+                        <label className="text-xs font-medium text-gray-500">
+                          Note / Summary <span className="text-red-500">*</span>
+                        </label>
                         <textarea
                           value={followupNote}
                           onChange={(e) => setFollowupNote(e.target.value)}
@@ -1305,7 +1371,7 @@ export default function LeadViewDialog({ lead, statuses, onClose, onRefresh, cur
                       </div>
                       <button
                         onClick={handleAddFollowup}
-                        disabled={!editNextDate || !followupNote || addingFollowup}
+                        disabled={!followupNote.trim() || addingFollowup}
                         className="mt-3 w-full rounded-lg bg-[#A63C71] px-4 py-2 text-sm font-semibold text-white hover:bg-[#8f325f] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
                       >
                         {addingFollowup ? (
