@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Check, X } from "lucide-react";
+import { ChevronDown, Check, X, Plus } from "lucide-react";
 
 export interface SelectOption {
   value: string;
@@ -40,19 +40,23 @@ function useDropdownPosition(ref: React.RefObject<any>, isOpen: boolean) {
 interface TableSelectProps {
   value: string;
   onChange: (value: string) => void;
+  onCreateOption?: (value: string) => void;
   options: SelectOption[];
   placeholder?: string;
   disabled?: boolean;
   isClearable?: boolean;
+  creatable?: boolean;
 }
 
 export const TableSelect: React.FC<TableSelectProps> = ({
   value,
   onChange,
+  onCreateOption,
   options,
   placeholder = "Select option...",
   disabled = false,
   isClearable = true,
+  creatable = true,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,9 +93,48 @@ export const TableSelect: React.FC<TableSelectProps> = ({
     setIsOpen(false);
   };
 
+  const handleCreate = (val: string) => {
+    const clean = val.trim();
+    if (!clean) return;
+    if (onCreateOption) {
+      onCreateOption(clean);
+    } else {
+      onChange(clean);
+    }
+    setIsOpen(false);
+  };
+
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
     onChange('');
+  };
+
+  const filteredOptions = options.filter(o => 
+    (o.label || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const hasExactMatch = options.some(
+    o => (o.label || "").toLowerCase().trim() === searchQuery.toLowerCase().trim()
+  );
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (searchQuery.trim()) {
+        const exact = filteredOptions.find(
+          o => (o.label || "").toLowerCase().trim() === searchQuery.toLowerCase().trim()
+        );
+        if (exact) {
+          handleSelect(exact);
+        } else if (filteredOptions.length === 1) {
+          handleSelect(filteredOptions[0]);
+        } else if (creatable) {
+          handleCreate(searchQuery);
+        }
+      }
+    } else if (e.key === "Escape") {
+      setIsOpen(false);
+    }
   };
 
   const triggerClasses = `
@@ -114,11 +157,11 @@ export const TableSelect: React.FC<TableSelectProps> = ({
         onClick={handleToggle}
         className={triggerClasses}
       >
-        <span className={`block truncate ${selected ? "text-gray-900" : "text-gray-400"}`}>
-          {selected ? selected.label : placeholder}
+        <span className={`block truncate ${selected || value ? "text-gray-900" : "text-gray-400"}`}>
+          {selected ? selected.label : (value || placeholder)}
         </span>
         <div className="flex items-center gap-1">
-          {isClearable && selected && !disabled && (
+          {isClearable && (selected || value) && !disabled && (
             <X 
               size={14} 
               className="text-gray-400 hover:text-red-500 transition-colors" 
@@ -147,18 +190,30 @@ export const TableSelect: React.FC<TableSelectProps> = ({
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search..."
+                placeholder="Type or search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/50"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
             <ul className="max-h-60 overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-gray-200">
-              {options.length === 0 ? (
-                <li className="px-3 py-2 text-sm text-gray-400 text-center">No options</li>
+              {creatable && searchQuery.trim() && !hasExactMatch && (
+                <li
+                  onClick={() => handleCreate(searchQuery)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-secondary font-medium hover:bg-blue-50 cursor-pointer border-b border-gray-100 bg-blue-50/50"
+                >
+                  <Plus size={14} className="text-secondary flex-shrink-0" />
+                  <span className="truncate">Add &quot;{searchQuery.trim()}&quot;</span>
+                </li>
+              )}
+              {filteredOptions.length === 0 && (!creatable || !searchQuery.trim()) ? (
+                <li className="px-3 py-2 text-sm text-gray-400 text-center">
+                  {searchQuery.trim() ? "No options found" : "Type to add new option..."}
+                </li>
               ) : (
-                options.filter(o => (o.label || "").toLowerCase().includes(searchQuery.toLowerCase())).map((option) => {
+                filteredOptions.map((option) => {
                   const isSelected = option.value === value;
                   return (
                     <li
