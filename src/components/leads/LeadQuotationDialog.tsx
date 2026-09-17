@@ -26,7 +26,10 @@ const DEFAULT_ROWS = [
   { title: 'Structure product', values: [''] },
   { title: 'DC protection', values: [''] },
   { title: 'AC protection', values: [''] },
-  { title: 'Solar cable product', values: [''] },
+  { title: 'AC Cable', values: [''] },
+  { title: 'DC Cable', values: [''] },
+  { title: 'Earthing Cable', values: [''] },
+  { title: 'LA Cable', values: [''] },
   { title: 'Gross ₹', values: [''] },
   { title: 'Subsidy ₹', values: [''] },
   { title: 'Net Payable ₹', values: [''] },
@@ -41,6 +44,10 @@ const DROPDOWN_FIELDS = [
   'structure product',
   'dc protection',
   'ac protection',
+  'ac cable',
+  'dc cable',
+  'earthing cable',
+  'la cable',
   'solar cable product'
 ];
 
@@ -80,6 +87,10 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
             'structure': 'structure product',
             'dcdb': 'dc protection',
             'acdb': 'ac protection',
+            'ac_cable': 'ac cable',
+            'dc_cable': 'dc cable',
+            'earthing_cable': 'earthing cable',
+            'la_cable': 'la cable',
             'cables': 'solar cable product',
             'roof': 'roof type'
           };
@@ -314,14 +325,31 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
     setRows(newRows);
   };
 
+  const reverseKeyMap: Record<string, string> = {
+    'solar module product': 'module',
+    'inverter product': 'inverter',
+    'structure product': 'structure',
+    'dc protection': 'dcdb',
+    'ac protection': 'acdb',
+    'ac cable': 'ac_cable',
+    'dc cable': 'dc_cable',
+    'earthing cable': 'earthing_cable',
+    'la cable': 'la_cable',
+    'solar cable product': 'cables',
+    'roof type': 'roof'
+  };
+
   const handleCreateOption = async (inputValue: string, rowKey: string, rIdx: number, cIdx: number) => {
-    handleRowValueChange(rIdx, cIdx, inputValue);
+    const cleanVal = inputValue.trim();
+    if (!cleanVal) return;
+    handleRowValueChange(rIdx, cIdx, cleanVal);
+    const backendKey = reverseKeyMap[rowKey] || rowKey;
     try {
       const apiUrl = baseUrl.getBaseUrl;
       const res = await axios.post(`${apiUrl}quotation-options`, {
-        key: rowKey,
-        label: inputValue,
-        value: inputValue
+        key: backendKey,
+        label: cleanVal,
+        value: cleanVal
       }, {
         headers: { Authorization: `Bearer ${getAuthToken()}` }
       });
@@ -329,7 +357,8 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
       if (res.data?.success) {
         setApiOptions(prev => {
           const current = prev[rowKey] || [];
-          return { ...prev, [rowKey]: [...current, { label: inputValue, value: inputValue }] };
+          if (current.some(o => o.value === cleanVal)) return prev;
+          return { ...prev, [rowKey]: [...current, { label: cleanVal, value: cleanVal }] };
         });
       }
     } catch (e) {
@@ -551,14 +580,14 @@ export default function LeadQuotationDialog({ isOpen, onClose, lead, onRefresh, 
                               <TableSelect
                                 value={val}
                                 onChange={(newValue) => handleRowValueChange(rIdx, cIdx, newValue)}
+                                onCreateOption={(newValue) => handleCreateOption(newValue, rowKey, rIdx, cIdx)}
                                 options={uniqueOptions}
-                                placeholder="Select option..."
+                                placeholder="Select or type option..."
                               />
                             </div>
                           ) : (
                             <input
                               type="text"
-                              inputMode="numeric"
                               value={val}
                               onChange={(e) => {
                                 let v = e.target.value;

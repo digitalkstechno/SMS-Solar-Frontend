@@ -8,20 +8,41 @@ import { toast } from 'react-toastify';
 import { Plus, Loader2 } from 'lucide-react';
 import DeleteDialog from '@/components/DeleteDialog';
 
-const CATEGORIES = [
+interface SubTab {
+  key: string;
+  label: string;
+}
+
+interface Category {
+  key: string;
+  label: string;
+  subTabs?: SubTab[];
+}
+
+const CATEGORIES: Category[] = [
   { key: 'module', label: 'SOLAR MODULE PRODUCT' },
   { key: 'inverter', label: 'INVERTER PRODUCT' },
   { key: 'structure', label: 'STRUCTURE PRODUCT' },
   { key: 'dcdb', label: 'DC PROTECTION' },
   { key: 'acdb', label: 'AC PROTECTION' },
-  { key: 'cables', label: 'SOLAR CABLE PRODUCT' },
+  {
+    key: 'cable',
+    label: 'CABLE',
+    subTabs: [
+      { key: 'ac_cable', label: 'AC CABLE' },
+      { key: 'dc_cable', label: 'DC CABLE' },
+      { key: 'earthing_cable', label: 'EARTHING CABLE' },
+      { key: 'la_cable', label: 'LA CABLE' },
+    ]
+  },
   { key: 'roof', label: 'ROOF TYPE' }
 ];
 
 export default function QuotationMasterPage() {
   const [options, setOptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(CATEGORIES[0].key);
+  const [activeCategory, setActiveCategory] = useState(CATEGORIES[0].key);
+  const [activeSubTab, setActiveSubTab] = useState('ac_cable');
   const [newValue, setNewValue] = useState('');
   const [adding, setAdding] = useState(false);
   const [optionToDelete, setOptionToDelete] = useState<any>(null);
@@ -46,6 +67,13 @@ export default function QuotationMasterPage() {
     fetchOptions();
   }, []);
 
+  const currentCategory = CATEGORIES.find(c => c.key === activeCategory);
+  const isSubTabActive = !!currentCategory?.subTabs;
+  const effectiveKey = isSubTabActive ? activeSubTab : activeCategory;
+  const effectiveLabel = isSubTabActive 
+    ? (currentCategory?.subTabs?.find(s => s.key === activeSubTab)?.label || 'CABLE')
+    : (currentCategory?.label || '');
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     const val = newValue.trim();
@@ -53,10 +81,9 @@ export default function QuotationMasterPage() {
     
     setAdding(true);
     try {
-      const activeCat = CATEGORIES.find(c => c.key === activeTab);
       const res = await axios.post(
         `${baseUrl.getBaseUrl}quotation-options`,
-        { key: activeTab, label: val, value: val },
+        { key: effectiveKey, label: val, value: val },
         { headers: { Authorization: `Bearer ${getAuthToken()}` } }
       );
       if (res.data.success) {
@@ -94,8 +121,7 @@ export default function QuotationMasterPage() {
     }
   };
 
-  const activeOptions = options.filter(o => o.key === activeTab);
-  const activeLabel = CATEGORIES.find(c => c.key === activeTab)?.label;
+  const activeOptions = options.filter(o => o.key === effectiveKey);
 
   const columns = [
     { key: 'label', label: 'VALUE' }
@@ -117,9 +143,14 @@ export default function QuotationMasterPage() {
             {CATEGORIES.map(cat => (
               <button
                 key={cat.key}
-                onClick={() => setActiveTab(cat.key)}
+                onClick={() => {
+                  setActiveCategory(cat.key);
+                  if (cat.subTabs && cat.subTabs.length > 0) {
+                    setActiveSubTab(cat.subTabs[0].key);
+                  }
+                }}
                 className={`text-left px-4 py-3 text-sm font-medium transition-colors border-b border-gray-200 last:border-b-0 outline-none ${
-                  activeTab === cat.key ? 'bg-gray-100 text-secondary border-l-4 border-l-secondary' : 'text-gray-600 hover:bg-gray-50 border-l-4 border-l-transparent'
+                  activeCategory === cat.key ? 'bg-gray-100 text-secondary border-l-4 border-l-secondary' : 'text-gray-600 hover:bg-gray-50 border-l-4 border-l-transparent'
                 }`}
               >
                 {cat.label}
@@ -131,14 +162,35 @@ export default function QuotationMasterPage() {
       
         <div className="md:col-span-3">
           <div className="border border-gray-200 rounded-md bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">{activeLabel}</h2>
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-6 pb-4 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-800">{effectiveLabel}</h2>
+
+              {currentCategory?.subTabs && (
+                <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg flex-wrap">
+                  {currentCategory.subTabs.map((st) => (
+                    <button
+                      key={st.key}
+                      type="button"
+                      onClick={() => setActiveSubTab(st.key)}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                        activeSubTab === st.key
+                          ? 'bg-secondary text-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
+                      }`}
+                    >
+                      {st.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             
             <form onSubmit={handleAdd} className="flex items-center gap-2 mb-6">
               <input
                 type="text"
                 value={newValue}
                 onChange={(e) => setNewValue(e.target.value)}
-                placeholder={`Add new ${activeLabel?.toLowerCase()}...`}
+                placeholder={`Add new ${effectiveLabel.toLowerCase()}...`}
                 className="flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
               />
               <button
