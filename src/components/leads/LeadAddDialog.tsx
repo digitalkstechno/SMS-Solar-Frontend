@@ -440,6 +440,9 @@ export default function LeadAddDialog({
                 onBlur={() => formik.setFieldTouched('discomName')}
                 options={[
                   { value: 'DGVCL', label: 'DGVCL' },
+                  { value: 'PGVCL', label: 'PGVCL' },
+                  { value: 'UGVCL', label: 'UGVCL' },
+                  { value: 'MGVCL', label: 'MGVCL' },
                   { value: 'Torrent Power', label: 'Torrent Power' },
                 ]}
                 error={getFieldError('discomName')}
